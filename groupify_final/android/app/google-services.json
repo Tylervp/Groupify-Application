@@ -1,0 +1,62 @@
+{
+  "project_info": {
+    "project_number": "738766374478",
+    "project_id": "groupify-final-x8mazy",
+    "storage_bucket": "groupify-final-x8mazy.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:738766374478:android:7c7362a1d8dc697287a51f",
+        "android_client_info": {
+          "package_name": "com.mycompany.Groupify"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "738766374478-689j7qu5kseh3ddushfgjsp0dkvj8oot.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mycompany.Groupify",
+            "certificate_hash": "3b7582c5ea359ad206d59979acced25deeed3211"
+          }
+        },
+        {
+          "client_id": "738766374478-95rehfqckpa3g9b2c9s8lch2cobmd5ni.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mycompany.Groupify",
+            "certificate_hash": "9bbb3186b2189ef16d8f272bdab59362c395cbb4"
+          }
+        },
+        {
+          "client_id": "738766374478-ucrl9hmidrmduilfi1t0omhmfe9s9lr9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlgaIU_gLbistydqo2_J3-U16aAoPQudQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "738766374478-ucrl9hmidrmduilfi1t0omhmfe9s9lr9.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "738766374478-6giekhuic0hggeb6922a14r7g3ojfd8r.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.mycompany.Groupify"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

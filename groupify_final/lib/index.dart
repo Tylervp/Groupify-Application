@@ -1,0 +1,37 @@
+// Export pages
+export '/groupify/pages/login/login_page/login_page_widget.dart'
+    show LoginPageWidget;
+export '/groupify/pages/profile/profile_page/profile_page_widget.dart'
+    show ProfilePageWidget;
+export '/groupify/pages/calendar/calendar_page/calendar_page_widget.dart'
+    show CalendarPageWidget;
+export '/groupify/pages/home/home_page/home_page_widget.dart'
+    show HomePageWidget;
+export '/groupify/pages/profile/settings/settings_widget.dart'
+    show SettingsWidget;
+export '/groupify/pages/home/inside_project/group_chat_page/group_chat_page_widget.dart'
+    show GroupChatPageWidget;
+export '/groupify/pages/home/inside_project/project_page/project_page_widget.dart'
+    show ProjectPageWidget;
+export '/groupify/pages/home/create_project_page/create_project_page_widget.dart'
+    show CreateProjectPageWidget;
+export '/groupify/pages/home/invitations_page/invitations_page_widget.dart'
+    show InvitationsPageWidget;
+export '/groupify/pages/home/inside_project/task_creation_page/task_creation_page_widget.dart'
+    show TaskCreationPageWidget;
+export '/groupify/pages/home/edti_project_page/edti_project_page_widget.dart'
+    show EdtiProjectPageWidget;
+export '/groupify/pages/home/inside_project/edit_task_page/edit_task_page_widget.dart'
+    show EditTaskPageWidget;
+export '/groupify/pages/home/inside_project/edit_subtask_page/edit_subtask_page_widget.dart'
+    show EditSubtaskPageWidget;
+export '/groupify/pages/home/inside_project/subtask_creation_page/subtask_creation_page_widget.dart'
+    show SubtaskCreationPageWidget;
+export '/groupify/pages/home/rating_page/rating_page_widget.dart'
+    show RatingPageWidget;
+export '/groupify/pages/profile/password_reset_page/password_reset_page_widget.dart'
+    show PasswordResetPageWidget;
+export '/groupify/pages/home/inside_project/browse_page/browse_page_widget.dart'
+    show BrowsePageWidget;
+export '/groupify/pages/profile/change_profile_photo/change_profile_photo_widget.dart'
+    show ChangeProfilePhotoWidget;
