@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.mycompany.Groupify.app-mergeDebugResources-21:/values-land/values-land.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\18329\\.gradle\\caches\\transforms-3\\a969bc840328ceceb91647fabc07f014\\transformed\\appcompat-1.2.0\\res\\values-land\\values-land.xml",
+                    "from": {
+                        "startLines": "2,3,4",
+                        "startColumns": "4,4,4",
+                        "startOffsets": "55,125,196",
+                        "endColumns": "69,70,67",
+                        "endOffsets": "120,191,259"
+                    }
+                }
+            ]
+        }
+    ]
+}

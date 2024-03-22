@@ -1,0 +1,28 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "groupify_final",
+            "cwd": "groupify_final",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "groupify_final (profile mode)",
+            "cwd": "groupify_final",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "groupify_final (release mode)",
+            "cwd": "groupify_final",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}
