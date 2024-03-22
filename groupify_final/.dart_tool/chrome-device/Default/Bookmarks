@@ -1,0 +1,79 @@
+{
+   "checksum": "8fdff7d83469a57909a0a7ce4dfc122a",
+   "roots": {
+      "bookmark_bar": {
+         "children": [ {
+            "date_added": "13355517709904089",
+            "date_last_used": "0",
+            "guid": "09863966-5eaa-4aeb-993d-f6081e14d566",
+            "id": "10",
+            "name": "Adobe Acrobat Pro DC for Samsung",
+            "show_icon": false,
+            "source": "oem_preload",
+            "type": "url",
+            "url": "http://www.adobe.com/go/samsung_apdc"
+         }, {
+            "date_added": "13355517709903979",
+            "date_last_used": "0",
+            "guid": "a2c2e0ea-d089-48af-99d7-ca37bc905258",
+            "id": "9",
+            "name": "Adobe Creative Cloud All Apps for Samsung",
+            "show_icon": false,
+            "source": "oem_preload",
+            "type": "url",
+            "url": "http://www.adobe.com/go/samsung_cci"
+         }, {
+            "date_added": "13355517709903807",
+            "date_last_used": "0",
+            "guid": "b64bbc31-2b71-4028-98aa-a0720c37bc73",
+            "id": "8",
+            "name": "Adobe Premiere Pro CC for Samsung",
+            "show_icon": false,
+            "source": "oem_preload",
+            "type": "url",
+            "url": "http://www.adobe.com/go/samsung_ppcc"
+         }, {
+            "date_added": "13355517709902869",
+            "date_last_used": "0",
+            "guid": "cb2b9f13-c9bb-4d71-82ed-5ff1226d3fd3",
+            "id": "7",
+            "name": "McAfee LiveSafe - Benefits for Samsung PC users",
+            "show_icon": false,
+            "source": "oem_preload",
+            "type": "url",
+            "url": "https://www.mcafee.com/consumer/v/samsung-pc.html"
+         } ],
+         "date_added": "13355517709535650",
+         "date_last_used": "0",
+         "date_modified": "13355517709904089",
+         "guid": "0bc5d13f-2cba-5d74-951f-3f233fe6c908",
+         "id": "1",
+         "name": "Favorites bar",
+         "source": "unknown",
+         "type": "folder"
+      },
+      "other": {
+         "children": [  ],
+         "date_added": "13355517709535654",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "82b081ec-3dd3-529c-8475-ab6c344590dd",
+         "id": "2",
+         "name": "Other favorites",
+         "source": "unknown",
+         "type": "folder"
+      },
+      "synced": {
+         "children": [  ],
+         "date_added": "13355517709535655",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "4cf2e351-0e85-532b-bb37-df045d8f8d0f",
+         "id": "3",
+         "name": "Mobile favorites",
+         "source": "unknown",
+         "type": "folder"
+      }
+   },
+   "version": 1
+}

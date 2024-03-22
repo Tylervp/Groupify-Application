@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'create_project_page_model.dart';
 export 'create_project_page_model.dart';
+import 'package:groupify_final/sql_database_connection.dart';
 
 class CreateProjectPageWidget extends StatefulWidget {
   const CreateProjectPageWidget({super.key});
@@ -17,7 +18,7 @@ class CreateProjectPageWidget extends StatefulWidget {
 
 class _CreateProjectPageWidgetState extends State<CreateProjectPageWidget> {
   late CreateProjectPageModel _model;
-
+  late SQLDatabaseHelper _sqldatabaseHelper;
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
@@ -31,7 +32,24 @@ class _CreateProjectPageWidgetState extends State<CreateProjectPageWidget> {
     _model.emailAddressController2 ??= TextEditingController();
     _model.emailAddressFocusNode2 ??= FocusNode();
 
+    _sqldatabaseHelper = SQLDatabaseHelper();
+    _connectToDatabase();
+
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
+  }
+
+Future<void> _connectToDatabase() async {
+    await _sqldatabaseHelper.connectToDatabase();
+  }
+
+  Future<void> _insertProject() async {
+    final String projectName = _model.emailAddressController1.text;
+    final String projectDescription = _model.emailAddressController2.text;
+
+    final results = await _sqldatabaseHelper.connection.query(
+        'INSERT INTO Projects (projectName, ownerID, projectDescription, projectProgress) VALUES (?, "TestUser1", ?, 0)',
+        [projectName, projectDescription]);
+    print('Inserted project with ID ${results.insertId}');
   }
 
   @override
@@ -504,6 +522,7 @@ class _CreateProjectPageWidgetState extends State<CreateProjectPageWidget> {
                           alignment: const AlignmentDirectional(0.0, 0.0),
                           child: FFButtonWidget(
                             onPressed: () async {
+                              await _insertProject();
                               context.pushNamed('HomePage');
                             },
                             text: FFLocalizations.of(context).getText(
