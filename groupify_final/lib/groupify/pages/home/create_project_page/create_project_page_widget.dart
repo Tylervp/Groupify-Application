@@ -7,6 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'create_project_page_model.dart';
 export 'create_project_page_model.dart';
 import 'package:groupify_final/sql_database_connection.dart';
+import '/auth/firebase_auth/auth_util.dart';
+
 
 class CreateProjectPageWidget extends StatefulWidget {
   const CreateProjectPageWidget({super.key});
@@ -45,10 +47,12 @@ Future<void> _connectToDatabase() async {
   Future<void> _insertProject() async {
     final String projectName = _model.emailAddressController1.text;
     final String projectDescription = _model.emailAddressController2.text;
+    final String userName = currentUserDisplayName;
+
 
     final results = await _sqldatabaseHelper.connection.query(
-        'INSERT INTO Projects (projectName, ownerID, projectDescription, projectProgress) VALUES (?, "TestUser1", ?, 0)',
-        [projectName, projectDescription]);
+        'INSERT INTO Projects (projectName, ownerID, projectDescription, projectProgress) VALUES (?, ?, ?, 0)',
+        [projectName, userName, projectDescription]);
     print('Inserted project with ID ${results.insertId}');
 
     print(projectName);
