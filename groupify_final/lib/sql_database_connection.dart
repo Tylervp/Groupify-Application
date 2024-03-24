@@ -6,7 +6,7 @@ class SQLDatabaseHelper {
 
   Future<void> connectToDatabase() async {
     _connection = await MySqlConnection.connect(ConnectionSettings(
-      host: "127.0.0.1",
+      host: "10.0.2.2",
       port: 3306,
       user: "root",
       password: "root",
