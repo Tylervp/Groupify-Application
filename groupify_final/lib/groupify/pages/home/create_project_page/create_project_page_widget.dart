@@ -50,6 +50,9 @@ Future<void> _connectToDatabase() async {
         'INSERT INTO Projects (projectName, ownerID, projectDescription, projectProgress) VALUES (?, "TestUser1", ?, 0)',
         [projectName, projectDescription]);
     print('Inserted project with ID ${results.insertId}');
+
+    print(projectName);
+    print(projectDescription);
   }
 
   @override
