@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import '/flutter_flow/flutter_flow_drop_down.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -9,6 +11,8 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'task_creation_page_model.dart';
 export 'task_creation_page_model.dart';
+import 'package:groupify_final/sql_database_connection.dart';
+import '/auth/firebase_auth/auth_util.dart';
 
 class TaskCreationPageWidget extends StatefulWidget {
   const TaskCreationPageWidget({super.key});
@@ -19,7 +23,7 @@ class TaskCreationPageWidget extends StatefulWidget {
 
 class _TaskCreationPageWidgetState extends State<TaskCreationPageWidget> {
   late TaskCreationPageModel _model;
-
+  late SQLDatabaseHelper _sqldatabaseHelper;
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
@@ -33,7 +37,27 @@ class _TaskCreationPageWidgetState extends State<TaskCreationPageWidget> {
     _model.taskDescriptionController ??= TextEditingController();
     _model.taskDescriptionFocusNode ??= FocusNode();
 
+    _sqldatabaseHelper = SQLDatabaseHelper();
+    _connectToDatabase();
+
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
+  }
+
+Future<void> _connectToDatabase() async {
+    await _sqldatabaseHelper.connectToDatabase();
+  }
+
+ Future<void> _insertTask() async {
+    final String taskName = _model.taskNameController.text;
+    final String taskDescription = _model.taskDescriptionController.text;
+    final double? taskDifficulty = _model.ratingBarValue;
+    final List<String>? taskAssigned = _model.dropDownValueController?.value;
+    final String taskAssignedString = taskAssigned?.join(', ') ?? '';
+
+    final results = await _sqldatabaseHelper.connection.query(
+        'INSERT INTO Tasks (projectName, ownerID, taskName, taskDescription, taskProgress, taskDifficulty, taskAssigned) VALUES ("blahblah", "test123", ?, ?, 0, ?, ?)',
+        [taskName, taskDescription, taskDifficulty, taskAssignedString]);
+    print('Inserted task with ID ${results.insertId}');
   }
 
   @override
@@ -611,6 +635,7 @@ class _TaskCreationPageWidgetState extends State<TaskCreationPageWidget> {
                           alignment: const AlignmentDirectional(0.0, 0.0),
                           child: FFButtonWidget(
                             onPressed: () async {
+                              await _insertTask();
                               context.pushNamed('ProjectPage');
                             },
                             text: FFLocalizations.of(context).getText(
