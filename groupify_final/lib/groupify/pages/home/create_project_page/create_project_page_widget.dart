@@ -59,6 +59,19 @@ Future<void> _connectToDatabase() async {
     print(projectDescription);
   }
 
+Future<void> _insertProjectMember() async {
+    final String projectName = _model.emailAddressController1.text;
+    final String userName = currentUserDisplayName;
+
+
+    final results = await _sqldatabaseHelper.connection.query(
+        'INSERT INTO ProjectMembers (userID, projectName, ownerID) VALUES (?, ?, ?)',
+        [userName, projectName, userName]);
+    print('Inserted member into project with ID ${results.insertId}');
+
+    print(projectName);
+  }
+
   @override
   void dispose() {
     _model.dispose();
@@ -530,6 +543,7 @@ Future<void> _connectToDatabase() async {
                           child: FFButtonWidget(
                             onPressed: () async {
                               await _insertProject();
+                              await _insertProjectMember();
                               context.pushNamed('HomePage');
                             },
                             text: FFLocalizations.of(context).getText(
