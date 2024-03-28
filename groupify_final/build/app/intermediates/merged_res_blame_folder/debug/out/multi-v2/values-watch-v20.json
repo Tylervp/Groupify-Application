@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.mycompany.Groupify.app-mergeDebugResources-21:/values-watch-v20/values-watch-v20.xml",
+            "outputFile": "com.mycompany.Groupify.app-mergeDebugResources-7:/values-watch-v20/values-watch-v20.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\18329\\.gradle\\caches\\transforms-3\\656a00432c4a4bfc66dd703f67904d47\\transformed\\jetified-play-services-auth-20.7.0\\res\\values-watch-v20\\values.xml",
+                    "source": "C:\\Users\\ricky\\.gradle\\caches\\transforms-3\\656a00432c4a4bfc66dd703f67904d47\\transformed\\jetified-play-services-auth-20.7.0\\res\\values-watch-v20\\values.xml",
                     "from": {
                         "startLines": "4,5,6,7,8,9,10,11",
                         "startColumns": "0,0,0,0,0,0,0,0",
@@ -21,7 +21,7 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\18329\\.gradle\\caches\\transforms-3\\a969bc840328ceceb91647fabc07f014\\transformed\\appcompat-1.2.0\\res\\values-watch-v20\\values-watch-v20.xml",
+                    "source": "C:\\Users\\ricky\\.gradle\\caches\\transforms-3\\a969bc840328ceceb91647fabc07f014\\transformed\\appcompat-1.2.0\\res\\values-watch-v20\\values-watch-v20.xml",
                     "from": {
                         "startLines": "2,5,8",
                         "startColumns": "4,4,4",

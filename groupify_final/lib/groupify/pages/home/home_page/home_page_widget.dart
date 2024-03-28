@@ -12,14 +12,12 @@ export 'home_page_model.dart';
 import '/auth/firebase_auth/auth_util.dart';
 import 'package:groupify_final/sql_database_connection.dart';
 
-
 // Project class to make list of project instances
 class Project {
   String projectName = '';
   String ownerID = '';
   String projectDescription = '';
   double projectProgress = 0.0;
-
 
   Project(String projectName, String ownerID, String projectDescription, double projectProgress){
     this.projectName = projectName;
@@ -29,25 +27,21 @@ class Project {
   }
 }
 
-
 class HomePageWidget extends StatefulWidget {
   const HomePageWidget({super.key});
   @override
   State<HomePageWidget> createState() => _HomePageWidgetState();
 }
 
-
 class _HomePageWidgetState extends State<HomePageWidget> {
   late HomePageModel _model;
   final scaffoldKey = GlobalKey<ScaffoldState>();
-
 
   // Connect to DB
   late SQLDatabaseHelper _sqldatabaseHelper;
   Future<void> _connectToDatabase() async {
     await _sqldatabaseHelper.connectToDatabase();
   }
-
 
   @override
   void initState() {
@@ -59,33 +53,27 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     WidgetsBinding.instance.addPostFrameCallback((_) => setState((){}));
   }
 
-
   @override
   void dispose() {
     _model.dispose();
     super.dispose();
   }
 
-
   // Method to query projects a user is involved in and populate project list
   Future<List<Project>> _getProjects() async {
     List<Project> projects = [];
-    //try {
       final results = await _sqldatabaseHelper.connection.query('select Projects.ownerID, Projects.projectName, Projects.projectDescription, Projects.projectProgress from ProjectMembers JOIN Projects ON ProjectMembers.projectName = Projects.projectName and ProjectMembers.ownerID = Projects.ownerID where ProjectMembers.userID = ?;',
-    [currentUserDisplayName]);
-        print('GOT THE PROJECTS');
-        for(final row in results){
-          String tempName = row['projectName'] as String;
-          String tempOwnerID = row['ownerID'] as String;
-          String tempDescription = row['projectDescription'] as String;
-          projects.insert(0, Project(tempName, tempOwnerID, tempDescription, 0.0));
-        }
-    //}catch(e){
-      //print("IN CATCH ========================");
-    //}
+                                                              [currentUserDisplayName]);
+      print('GOT THE PROJECTS');
+      for(final row in results){
+        String tempName = row['projectName'] as String;
+        String tempOwnerID = row['ownerID'] as String;
+        String tempDescription = row['projectDescription'] as String;
+        projects.insert(0, Project(tempName, tempOwnerID, tempDescription, 0.0));
+      }
+    _sqldatabaseHelper.closeConnection();
     return projects;
   }
-
 
   // Widget to create project container
   Widget projectContainer(BuildContext context, String pName, String pOwnerID, String pDescription, String pDue, Color c, double pProgress){
@@ -536,8 +524,6 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     );
   }
 
-
-  //List<Project> projects = [];
   @override
   Widget build(BuildContext context) {
     List<Color> list_colors = [Colors.red, Colors.blue, Colors.green, Colors.orange, Colors.purple,

@@ -1,11 +1,11 @@
-#Sat Mar 23 19:04:38 CDT 2024
-base.0=C\:\\Users\\18329\\Documents\\GitHub\\Groupify-Application\\groupify_final\\build\\app\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes.dex
-base.1=C\:\\Users\\18329\\Documents\\GitHub\\Groupify-Application\\groupify_final\\build\\app\\intermediates\\dex\\debug\\mergeLibDexDebug\\0\\classes.dex
-base.2=C\:\\Users\\18329\\Documents\\GitHub\\Groupify-Application\\groupify_final\\build\\app\\intermediates\\dex\\debug\\mergeProjectDexDebug\\0\\classes.dex
-base.3=C\:\\Users\\18329\\Documents\\GitHub\\Groupify-Application\\groupify_final\\build\\app\\intermediates\\dex\\debug\\mergeProjectDexDebug\\14\\classes.dex
-base.4=C\:\\Users\\18329\\Documents\\GitHub\\Groupify-Application\\groupify_final\\build\\app\\intermediates\\dex\\debug\\mergeProjectDexDebug\\1\\classes.dex
-base.5=C\:\\Users\\18329\\Documents\\GitHub\\Groupify-Application\\groupify_final\\build\\app\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes2.dex
-base.6=C\:\\Users\\18329\\Documents\\GitHub\\Groupify-Application\\groupify_final\\build\\app\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes3.dex
+#Thu Mar 28 13:55:27 CDT 2024
+base.0=C\:\\College\\Software Engineering\\Groupify\\Groupify_Repo\\groupify_final\\build\\app\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes.dex
+base.1=C\:\\College\\Software Engineering\\Groupify\\Groupify_Repo\\groupify_final\\build\\app\\intermediates\\dex\\debug\\mergeLibDexDebug\\0\\classes.dex
+base.2=C\:\\College\\Software Engineering\\Groupify\\Groupify_Repo\\groupify_final\\build\\app\\intermediates\\dex\\debug\\mergeProjectDexDebug\\0\\classes.dex
+base.3=C\:\\College\\Software Engineering\\Groupify\\Groupify_Repo\\groupify_final\\build\\app\\intermediates\\dex\\debug\\mergeProjectDexDebug\\14\\classes.dex
+base.4=C\:\\College\\Software Engineering\\Groupify\\Groupify_Repo\\groupify_final\\build\\app\\intermediates\\dex\\debug\\mergeProjectDexDebug\\1\\classes.dex
+base.5=C\:\\College\\Software Engineering\\Groupify\\Groupify_Repo\\groupify_final\\build\\app\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes2.dex
+base.6=C\:\\College\\Software Engineering\\Groupify\\Groupify_Repo\\groupify_final\\build\\app\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes3.dex
 path.0=classes.dex
 path.1=0/classes.dex
 path.2=0/classes.dex

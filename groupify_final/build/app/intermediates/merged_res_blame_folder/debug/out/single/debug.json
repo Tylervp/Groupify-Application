@@ -1,26 +1,26 @@
 [
     {
-        "merged": "com.mycompany.Groupify.app-merged_res-23:/mipmap-xhdpi_ic_launcher.png.flat",
-        "source": "com.mycompany.Groupify.app-main-15:/mipmap-xhdpi/ic_launcher.png"
+        "merged": "com.mycompany.Groupify.app-merged_res-9:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "com.mycompany.Groupify.app-main-1:/mipmap-xxhdpi/ic_launcher.png"
     },
     {
-        "merged": "com.mycompany.Groupify.app-merged_res-23:/mipmap-xxhdpi_ic_launcher.png.flat",
-        "source": "com.mycompany.Groupify.app-main-15:/mipmap-xxhdpi/ic_launcher.png"
+        "merged": "com.mycompany.Groupify.app-merged_res-9:/drawable_launch_background.xml.flat",
+        "source": "com.mycompany.Groupify.app-main-1:/drawable/launch_background.xml"
     },
     {
-        "merged": "com.mycompany.Groupify.app-merged_res-23:/mipmap-mdpi_ic_launcher.png.flat",
-        "source": "com.mycompany.Groupify.app-main-15:/mipmap-mdpi/ic_launcher.png"
+        "merged": "com.mycompany.Groupify.app-merged_res-9:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "com.mycompany.Groupify.app-main-1:/mipmap-xhdpi/ic_launcher.png"
     },
     {
-        "merged": "com.mycompany.Groupify.app-merged_res-23:/mipmap-hdpi_ic_launcher.png.flat",
-        "source": "com.mycompany.Groupify.app-main-15:/mipmap-hdpi/ic_launcher.png"
+        "merged": "com.mycompany.Groupify.app-merged_res-9:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "com.mycompany.Groupify.app-main-1:/mipmap-hdpi/ic_launcher.png"
     },
     {
-        "merged": "com.mycompany.Groupify.app-merged_res-23:/drawable_launch_background.xml.flat",
-        "source": "com.mycompany.Groupify.app-main-15:/drawable/launch_background.xml"
+        "merged": "com.mycompany.Groupify.app-merged_res-9:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "com.mycompany.Groupify.app-main-1:/mipmap-xxxhdpi/ic_launcher.png"
     },
     {
-        "merged": "com.mycompany.Groupify.app-merged_res-23:/mipmap-xxxhdpi_ic_launcher.png.flat",
-        "source": "com.mycompany.Groupify.app-main-15:/mipmap-xxxhdpi/ic_launcher.png"
+        "merged": "com.mycompany.Groupify.app-merged_res-9:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "com.mycompany.Groupify.app-main-1:/mipmap-mdpi/ic_launcher.png"
     }
 ]

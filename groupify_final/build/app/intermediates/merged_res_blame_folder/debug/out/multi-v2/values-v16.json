@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.mycompany.Groupify.app-mergeDebugResources-21:/values-v16/values-v16.xml",
+            "outputFile": "com.mycompany.Groupify.app-mergeDebugResources-7:/values-v16/values-v16.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\18329\\.gradle\\caches\\transforms-3\\ab08bce6b3ae72cfc62c583992b54182\\transformed\\core-1.10.1\\res\\values-v16\\values-v16.xml",
+                    "source": "C:\\Users\\ricky\\.gradle\\caches\\transforms-3\\ab08bce6b3ae72cfc62c583992b54182\\transformed\\core-1.10.1\\res\\values-v16\\values-v16.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",
@@ -14,7 +14,7 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\18329\\.gradle\\caches\\transforms-3\\a969bc840328ceceb91647fabc07f014\\transformed\\appcompat-1.2.0\\res\\values-v16\\values-v16.xml",
+                    "source": "C:\\Users\\ricky\\.gradle\\caches\\transforms-3\\a969bc840328ceceb91647fabc07f014\\transformed\\appcompat-1.2.0\\res\\values-v16\\values-v16.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",

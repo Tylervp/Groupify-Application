@@ -1,29 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.mycompany.Groupify.app-mergeDebugResources-21:/values-night-v8/values-night-v8.xml",
+            "outputFile": "com.mycompany.Groupify.app-mergeDebugResources-7:/values-night-v8/values-night-v8.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\18329\\Documents\\GitHub\\Groupify-Application\\groupify_final\\android\\app\\src\\main\\res\\values-night\\styles.xml",
-                    "from": {
-                        "startLines": "3,14",
-                        "startColumns": "4,4",
-                        "startOffsets": "175,829",
-                        "endLines": "7,16",
-                        "endColumns": "12,12",
-                        "endOffsets": "471,995"
-                    },
-                    "to": {
-                        "startLines": "2,6",
-                        "startColumns": "4,4",
-                        "startOffsets": "55,236",
-                        "endLines": "5,8",
-                        "endColumns": "12,12",
-                        "endOffsets": "231,400"
-                    }
-                },
-                {
-                    "source": "C:\\Users\\18329\\.gradle\\caches\\transforms-3\\a969bc840328ceceb91647fabc07f014\\transformed\\appcompat-1.2.0\\res\\values-night-v8\\values-night-v8.xml",
+                    "source": "C:\\Users\\ricky\\.gradle\\caches\\transforms-3\\a969bc840328ceceb91647fabc07f014\\transformed\\appcompat-1.2.0\\res\\values-night-v8\\values-night-v8.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9",
                         "startColumns": "4,4,4,4,4,4,4,4",
@@ -37,6 +18,25 @@
                         "startOffsets": "405,475,559,643,739,841,943,1037",
                         "endColumns": "69,83,83,95,101,101,93,88",
                         "endOffsets": "470,554,638,734,836,938,1032,1121"
+                    }
+                },
+                {
+                    "source": "C:\\College\\Software Engineering\\Groupify\\Groupify_Repo\\groupify_final\\android\\app\\src\\main\\res\\values-night\\styles.xml",
+                    "from": {
+                        "startLines": "3,14",
+                        "startColumns": "4,4",
+                        "startOffsets": "172,815",
+                        "endLines": "7,16",
+                        "endColumns": "12,12",
+                        "endOffsets": "464,979"
+                    },
+                    "to": {
+                        "startLines": "2,6",
+                        "startColumns": "4,4",
+                        "startOffsets": "55,236",
+                        "endLines": "5,8",
+                        "endColumns": "12,12",
+                        "endOffsets": "231,400"
                     }
                 }
             ]

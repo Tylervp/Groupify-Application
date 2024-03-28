@@ -1,17 +1,17 @@
 {
     "logs": [
         {
-            "outputFile": "com.mycompany.Groupify.app-mergeDebugResources-21:/values-v31/values-v31.xml",
+            "outputFile": "com.mycompany.Groupify.app-mergeDebugResources-7:/values-v31/values-v31.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\18329\\Documents\\GitHub\\Groupify-Application\\groupify_final\\android\\app\\src\\main\\res\\values-v31\\styles.xml",
+                    "source": "C:\\College\\Software Engineering\\Groupify\\Groupify_Repo\\groupify_final\\android\\app\\src\\main\\res\\values-v31\\styles.xml",
                     "from": {
                         "startLines": "3,14",
                         "startColumns": "4,4",
-                        "startOffsets": "176,830",
+                        "startOffsets": "173,816",
                         "endLines": "7,16",
                         "endColumns": "12,12",
-                        "endOffsets": "472,996"
+                        "endOffsets": "465,980"
                     },
                     "to": {
                         "startLines": "2,6",
