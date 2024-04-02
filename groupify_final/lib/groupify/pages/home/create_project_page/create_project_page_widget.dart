@@ -9,7 +9,6 @@ export 'create_project_page_model.dart';
 import 'package:groupify_final/sql_database_connection.dart';
 import '/auth/firebase_auth/auth_util.dart';
 
-
 class CreateProjectPageWidget extends StatefulWidget {
   const CreateProjectPageWidget({super.key});
 
@@ -44,32 +43,26 @@ Future<void> _connectToDatabase() async {
     await _sqldatabaseHelper.connectToDatabase();
   }
 
-  Future<void> _insertProject() async {
+  Future<void> _insertProject(String? projectDueDate) async {
     final String projectName = _model.emailAddressController1.text;
-    final String projectDescription = _model.emailAddressController2.text;
+    final String? projectDescription = _model.emailAddressController2.text;
     final String userName = currentUserDisplayName;
 
-
     final results = await _sqldatabaseHelper.connection.query(
-        'INSERT INTO Projects (projectName, ownerID, projectDescription, projectProgress) VALUES (?, ?, ?, 0)',
-        [projectName, userName, projectDescription]);
+        'INSERT INTO Projects (projectName, ownerID, projectDescription, projectProgress, projectDueDate) VALUES (?, ?, ?, 0, ?)',
+        //'INSERT INTO Projects (projectName, ownerID, projectDescription, projectProgress) VALUES (?, ?, ?, 0)',
+        [projectName, userName, projectDescription, projectDueDate]);
     print('Inserted project with ID ${results.insertId}');
-
-    print(projectName);
-    print(projectDescription);
   }
 
 Future<void> _insertProjectMember() async {
     final String projectName = _model.emailAddressController1.text;
     final String userName = currentUserDisplayName;
 
-
     final results = await _sqldatabaseHelper.connection.query(
         'INSERT INTO ProjectMembers (userID, projectName, ownerID) VALUES (?, ?, ?)',
         [userName, projectName, userName]);
     print('Inserted member into project with ID ${results.insertId}');
-
-    print(projectName);
   }
 
   @override
@@ -79,6 +72,7 @@ Future<void> _insertProjectMember() async {
     super.dispose();
   }
 
+  String? pDue = '';
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -492,6 +486,8 @@ Future<void> _insertProjectMember() async {
                                         datePickedDate.month,
                                         datePickedDate.day,
                                       );
+                                      final temp = DateFormat('MM/d/yyyy').format(datePickedDate);
+                                      pDue = temp.toString();
                                     });
                                   }
                                 },
@@ -542,7 +538,7 @@ Future<void> _insertProjectMember() async {
                           alignment: const AlignmentDirectional(0.0, 0.0),
                           child: FFButtonWidget(
                             onPressed: () async {
-                              await _insertProject();
+                              await _insertProject(pDue);
                               await _insertProjectMember();
                               context.pushNamed('HomePage');
                             },

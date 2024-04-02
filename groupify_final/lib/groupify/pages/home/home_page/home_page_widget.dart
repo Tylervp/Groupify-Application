@@ -18,12 +18,27 @@ class Project {
   String ownerID = '';
   String projectDescription = '';
   double projectProgress = 0.0;
+  String projectDueDate = '';
+  List<Member> projectMembers = [];
 
-  Project(String projectName, String ownerID, String projectDescription, double projectProgress){
+  Project(String projectName, String ownerID, String projectDescription, double projectProgress, String projectDue, List<Member> projectMembers){
     this.projectName = projectName;
     this.ownerID = ownerID;
     this.projectDescription = projectDescription;
     this.projectProgress = projectProgress;
+    this.projectDueDate = projectDue;
+    this.projectMembers = projectMembers;
+  }
+}
+
+// Member class to make list of all members in a project
+class Member {
+  String username = '';
+  String profilePicture = '';
+
+  Member(String username, String profilePicture){
+    this.username = username;
+    this.profilePicture = profilePicture;
   }
 }
 
@@ -49,7 +64,6 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     _model = createModel(context, () => HomePageModel());
     _sqldatabaseHelper = SQLDatabaseHelper();
     _connectToDatabase();
-    //_getProjects();
     WidgetsBinding.instance.addPostFrameCallback((_) => setState((){}));
   }
 
@@ -62,21 +76,38 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   // Method to query projects a user is involved in and populate project list
   Future<List<Project>> _getProjects() async {
     List<Project> projects = [];
-      final results = await _sqldatabaseHelper.connection.query('select Projects.ownerID, Projects.projectName, Projects.projectDescription, Projects.projectProgress from ProjectMembers JOIN Projects ON ProjectMembers.projectName = Projects.projectName and ProjectMembers.ownerID = Projects.ownerID where ProjectMembers.userID = ?;',
-                                                              [currentUserDisplayName]);
-      print('GOT THE PROJECTS');
-      for(final row in results){
-        String tempName = row['projectName'] as String;
-        String tempOwnerID = row['ownerID'] as String;
-        String tempDescription = row['projectDescription'] as String;
-        projects.insert(0, Project(tempName, tempOwnerID, tempDescription, 0.0));
-      }
+    final results = await _sqldatabaseHelper.connection.query('select Projects.ownerID, Projects.projectName, Projects.projectDescription, Projects.projectProgress, Projects.projectDueDate from ProjectMembers JOIN Projects ON ProjectMembers.projectName = Projects.projectName and ProjectMembers.ownerID = Projects.ownerID where ProjectMembers.userID = ?;',
+                                                            [currentUserDisplayName]);
+    print('GOT THE PROJECTS');
+    for(final row in results){
+      String tempName = row['projectName'] as String;
+      String tempOwnerID = row['ownerID'] as String;
+      String tempDescription = row['projectDescription'] as String;
+      double tempProgress = row['projectProgress'] as double;
+      String tempDueDate = row['projectDueDate'] as String;
+
+      List<Member> members = [];
+      final results2 = await _sqldatabaseHelper.connection.query('SELECT userID FROM projectMembers WHERE projectName = ? and ownerID = ?;',
+                                                          [tempName, tempOwnerID]);                                                   
+
+      for(final row in results2){
+        String tempUserName = row['userID'] as String;
+        members.add(Member(tempUserName, ''));  ////// query profile picture from firebase for each member
+      }   
+      projects.insert(0, Project(tempName, tempOwnerID, tempDescription, tempProgress, tempDueDate, members));
+    }
     _sqldatabaseHelper.closeConnection();
     return projects;
   }
 
+  Future<String> _numInvitations() async {
+    final results = await _sqldatabaseHelper.connection.query('SELECT * FROM Inbox WHERE userID = ?', [currentUserDisplayName]);
+    print('GOT THE INVITATIONS FOR THE CURRENT USER');
+    return results.length.toString();
+  }
+
   // Widget to create project container
-  Widget projectContainer(BuildContext context, String pName, String pOwnerID, String pDescription, String pDue, Color c, double pProgress){
+  Widget projectContainer(BuildContext context, String pName, String pOwnerID, String pDescription, String pDue, Color c, double pProgress, List<Member> pMembers){ 
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(
           15.0, 0.0, 15.0, 0.0),
@@ -203,7 +234,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                               ),
                             ),
                             Container(
-                              width: 87.0,
+                              width: 92.0, 
                               decoration:
                                   const BoxDecoration(),
                               child: Padding(
@@ -273,11 +304,14 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                   padding: MediaQuery
                                       .viewInsetsOf(
                                           context),
-                                  child: const SizedBox(
+                                  child: SizedBox(
                                     height: 200.0,
                                     child:
-                                        OptionsProjectWidget(),
-                                        //OptionsProjectWidget(ProjectID);
+                                        OptionsProjectWidget(
+                                          pOwnerId: pOwnerID,    //////////////
+                                          pName: pName, 
+                                          pDescription: pDescription, 
+                                          pDue: pDue),  
                                   ),
                                 ),
                               );
@@ -359,7 +393,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                 ),
                                 child: Image.network(  /////////////////////////////
                                   valueOrDefault<String>(
-                                    currentUserPhoto,
+                                    currentUserPhoto,    ////////// CHANGE TO OWNER PROFILE PICTURE
                                     'https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg',
                                   ),
                                   fit: BoxFit.cover,
@@ -409,14 +443,15 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                               height: 25.0,
                               decoration:
                                   const BoxDecoration(),
-                              child: ListView(
+                              child: ListView.builder(
                                 padding:
                                     EdgeInsets.zero,
                                 primary: false,
                                 scrollDirection:
                                     Axis.horizontal,
-                                children: [
-                                  Container(
+                                itemCount: pMembers.length,
+                                itemBuilder: (BuildContext context, int index){
+                                  return Container(
                                     width: 25.0,
                                     height: 25.0,
                                     clipBehavior: Clip
@@ -426,14 +461,15 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                       shape: BoxShape
                                           .circle,
                                     ),
-                                    child: Image
-                                        .network(
-                                      'https://picsum.photos/seed/939/600',
-                                      fit: BoxFit
-                                          .cover,
+                                    child: Image.network( 
+                                      valueOrDefault<String>(
+                                        pMembers[index].profilePicture, 
+                                        'https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg',
+                                      ),
+                                      fit: BoxFit.cover,
                                     ),
-                                  ),
-                                ],
+                                  );
+                                }
                               ),
                             ),
                           ],
@@ -464,7 +500,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                         2.0),
                             child:
                                 LinearPercentIndicator(
-                              percent: 0.5,
+                              percent: pProgress,
                               lineHeight: 18.0,
                               animation: true,
                               animateFromLastPercent:
@@ -478,11 +514,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                           context)
                                       .accent3,
                               center: Text(
-                                FFLocalizations.of(
-                                        context)
-                                    .getText(
-                                  'h45glb7m' /* 50% */,
-                                ),
+                                '${pProgress * 100 % 1 == 0 ? (pProgress * 100).toInt() : (pProgress * 100).toStringAsFixed(2)}%',
                                 textAlign:
                                     TextAlign.start,
                                 style: FlutterFlowTheme
@@ -528,168 +560,208 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   Widget build(BuildContext context) {
     List<Color> list_colors = [Colors.red, Colors.blue, Colors.green, Colors.orange, Colors.purple,
                                 Colors.yellow, Colors.pink, Colors.deepPurple, Colors.brown, Colors.grey];
-          return GestureDetector(
-            onTap: () => _model.unfocusNode.canRequestFocus
-                ? FocusScope.of(context).requestFocus(_model.unfocusNode)
-                : FocusScope.of(context).unfocus(),
-            child: Scaffold(
-              key: scaffoldKey,
-              backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-              body: Stack(
-                alignment: const AlignmentDirectional(1.0, 1.0),
-                children: [
-                  Align(
-                    alignment: const AlignmentDirectional(1.0, -1.4),
-                    child: Container(
-                      width: 500.0,
-                      height: 500.0,
-                      decoration: BoxDecoration(
-                        color: FlutterFlowTheme.of(context).tertiary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
+
+    return GestureDetector(
+      onTap: () => _model.unfocusNode.canRequestFocus
+          ? FocusScope.of(context).requestFocus(_model.unfocusNode)
+          : FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        key: scaffoldKey,
+        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+        body: Stack(
+          alignment: const AlignmentDirectional(1.0, 1.0),
+          children: [
+            Align(
+              alignment: const AlignmentDirectional(1.0, -1.4),
+              child: Container(
+                width: 500.0,
+                height: 500.0,
+                decoration: BoxDecoration(
+                  color: FlutterFlowTheme.of(context).tertiary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+            if (responsiveVisibility(
+              context: context,
+              tabletLandscape: false,
+              desktop: false,
+            ))
+              Align(
+                alignment: const AlignmentDirectional(-2.0, -1.5),
+                child: Container(
+                  width: 350.0,
+                  height: 350.0,
+                  decoration: BoxDecoration(
+                    color: FlutterFlowTheme.of(context).primary,
+                    shape: BoxShape.circle,
                   ),
-                  if (responsiveVisibility(
-                    context: context,
-                    tabletLandscape: false,
-                    desktop: false,
-                  ))
-                    Align(
-                      alignment: const AlignmentDirectional(-2.0, -1.5),
-                      child: Container(
-                        width: 350.0,
-                        height: 350.0,
-                        decoration: BoxDecoration(
-                          color: FlutterFlowTheme.of(context).primary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  if (responsiveVisibility(
-                    context: context,
-                    tabletLandscape: false,
-                    desktop: false,
-                  ))
-                    Align(
-                      alignment: const AlignmentDirectional(3.49, -1.05),
-                      child: Container(
-                        width: 300.0,
-                        height: 300.0,
-                        decoration: BoxDecoration(
-                          color: FlutterFlowTheme.of(context).secondary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  Align(
-                    alignment: const AlignmentDirectional(0.0, 1.4),
-                    child: Container(
-                      width: 500.0,
-                      height: 500.0,
-                      decoration: BoxDecoration(
-                        color: FlutterFlowTheme.of(context).tertiary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
+                ),
+              ),
+            if (responsiveVisibility(
+              context: context,
+              tabletLandscape: false,
+              desktop: false,
+            ))
+              Align(
+                alignment: const AlignmentDirectional(3.49, -1.05),
+                child: Container(
+                  width: 300.0,
+                  height: 300.0,
+                  decoration: BoxDecoration(
+                    color: FlutterFlowTheme.of(context).secondary,
+                    shape: BoxShape.circle,
                   ),
-                  if (responsiveVisibility(
-                    context: context,
-                    tabletLandscape: false,
-                    desktop: false,
-                  ))
-                    Align(
-                      alignment: const AlignmentDirectional(7.98, 0.81),
-                      child: Container(
-                        width: 350.0,
-                        height: 350.0,
-                        decoration: BoxDecoration(
-                          color: FlutterFlowTheme.of(context).primary,
-                          shape: BoxShape.circle,
+                ),
+              ),
+            Align(
+              alignment: const AlignmentDirectional(0.0, 1.4),
+              child: Container(
+                width: 500.0,
+                height: 500.0,
+                decoration: BoxDecoration(
+                  color: FlutterFlowTheme.of(context).tertiary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+            if (responsiveVisibility(
+              context: context,
+              tabletLandscape: false,
+              desktop: false,
+            ))
+              Align(
+                alignment: const AlignmentDirectional(7.98, 0.81),
+                child: Container(
+                  width: 350.0,
+                  height: 350.0,
+                  decoration: BoxDecoration(
+                    color: FlutterFlowTheme.of(context).primary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            if (responsiveVisibility(
+              context: context,
+              tabletLandscape: false,
+              desktop: false,
+            ))
+              Align(
+                alignment: const AlignmentDirectional(-3.41, 0.58),
+                child: Container(
+                  width: 300.0,
+                  height: 300.0,
+                  decoration: BoxDecoration(
+                    color: FlutterFlowTheme.of(context).secondary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(0.0),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: 40.0,
+                  sigmaY: 40.0,
+                ),
+                child: Container(
+                  width: 558.0,
+                  height: 1037.0,
+                  decoration: BoxDecoration(
+                    color: FlutterFlowTheme.of(context).overlay,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      Container(
+                        width: 399.0,
+                        height: 129.0,
+                        decoration: const BoxDecoration(
+                          color: Colors.transparent,
                         ),
-                      ),
-                    ),
-                  if (responsiveVisibility(
-                    context: context,
-                    tabletLandscape: false,
-                    desktop: false,
-                  ))
-                    Align(
-                      alignment: const AlignmentDirectional(-3.41, 0.58),
-                      child: Container(
-                        width: 300.0,
-                        height: 300.0,
-                        decoration: BoxDecoration(
-                          color: FlutterFlowTheme.of(context).secondary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(0.0),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(
-                        sigmaX: 40.0,
-                        sigmaY: 40.0,
-                      ),
-                      child: Container(
-                        width: 558.0,
-                        height: 1037.0,
-                        decoration: BoxDecoration(
-                          color: FlutterFlowTheme.of(context).overlay,
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            Container(
-                              width: 399.0,
-                              height: 129.0,
-                              decoration: const BoxDecoration(
-                                color: Colors.transparent,
-                              ),
-                              alignment: const AlignmentDirectional(0.0, 1.0),
-                              child: Align(
-                                alignment: const AlignmentDirectional(0.0, 1.0),
-                                child: Padding(
+                        alignment: const AlignmentDirectional(0.0, 1.0),
+                        child: Align(
+                          alignment: const AlignmentDirectional(0.0, 1.0),
+                          child: Padding(
+                            padding: const EdgeInsetsDirectional.fromSTEB(
+                                0.0, 0.0, 0.0, 13.0),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.max,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Padding(
                                   padding: const EdgeInsetsDirectional.fromSTEB(
-                                      0.0, 0.0, 0.0, 13.0),
+                                      15.0, 0.0, 0.0, 0.0),
+                                  child: Text(
+                                    FFLocalizations.of(context).getText(
+                                      '05ejm1ds' /* My Projects */,
+                                    ),
+                                    style: FlutterFlowTheme.of(context)
+                                        .displayMedium
+                                        .override(
+                                          fontFamily:
+                                              FlutterFlowTheme.of(context)
+                                                  .displayMediumFamily,
+                                          fontSize: 40.0,
+                                          useGoogleFonts: GoogleFonts.asMap()
+                                              .containsKey(
+                                                  FlutterFlowTheme.of(context)
+                                                      .displayMediumFamily),
+                                        ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsetsDirectional.fromSTEB(
+                                      0.0, 0.0, 15.0, 0.0),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.max,
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsetsDirectional.fromSTEB(
-                                            15.0, 0.0, 0.0, 0.0),
-                                        child: Text(
-                                          FFLocalizations.of(context).getText(
-                                            '05ejm1ds' /* My Projects */,
-                                          ),
-                                          style: FlutterFlowTheme.of(context)
-                                              .displayMedium
-                                              .override(
-                                                fontFamily:
-                                                    FlutterFlowTheme.of(context)
-                                                        .displayMediumFamily,
-                                                fontSize: 40.0,
-                                                useGoogleFonts: GoogleFonts.asMap()
-                                                    .containsKey(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [ 
+                                      FutureBuilder(
+                                        future: _numInvitations(), 
+                                        builder:  (BuildContext context, AsyncSnapshot snapshot){
+                                          if(snapshot.data == null || snapshot.data == '0'){
+                                            return badges.Badge(       //////////////////////////////// badge
+                                              showBadge: false,
+                                              shape: badges.BadgeShape.circle,
+                                              badgeColor: FlutterFlowTheme.of(context)
+                                                  .primary,
+                                              elevation: 4.0,
+                                              padding: const EdgeInsetsDirectional.fromSTEB(
+                                                  8.0, 8.0, 8.0, 8.0),
+                                              position: badges.BadgePosition.topEnd(),
+                                              animationType:
+                                                  badges.BadgeAnimationType.scale,
+                                              toAnimate: true,
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsetsDirectional.fromSTEB(
+                                                        0.0, 0.0, 0.0, 5.0),
+                                                child: InkWell(
+                                                  splashColor: Colors.transparent,
+                                                  focusColor: Colors.transparent,
+                                                  hoverColor: Colors.transparent,
+                                                  highlightColor: Colors.transparent,
+                                                  onTap: () async {
+                                                    context
+                                                        .pushNamed('InvitationsPage');
+                                                  },
+                                                  child: Icon(
+                                                    Icons.notifications_rounded,
+                                                    color:
                                                         FlutterFlowTheme.of(context)
-                                                            .displayMediumFamily),
-                                              ),
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsetsDirectional.fromSTEB(
-                                            0.0, 0.0, 15.0, 0.0),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.max,
-                                          mainAxisAlignment: MainAxisAlignment.end,
-                                          children: [
-                                            badges.Badge(       //////////////////////////////// badge
-                                              badgeContent: Text(
-                                                FFLocalizations.of(context).getText(
-                                                  'r6ph4rke' /* 1 */,
+                                                            .primaryText,
+                                                    size: 35.0,
+                                                  ),
                                                 ),
+                                              ),
+                                            );
+                                          }
+                                          else {
+                                            return badges.Badge(       //////////////////////////////// badge
+                                              badgeContent: Text(
+                                                snapshot.data,
                                                 style: FlutterFlowTheme.of(context)
                                                     .titleSmall
                                                     .override(
@@ -738,92 +810,92 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                                   ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
-                                        ),
+                                            );
+                                          }
+                                        }
                                       ),
                                     ],
                                   ),
                                 ),
-                              ),
-                            ),
-                            Stack(
-                              children: [
-                                Container(
-                                  height: 610.0,
-                                  decoration: const BoxDecoration(),
-                                  child: FutureBuilder(  /////
-                                    future: _getProjects(),
-                                    builder: (BuildContext context, AsyncSnapshot snapshot){
-                                      if(snapshot.data == null){
-                                        return const Center(
-                                          child: CircularProgressIndicator(
-                                            color: Color.fromARGB(100, 57, 210, 192),
-                                            backgroundColor: Color.fromARGB(30, 57, 210, 192),
-                                            strokeWidth: 4,
-                                          )
-                                        );
-                                      }
-                                      else{
-                                        return ListView.separated(
-                                          padding: const EdgeInsets.fromLTRB(
-                                            0,
-                                            5.0,
-                                            0,
-                                            0,
-                                          ),
-                                          shrinkWrap: true,
-                                          scrollDirection: Axis.vertical,
-                                          //-----ITERATE THROUGH PROJECT LIST----
-                                          itemCount: snapshot.data.length,
-                                          separatorBuilder: (BuildContext context, int index) => SizedBox(height: 15),
-                                          itemBuilder: (BuildContext context, int index) {
-                                            int colorIndex = index % list_colors.length;
-                                            /*return projectContainer(context, projects[index].projectName,
-                                                    projects[index].ownerID, projects[index].projectDescription,
-                                                    '12/30/2024', list_colors[colorIndex], 0.0); */
-                                            return projectContainer(context, snapshot.data[index].projectName,
-                                                    snapshot.data[index].ownerID, snapshot.data[index].projectDescription,
-                                                    '12/30/2024', list_colors[colorIndex], 0.0);
-                                           
-                                          },
-                                        );
-                                      }
-                                    }
-                                  )
-                                ),
-                                Padding( //Button
-                                  padding: const EdgeInsetsDirectional.fromSTEB(
-                                      320.0, 500.0, 0.0, 0.0),
-                                  child: FlutterFlowIconButton(
-                                    borderColor: Colors.transparent,
-                                    borderRadius: 30.0,
-                                    borderWidth: 1.0,
-                                    buttonSize: 50.0,
-                                    fillColor: FlutterFlowTheme.of(context)
-                                        .primaryBackground,
-                                    icon: Icon(
-                                      Icons.add,
-                                      color: FlutterFlowTheme.of(context).primaryText,
-                                      size: 24.0,
-                                    ),
-                                    onPressed: () async {
-                                      context.pushNamed('CreateProjectPage');
-                                    },
-                                  ),
-                                ),
                               ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
+                      Stack(
+                        children: [
+                          Container(
+                            height: 610.0,
+                            decoration: const BoxDecoration(),
+                            child: FutureBuilder(
+                              future: _getProjects(), 
+                              builder: (BuildContext context, AsyncSnapshot snapshot){
+                                if(snapshot.data == null){
+                                  return const Center(
+                                    child: CircularProgressIndicator(
+                                      color: Color.fromARGB(100, 57, 210, 192),
+                                      backgroundColor: Color.fromARGB(30, 57, 210, 192),
+                                      strokeWidth: 4,
+                                    ),
+                                  );
+                                }
+                                else{
+                                  return ListView.separated(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      0,
+                                      5.0,
+                                      0,
+                                      0,
+                                    ),
+                                    shrinkWrap: true,
+                                    scrollDirection: Axis.vertical,
+                                    //-----ITERATE THROUGH PROJECT LIST----
+                                    itemCount: snapshot.data.length,
+                                    separatorBuilder: (BuildContext context, int index) => SizedBox(height: 15),
+                                    itemBuilder: (BuildContext context, int index) {
+                                      int colorIndex = index % list_colors.length;
+                                      return projectContainer(context, snapshot.data[index].projectName,
+                                              snapshot.data[index].ownerID, snapshot.data[index].projectDescription,
+                                              snapshot.data[index].projectDueDate, list_colors[colorIndex], 
+                                              snapshot.data[index].projectProgress, 
+                                                snapshot.data[index].projectMembers);
+                                    },
+                                  ); 
+                                }
+                              }
+                            )
+                          ),
+                          Padding( //Button
+                            padding: const EdgeInsetsDirectional.fromSTEB(
+                                320.0, 500.0, 0.0, 0.0),
+                            child: FlutterFlowIconButton(
+                              borderColor: Colors.transparent,
+                              borderRadius: 30.0,
+                              borderWidth: 1.0,
+                              buttonSize: 50.0,
+                              fillColor: FlutterFlowTheme.of(context)
+                                  .primaryBackground,
+                              icon: Icon(
+                                Icons.add,
+                                color: FlutterFlowTheme.of(context).primaryText,
+                                size: 24.0,
+                              ),
+                              onPressed: () async {
+                                context.pushNamed('CreateProjectPage');
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          );
-      //}
+          ],
+        ),
+      ),
+    );
   }
 }
 

@@ -145,10 +145,13 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               path: 'TaskCreationPage',
               builder: (context, params) => const TaskCreationPageWidget(),
             ),
-            FFRoute(
+            FFRoute(                                                         ////////////////
               name: 'EdtiProjectPage',
               path: 'edtlProjectPage',
-              builder: (context, params) => const EdtiProjectPageWidget(),
+              builder: (context, params) => EdtiProjectPageWidget(
+                pName: params.getParam('pName', ParamType.String), 
+                pDescription: params.getParam('pDescription', ParamType.String), 
+                pDue: params.getParam('pDue', ParamType.String),),
             ),
             FFRoute(
               name: 'EditTaskPage',

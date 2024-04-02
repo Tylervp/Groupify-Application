@@ -6,9 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'edti_project_page_model.dart';
 export 'edti_project_page_model.dart';
+import 'package:groupify_final/sql_database_connection.dart';
+import '/auth/firebase_auth/auth_util.dart';
 
 class EdtiProjectPageWidget extends StatefulWidget {
-  const EdtiProjectPageWidget({super.key});
+  final String? pName;
+  final String? pDescription;
+  final String? pDue; 
+  const EdtiProjectPageWidget({super.key, required this.pName, this.pDescription, this.pDue});
 
   @override
   State<EdtiProjectPageWidget> createState() => _EdtiProjectPageWidgetState();
@@ -19,16 +24,24 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // Connect to DB
+  late SQLDatabaseHelper _sqldatabaseHelper;
+  Future<void> _connectToDatabase() async {
+    await _sqldatabaseHelper.connectToDatabase();
+  }
+
   @override
   void initState() {
     super.initState();
     _model = createModel(context, () => EdtiProjectPageModel());
 
-    _model.emailAddressController1 ??= TextEditingController();
+    _model.emailAddressController1 ??= TextEditingController(text: widget.pName);
     _model.emailAddressFocusNode1 ??= FocusNode();
-
-    _model.emailAddressController2 ??= TextEditingController();
+    _model.emailAddressController2 ??= TextEditingController(text: widget.pDescription);
     _model.emailAddressFocusNode2 ??= FocusNode();
+
+    _sqldatabaseHelper = SQLDatabaseHelper();
+    _connectToDatabase();
 
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
@@ -40,8 +53,21 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
     super.dispose();
   }
 
+  Future<void> _updateProject(String? pName, String? nDescription, String? nDue) async {
+    await _sqldatabaseHelper.connection.query( 
+        'UPDATE Projects SET projectDescription = ?, projectDueDate = ? WHERE projectName = ? and ownerID = ?;',
+            [nDescription, nDue, pName, currentUserDisplayName]);
+
+    print('PROJECT UPDATE');
+    _sqldatabaseHelper.closeConnection();
+  }
+
+  String? newDue = '';
+  String? newDescription = '';
   @override
   Widget build(BuildContext context) {
+    String? newName = widget.pName;
+    
     return GestureDetector(
       onTap: () => _model.unfocusNode.canRequestFocus
           ? FocusScope.of(context).requestFocus(_model.unfocusNode)
@@ -259,6 +285,9 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
                                 controller: _model.emailAddressController1,
                                 focusNode: _model.emailAddressFocusNode1,
                                 obscureText: false,
+                                onChanged: (value){
+                                  newName = value; 
+                                },
                                 decoration: InputDecoration(
                                   labelStyle:
                                       FlutterFlowTheme.of(context).bodySmall,
@@ -332,6 +361,9 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
                                 controller: _model.emailAddressController2,
                                 focusNode: _model.emailAddressFocusNode2,
                                 obscureText: false,
+                                onChanged: (value){
+                                  newDescription = value;
+                                },
                                 decoration: InputDecoration(
                                   labelStyle:
                                       FlutterFlowTheme.of(context).bodyMedium,
@@ -452,6 +484,8 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
                                         datePickedDate.month,
                                         datePickedDate.day,
                                       );
+                                      final temp = DateFormat('MM/d/yyyy').format(datePickedDate);
+                                      newDue = temp.toString();
                                     });
                                   }
                                 },
@@ -475,7 +509,9 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
                                             locale: FFLocalizations.of(context)
                                                 .languageCode,
                                           ),
-                                          'Select a date',
+                                          (widget.pDue == null)  ? 'Select a date' : widget.pDue.toString(),
+                                          //'Select a date',
+                                          //widget.pDue.toString(),
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -502,6 +538,7 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
                           alignment: const AlignmentDirectional(0.0, 0.0),
                           child: FFButtonWidget(
                             onPressed: () async {
+                              _updateProject(widget.pName, newDescription, newDue);
                               context.pushNamed('HomePage');
                             },
                             text: FFLocalizations.of(context).getText(
