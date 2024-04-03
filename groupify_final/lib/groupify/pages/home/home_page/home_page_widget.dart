@@ -117,7 +117,11 @@ class _HomePageWidgetState extends State<HomePageWidget> {
         hoverColor: Colors.transparent,
         highlightColor: Colors.transparent,
         onTap: () async {
-          context.pushNamed('ProjectPage');
+          context.pushNamed('ProjectPage', queryParameters: {
+            'projectOwnerID': pOwnerID,
+            'projectName': pName,
+            'projectDescription': pDescription,
+            });
         },
         child: Container(
           height: 100.0,

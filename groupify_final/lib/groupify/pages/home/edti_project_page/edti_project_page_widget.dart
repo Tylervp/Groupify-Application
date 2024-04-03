@@ -10,7 +10,7 @@ import 'package:groupify_final/sql_database_connection.dart';
 import '/auth/firebase_auth/auth_util.dart';
 
 class EdtiProjectPageWidget extends StatefulWidget {
-  final String? pName;
+  final String pName;
   final String? pDescription;
   final String? pDue; 
   const EdtiProjectPageWidget({super.key, required this.pName, this.pDescription, this.pDue});
@@ -24,7 +24,7 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Connect to DB
+  // Connect to DB 
   late SQLDatabaseHelper _sqldatabaseHelper;
   Future<void> _connectToDatabase() async {
     await _sqldatabaseHelper.connectToDatabase();

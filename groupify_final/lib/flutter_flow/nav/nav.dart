@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '/auth/base_auth_user_provider.dart';
+import '/groupify/pages/home/home_page/home_page_widget.dart';
 
 import '/index.dart';
 import '/main.dart';
@@ -125,9 +126,13 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: 'ProjectPage',
               path: 'projectPage',
-              builder: (context, params) => const NavBarPage(
+              builder: (context, params) => NavBarPage(
                 initialPage: '',
-                page: ProjectPageWidget(),
+                page: ProjectPageWidget(
+                  projectOwnerID: params.getParam('projectOwnerID', ParamType.String),
+                  projectName: params.getParam('projectName', ParamType.String),
+                  projectDescription: params.getParam('projectDescription', ParamType.String),
+                ),  
               ),
             ),
             FFRoute(
@@ -145,7 +150,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               path: 'TaskCreationPage',
               builder: (context, params) => const TaskCreationPageWidget(),
             ),
-            FFRoute(                                                         ////////////////
+            FFRoute(      
               name: 'EdtiProjectPage',
               path: 'edtlProjectPage',
               builder: (context, params) => EdtiProjectPageWidget(

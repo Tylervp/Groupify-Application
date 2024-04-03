@@ -6,7 +6,8 @@ import 'project_description_model.dart';
 export 'project_description_model.dart';
 
 class ProjectDescriptionWidget extends StatefulWidget {
-  const ProjectDescriptionWidget({super.key});
+  final String pDescription;
+  const ProjectDescriptionWidget({super.key, required this.pDescription});
 
   @override
   State<ProjectDescriptionWidget> createState() =>
@@ -68,9 +69,7 @@ class _ProjectDescriptionWidgetState extends State<ProjectDescriptionWidget> {
                     padding:
                         const EdgeInsetsDirectional.fromSTEB(12.0, 12.0, 0.0, 8.0),
                     child: Text(
-                      FFLocalizations.of(context).getText(
-                        'dxl7j30a' /* Description: */,
-                      ),
+                      'Project Description',
                       textAlign: TextAlign.start,
                       style: FlutterFlowTheme.of(context).labelMedium.override(
                             fontFamily: 'Outfit',
@@ -121,9 +120,9 @@ class _ProjectDescriptionWidgetState extends State<ProjectDescriptionWidget> {
                           padding: const EdgeInsetsDirectional.fromSTEB(
                               12.0, 0.0, 0.0, 0.0),
                           child: Text(
-                            FFLocalizations.of(context).getText(
-                              'ra7sb24o' /* Description... */,
-                            ),
+                            widget.pDescription == '' 
+                              ? FFLocalizations.of(context).getText('ra7sb24o' /* Description... */) 
+                              : widget.pDescription,
                             style: FlutterFlowTheme.of(context)
                                 .bodyMedium
                                 .override(

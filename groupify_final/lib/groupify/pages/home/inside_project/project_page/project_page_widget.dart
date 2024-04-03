@@ -6,6 +6,7 @@ import '/groupify/pages/home/inside_project/options_task/options_task_widget.dar
 import '/groupify/pages/home/inside_project/project_description/project_description_widget.dart';
 import '/groupify/pages/home/inside_project/showcase_profile/showcase_profile_widget.dart';
 import '/groupify/pages/home/inside_project/task_subtask_description/task_subtask_description_widget.dart';
+import '/groupify/pages/home/home_page/home_page_widget.dart';
 import 'dart:ui';
 import 'package:badges/badges.dart' as badges;
 import 'package:flutter/material.dart';
@@ -15,7 +16,11 @@ import 'project_page_model.dart';
 export 'project_page_model.dart';
 
 class ProjectPageWidget extends StatefulWidget {
-  const ProjectPageWidget({super.key});
+  final String projectOwnerID;
+  final String projectName;
+  final String projectDescription;
+
+  const ProjectPageWidget({super.key, required this.projectOwnerID,required this.projectName, required this.projectDescription});
 
   @override
   State<ProjectPageWidget> createState() => _ProjectPageWidgetState();
@@ -43,6 +48,10 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // Check if info from homepage is correct (CAN DELETE v)
+    /*print(widget.projectName + ' oooooooooooooooooooooooooooooooooooooooooo');
+    print(widget.projectOwnerID + ' oooooooooooooooooooooooooooooooooooooooooo');
+    print(widget.projectDescription + ' oooooooooooooooooooooooooooooooooooooooooo');*/
     return GestureDetector(
       onTap: () => _model.unfocusNode.canRequestFocus
           ? FocusScope.of(context).requestFocus(_model.unfocusNode)
@@ -177,9 +186,8 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                     padding: const EdgeInsetsDirectional.fromSTEB(
                                         15.0, 0.0, 0.0, 0.0),
                                     child: Text(
-                                      FFLocalizations.of(context).getText(
-                                        's2l5yd7h' /* Project Name */,
-                                      ),
+                                      widget.projectName,
+                                      overflow: TextOverflow.ellipsis, 
                                       style: FlutterFlowTheme.of(context)
                                           .displayMedium
                                           .override(
@@ -280,10 +288,10 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                                   padding:
                                                       MediaQuery.viewInsetsOf(
                                                           context),
-                                                  child: const SizedBox(
+                                                  child: SizedBox(
                                                     height: 350.0,
                                                     child:
-                                                        ProjectDescriptionWidget(),
+                                                        ProjectDescriptionWidget(pDescription: widget.projectDescription),
                                                   ),
                                                 ),
                                               );
