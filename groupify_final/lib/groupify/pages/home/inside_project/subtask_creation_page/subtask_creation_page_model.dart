@@ -9,13 +9,13 @@ class SubtaskCreationPageModel
 
   final unfocusNode = FocusNode();
   // State field(s) for emailAddress widget.
-  FocusNode? emailAddressFocusNode1;
-  TextEditingController? emailAddressController1;
-  String? Function(BuildContext, String?)? emailAddressController1Validator;
+  FocusNode? subtaskNameFocusNode;
+  TextEditingController? subtaskNameController;
+  String? Function(BuildContext, String?)? subtaskNameControllerValidator;
   // State field(s) for emailAddress widget.
-  FocusNode? emailAddressFocusNode2;
-  TextEditingController? emailAddressController2;
-  String? Function(BuildContext, String?)? emailAddressController2Validator;
+  FocusNode? subtaskDescriptionFocusNode;
+  TextEditingController? subtaskDescriptionController;
+  String? Function(BuildContext, String?)? subtaskDescripitionControllerValidator;
   DateTime? datePicked;
   // State field(s) for RatingBar widget.
   double? ratingBarValue;
@@ -31,11 +31,11 @@ class SubtaskCreationPageModel
   @override
   void dispose() {
     unfocusNode.dispose();
-    emailAddressFocusNode1?.dispose();
-    emailAddressController1?.dispose();
+    subtaskNameFocusNode?.dispose();
+    subtaskNameController?.dispose();
 
-    emailAddressFocusNode2?.dispose();
-    emailAddressController2?.dispose();
+    subtaskDescriptionFocusNode?.dispose();
+    subtaskDescriptionController?.dispose();
   }
 
   /// Action blocks are added here.

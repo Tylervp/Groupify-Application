@@ -9,9 +9,17 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'subtask_creation_page_model.dart';
 export 'subtask_creation_page_model.dart';
+import 'package:groupify_final/sql_database_connection.dart';
+import '/auth/firebase_auth/auth_util.dart';
+import '/groupify/pages/home/home_page/home_page_widget.dart';
+
 
 class SubtaskCreationPageWidget extends StatefulWidget {
-  const SubtaskCreationPageWidget({super.key});
+  final String projectOwnerID;
+  final String projectName;
+  final String projectDescription;
+
+  const SubtaskCreationPageWidget({super.key, required this.projectOwnerID,required this.projectName, required this.projectDescription});
 
   @override
   State<SubtaskCreationPageWidget> createState() =>
@@ -20,6 +28,8 @@ class SubtaskCreationPageWidget extends StatefulWidget {
 
 class _SubtaskCreationPageWidgetState extends State<SubtaskCreationPageWidget> {
   late SubtaskCreationPageModel _model;
+  late SQLDatabaseHelper _sqldatabaseHelper;
+
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -28,13 +38,35 @@ class _SubtaskCreationPageWidgetState extends State<SubtaskCreationPageWidget> {
     super.initState();
     _model = createModel(context, () => SubtaskCreationPageModel());
 
-    _model.emailAddressController1 ??= TextEditingController();
-    _model.emailAddressFocusNode1 ??= FocusNode();
+    _model.subtaskNameController ??= TextEditingController();
+    _model.subtaskNameFocusNode ??= FocusNode();
 
-    _model.emailAddressController2 ??= TextEditingController();
-    _model.emailAddressFocusNode2 ??= FocusNode();
+    _model.subtaskDescriptionController ??= TextEditingController();
+    _model.subtaskDescriptionFocusNode ??= FocusNode();
+
+    _sqldatabaseHelper = SQLDatabaseHelper();
+    _connectToDatabase();
 
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
+  }
+
+Future<void> _connectToDatabase() async {
+    await _sqldatabaseHelper.connectToDatabase();
+  }
+
+  Future<void> _insertSubtask(String? taskDueDate) async {
+    final String projectName = widget.projectName;
+    final String ownerID = widget.projectOwnerID;
+    final String subtaskName = _model.subtaskNameController.text;
+    final String subtaskDescription = _model.subtaskDescriptionController.text;
+    final double? subtaskDifficulty = _model.ratingBarValue;
+    final List<String>? subtaskAssigned = _model.dropDownValueController?.value;
+    final String subtaskAssignedString = subtaskAssigned?.join(', ') ?? '';
+
+    final results = await _sqldatabaseHelper.connection.query(
+        'INSERT INTO Subtasks (projectName, ownerID, taskName, subTaskName, subTaskDescription, subTaskProgress, subTaskDifficulty, subTaskAssigned, subTaskDate) VALUES (?, ?, "Ligma", ?, ?, 0, ?, ?, ?)',
+        [projectName, ownerID, subtaskName, subtaskDescription, subtaskDifficulty, subtaskAssignedString, taskDueDate]);
+    print('Inserted task with ID ${results.insertId}');
   }
 
   @override
@@ -44,6 +76,7 @@ class _SubtaskCreationPageWidgetState extends State<SubtaskCreationPageWidget> {
     super.dispose();
   }
 
+  String? stDue = '';
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -224,7 +257,12 @@ class _SubtaskCreationPageWidgetState extends State<SubtaskCreationPageWidget> {
                                                     Colors.transparent,
                                                 onTap: () async {
                                                   context
-                                                      .pushNamed('ProjectPage');
+                                                      .pushNamed('ProjectPage',
+                                                      queryParameters: {
+                                  'projectOwnerID': widget.projectOwnerID,
+                                  'projectName': widget.projectName,
+                                  'projectDescription': widget.projectDescription,
+                              });
                                                 },
                                                 child: Icon(
                                                   Icons.close_rounded,
@@ -261,8 +299,8 @@ class _SubtaskCreationPageWidgetState extends State<SubtaskCreationPageWidget> {
                               padding: const EdgeInsetsDirectional.fromSTEB(
                                   24.0, 0.0, 24.0, 15.0),
                               child: TextFormField(
-                                controller: _model.emailAddressController1,
-                                focusNode: _model.emailAddressFocusNode1,
+                                controller: _model.subtaskNameController,
+                                focusNode: _model.subtaskNameFocusNode,
                                 obscureText: false,
                                 decoration: InputDecoration(
                                   labelStyle:
@@ -312,7 +350,7 @@ class _SubtaskCreationPageWidgetState extends State<SubtaskCreationPageWidget> {
                                 style: FlutterFlowTheme.of(context).bodyMedium,
                                 maxLines: null,
                                 validator: _model
-                                    .emailAddressController1Validator
+                                    .subtaskNameControllerValidator
                                     .asValidator(context),
                               ),
                             ),
@@ -334,8 +372,8 @@ class _SubtaskCreationPageWidgetState extends State<SubtaskCreationPageWidget> {
                               padding: const EdgeInsetsDirectional.fromSTEB(
                                   24.0, 0.0, 24.0, 15.0),
                               child: TextFormField(
-                                controller: _model.emailAddressController2,
-                                focusNode: _model.emailAddressFocusNode2,
+                                controller: _model.subtaskDescriptionController,
+                                focusNode: _model.subtaskDescriptionFocusNode,
                                 obscureText: false,
                                 decoration: InputDecoration(
                                   labelStyle:
@@ -385,7 +423,7 @@ class _SubtaskCreationPageWidgetState extends State<SubtaskCreationPageWidget> {
                                 style: FlutterFlowTheme.of(context).bodyMedium,
                                 maxLines: 10,
                                 validator: _model
-                                    .emailAddressController2Validator
+                                    .subtaskDescripitionControllerValidator
                                     .asValidator(context),
                               ),
                             ),
@@ -457,6 +495,8 @@ class _SubtaskCreationPageWidgetState extends State<SubtaskCreationPageWidget> {
                                         datePickedDate.month,
                                         datePickedDate.day,
                                       );
+                                      final temp = DateFormat('MM/d/yyyy').format(datePickedDate);
+                                      stDue = temp.toString();
                                     });
                                   }
                                 },
@@ -613,7 +653,12 @@ class _SubtaskCreationPageWidgetState extends State<SubtaskCreationPageWidget> {
                           alignment: const AlignmentDirectional(0.0, 0.0),
                           child: FFButtonWidget(
                             onPressed: () async {
-                              context.pushNamed('ProjectPage');
+                              _insertSubtask(stDue);
+                              context.pushNamed('ProjectPage', queryParameters: {
+                                  'projectOwnerID': widget.projectOwnerID,
+                                  'projectName': widget.projectName,
+                                  'projectDescription': widget.projectDescription,
+                              });
                             },
                             text: FFLocalizations.of(context).getText(
                               's4r75cqr' /* Create Subtask */,
