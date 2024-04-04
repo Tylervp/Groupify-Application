@@ -148,7 +148,11 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: 'TaskCreationPage',
               path: 'TaskCreationPage',
-              builder: (context, params) => const TaskCreationPageWidget(),
+              builder: (context, params) => TaskCreationPageWidget(
+                projectOwnerID: params.getParam('projectOwnerID', ParamType.String),
+                projectName: params.getParam('projectName', ParamType.String),
+                projectDescription: params.getParam('projectDescription', ParamType.String),
+              ),
             ),
             FFRoute(      
               name: 'EdtiProjectPage',
@@ -171,7 +175,11 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: 'SubtaskCreationPage',
               path: 'SubtaskCreationPage',
-              builder: (context, params) => const SubtaskCreationPageWidget(),
+              builder: (context, params) => SubtaskCreationPageWidget(
+                projectOwnerID: params.getParam('projectOwnerID', ParamType.String),
+                projectName: params.getParam('projectName', ParamType.String),
+                projectDescription: params.getParam('projectDescription', ParamType.String),
+              ),
             ),
             FFRoute(
               name: 'RatingPage',

@@ -28,7 +28,6 @@ class ProjectPageWidget extends StatefulWidget {
 
 class _ProjectPageWidgetState extends State<ProjectPageWidget> {
   late ProjectPageModel _model;
-
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
@@ -49,9 +48,12 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
   @override
   Widget build(BuildContext context) {
     // Check if info from homepage is correct (CAN DELETE v)
-    /*print(widget.projectName + ' oooooooooooooooooooooooooooooooooooooooooo');
+    final projectName = widget.projectName;
+    final projectOwnerID = widget.projectOwnerID;
+    final projectDescription = widget.projectOwnerID;
+    print(widget.projectName + ' oooooooooooooooooooooooooooooooooooooooooo');
     print(widget.projectOwnerID + ' oooooooooooooooooooooooooooooooooooooooooo');
-    print(widget.projectDescription + ' oooooooooooooooooooooooooooooooooooooooooo');*/
+    print(widget.projectDescription + ' oooooooooooooooooooooooooooooooooooooooooo');
     return GestureDetector(
       onTap: () => _model.unfocusNode.canRequestFocus
           ? FocusScope.of(context).requestFocus(_model.unfocusNode)
@@ -743,7 +745,11 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                                           ),
                                                           onPressed: () async {
                                                             context.pushNamed(
-                                                                'SubtaskCreationPage');
+                                                                'SubtaskCreationPage', queryParameters: {
+                                  'projectOwnerID': widget.projectOwnerID,
+                                  'projectName': widget.projectName,
+                                  'projectDescription': widget.projectDescription,
+                              });
                                                           },
                                                         ),
                                                       ),
@@ -1460,7 +1466,11 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                 size: 24.0,
                               ),
                               onPressed: () async {
-                                context.pushNamed('TaskCreationPage');
+                                context.pushNamed('TaskCreationPage', queryParameters: {
+                                  'projectOwnerID': projectOwnerID,
+                                  'projectName': projectName,
+                                  'projectDescription': projectDescription,
+            });
                               },
                             ),
                           ),

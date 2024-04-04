@@ -1,5 +1,4 @@
 import 'dart:ffi';
-
 import '/flutter_flow/flutter_flow_drop_down.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -13,9 +12,17 @@ import 'task_creation_page_model.dart';
 export 'task_creation_page_model.dart';
 import 'package:groupify_final/sql_database_connection.dart';
 import '/auth/firebase_auth/auth_util.dart';
+import '/groupify/pages/home/inside_project/project_page/project_page_widget.dart';
 
 class TaskCreationPageWidget extends StatefulWidget {
-  const TaskCreationPageWidget({super.key});
+  final String? projectOwnerID;
+  final String? projectName;
+  final String? projectDescription;
+  
+ 
+
+
+  const TaskCreationPageWidget({super.key, required this.projectOwnerID,required this.projectName, required this.projectDescription});
 
   @override
   State<TaskCreationPageWidget> createState() => _TaskCreationPageWidgetState();
@@ -25,6 +32,8 @@ class _TaskCreationPageWidgetState extends State<TaskCreationPageWidget> {
   late TaskCreationPageModel _model;
   late SQLDatabaseHelper _sqldatabaseHelper;
   final scaffoldKey = GlobalKey<ScaffoldState>();
+
+  
 
   @override
   void initState() {
@@ -40,14 +49,20 @@ class _TaskCreationPageWidgetState extends State<TaskCreationPageWidget> {
     _sqldatabaseHelper = SQLDatabaseHelper();
     _connectToDatabase();
 
+    
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
 
 Future<void> _connectToDatabase() async {
     await _sqldatabaseHelper.connectToDatabase();
+     print('projectOwnerID: ${widget.projectOwnerID}');
+     print('projectName: ${widget.projectName}');
+     print('projectDescription: ${widget.projectDescription}');
   }
 
- Future<void> _insertTask() async {
+ Future<void> _insertTask(String? taskDueDate) async {
+    final String? projectName = widget.projectName;
+    final String? ownerID = widget.projectOwnerID;
     final String taskName = _model.taskNameController.text;
     final String taskDescription = _model.taskDescriptionController.text;
     final double? taskDifficulty = _model.ratingBarValue;
@@ -55,8 +70,8 @@ Future<void> _connectToDatabase() async {
     final String taskAssignedString = taskAssigned?.join(', ') ?? '';
 
     final results = await _sqldatabaseHelper.connection.query(
-        'INSERT INTO Tasks (projectName, ownerID, taskName, taskDescription, taskProgress, taskDifficulty, taskAssigned) VALUES ("blahblah", "test123", ?, ?, 0, ?, ?)',
-        [taskName, taskDescription, taskDifficulty, taskAssignedString]);
+        'INSERT INTO Tasks (projectName, ownerID, taskName, taskDescription, taskProgress, taskDifficulty, taskAssigned, taskDate) VALUES (?, ?, ?, ?, 0, ?, ?, ?)',
+        [projectName, ownerID, taskName, taskDescription, taskDifficulty, taskAssignedString, taskDueDate]);
     print('Inserted task with ID ${results.insertId}');
   }
 
@@ -67,6 +82,8 @@ Future<void> _connectToDatabase() async {
     super.dispose();
   }
 
+
+String? tDue = '';
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -247,7 +264,12 @@ Future<void> _connectToDatabase() async {
                                                     Colors.transparent,
                                                 onTap: () async {
                                                   context
-                                                      .pushNamed('ProjectPage');
+                                                      .pushNamed('ProjectPage',
+                                                      queryParameters: {
+                                  'projectOwnerID': widget.projectOwnerID,
+                                  'projectName': widget.projectName,
+                                  'projectDescription': widget.projectDescription,
+                              });
                                                 },
                                                 child: Icon(
                                                   Icons.close_rounded,
@@ -479,6 +501,8 @@ Future<void> _connectToDatabase() async {
                                         datePickedDate.month,
                                         datePickedDate.day,
                                       );
+                                      final temp = DateFormat('MM/d/yyyy').format(datePickedDate);
+                                      tDue = temp.toString();
                                     });
                                   }
                                 },
@@ -635,8 +659,12 @@ Future<void> _connectToDatabase() async {
                           alignment: const AlignmentDirectional(0.0, 0.0),
                           child: FFButtonWidget(
                             onPressed: () async {
-                              await _insertTask();
-                              context.pushNamed('ProjectPage');
+                              await _insertTask(tDue);
+                              context.pushNamed('ProjectPage', queryParameters: {
+                                  'projectOwnerID': widget.projectOwnerID,
+                                  'projectName': widget.projectName,
+                                  'projectDescription': widget.projectDescription,
+                              });
                             },
                             text: FFLocalizations.of(context).getText(
                               'plcf02yu' /* Create Task */,
