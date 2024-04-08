@@ -57,11 +57,11 @@ class _AreYouSureProjectWidgetState extends State<AreYouSureProjectWidget> {
   }
 
   Future<void> _deleteProject(String? pOwnerID, String? pName, String? pDescription, String? pDue) async {
-   await _sqldatabaseHelper.connection.query( 
-      'DELETE FROM TaskComments WHERE projectName = ? and ownerID = ?;', [pName, currentUserDisplayName]);
+   /*await _sqldatabaseHelper.connection.query( 
+      'DELETE FROM TaskComments WHERE projectName = ? and ownerID = ?;', [pName, currentUserDisplayName]);*/
 
-    await _sqldatabaseHelper.connection.query( 
-      'DELETE FROM SubTaskComments WHERE projectName = ? and ownerID = ?;', [pName, currentUserDisplayName]);
+    /*await _sqldatabaseHelper.connection.query( 
+      'DELETE FROM SubTaskComments WHERE projectName = ? and ownerID = ?;', [pName, currentUserDisplayName]);*/
 
     await _sqldatabaseHelper.connection.query( 
       'DELETE FROM Tasks WHERE projectName = ? and ownerID = ?;', [pName, currentUserDisplayName]);
@@ -89,7 +89,7 @@ class _AreYouSureProjectWidgetState extends State<AreYouSureProjectWidget> {
       ['', pName, pOwnerID, currentUserDisplayName]);
 
     await _sqldatabaseHelper.connection.query( 
-      'UPDATE Subtasks SET taskAssigned = ? WHERE projectName = ? and ownerID = ?;', 
+      'UPDATE Subtasks SET subTaskAssigned = ? WHERE projectName = ? and ownerID = ?;', 
       ['', pName, pOwnerID]);
 
     _sqldatabaseHelper.closeConnection();

@@ -120,7 +120,7 @@ class _ProjectDescriptionWidgetState extends State<ProjectDescriptionWidget> {
                           padding: const EdgeInsetsDirectional.fromSTEB(
                               12.0, 0.0, 0.0, 0.0),
                           child: Text(
-                            widget.pDescription == '' 
+                            widget.pDescription == '' ////
                               ? FFLocalizations.of(context).getText('ra7sb24o' /* Description... */) 
                               : widget.pDescription,
                             style: FlutterFlowTheme.of(context)

@@ -9,10 +9,12 @@ export 'invitations_page_model.dart';
 import 'package:groupify_final/sql_database_connection.dart';
 import '/auth/firebase_auth/auth_util.dart';
 
+
 class Invitation {
   String projectName = '';
   String ownerID = '';
   String userID = '';
+
 
   Invitation(String projectName, String ownerID, String userID){
     this.projectName = projectName;
@@ -21,16 +23,20 @@ class Invitation {
   }
 }
 
+
 class InvitationsPageWidget extends StatefulWidget {
   const InvitationsPageWidget({super.key});
+
 
   @override
   State<InvitationsPageWidget> createState() => _InvitationsPageWidgetState();
 }
 
+
 class _InvitationsPageWidgetState extends State<InvitationsPageWidget> {
   late InvitationsPageModel _model;
   final scaffoldKey = GlobalKey<ScaffoldState>();
+
 
   @override
   void initState() {
@@ -39,20 +45,25 @@ class _InvitationsPageWidgetState extends State<InvitationsPageWidget> {
     _sqldatabaseHelper = SQLDatabaseHelper();
     _connectToDatabase();
 
+
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
+
 
   @override
   void dispose() {
     _model.dispose();
 
+
     super.dispose();
   }
+
 
   late SQLDatabaseHelper _sqldatabaseHelper;
   Future<void> _connectToDatabase() async {
     await _sqldatabaseHelper.connectToDatabase();
   }
+
 
   Future<List<Invitation>> _getInvitations(BuildContext context) async {
     List<Invitation> invitations = [];
@@ -67,19 +78,22 @@ class _InvitationsPageWidgetState extends State<InvitationsPageWidget> {
     return invitations;
   }
 
+
   Future<void> _insertProjectMembers(BuildContext context, String pName, String oID) async {
-    await _sqldatabaseHelper.connection.query('INSERT ProjectMembers (userID, projectName, ownerID) VALUES (?,?,?)', 
+    await _sqldatabaseHelper.connection.query('INSERT ProjectMembers (userID, projectName, ownerID) VALUES (?,?,?)',
                                   [currentUserDisplayName, pName, oID]);
     print('CURRENT USER JOINED THE PROJECT');
   }
 
+
   Future<void> _deleteInvitation(BuildContext context, String pName, String oID) async {
-    await _sqldatabaseHelper.connection.query('DELETE FROM Inbox WHERE userID = ? and projectName = ? and ownerID = ?', 
+    await _sqldatabaseHelper.connection.query('DELETE FROM Inbox WHERE userID = ? and projectName = ? and ownerID = ?',
                                   [currentUserDisplayName, pName, oID]);
     print('INVITATION WAS REMOVED');
     setState(() {});
     _sqldatabaseHelper.closeConnection();
   }
+
 
   Widget invitationContainer(BuildContext context, String pName, String oID, String uID){
     return  Padding(  
@@ -250,8 +264,7 @@ class _InvitationsPageWidgetState extends State<InvitationsPageWidget> {
                             onPressed: () {
                               _insertProjectMembers(context, pName, oID);
                               _deleteInvitation(context, pName, oID);
-                              print(
-                                  'Button-Login pressed ...');
+                              context.pushNamed('HomePage');
                             },
                             text:
                                 FFLocalizations.of(
@@ -319,8 +332,7 @@ class _InvitationsPageWidgetState extends State<InvitationsPageWidget> {
                           child: FFButtonWidget(
                             onPressed: () {
                               _deleteInvitation(context, pName, oID);
-                              print(
-                                  'Button-Login pressed ...');
+                              context.pushNamed('HomePage');
                             },
                             text:
                                 FFLocalizations.of(
@@ -397,6 +409,7 @@ class _InvitationsPageWidgetState extends State<InvitationsPageWidget> {
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -595,7 +608,7 @@ class _InvitationsPageWidgetState extends State<InvitationsPageWidget> {
                             height: 694.0,
                             decoration: const BoxDecoration(),
                             child: FutureBuilder(
-                              future: _getInvitations(context), 
+                              future: _getInvitations(context),
                               builder: (BuildContext context, AsyncSnapshot snapshot){
                                 if(snapshot.data == null){
                                   return const Center(
@@ -641,3 +654,6 @@ class _InvitationsPageWidgetState extends State<InvitationsPageWidget> {
     );
   }
 }
+
+
+

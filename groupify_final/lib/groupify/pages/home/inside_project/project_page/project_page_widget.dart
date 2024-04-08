@@ -14,6 +14,19 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'project_page_model.dart';
 export 'project_page_model.dart';
+import 'package:groupify_final/sql_database_connection.dart';
+
+class Member {
+  String username = '';
+  String profilePicture = '';
+  double rating = 0.0;
+
+  Member(String username, String profilePicture, double rating){
+    this.username = username;
+    this.profilePicture = profilePicture;
+    this.rating = rating;
+  }
+}
 
 class ProjectPageWidget extends StatefulWidget {
   final String projectOwnerID;
@@ -34,15 +47,48 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => ProjectPageModel());
-
+    _sqldatabaseHelper = SQLDatabaseHelper();
+    _connectToDatabase();
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
 
   @override
   void dispose() {
     _model.dispose();
-
     super.dispose();
+  }
+
+  // Connect to DB
+  late SQLDatabaseHelper _sqldatabaseHelper;
+  Future<void> _connectToDatabase() async {
+    await _sqldatabaseHelper.connectToDatabase();
+  }
+
+  // Method to get members of the project
+  Future<List<Member>> _getMembers() async {
+    List<Member> members = [];
+    double rating;
+    double sum;
+    double temp;
+
+    final results = await _sqldatabaseHelper.connection.query('SELECT userID FROM projectMembers WHERE projectName = ? and ownerID = ?;',
+                                                          [widget.projectName, widget.projectOwnerID]); 
+    print('GOT PROJECT MEMBERS');
+    for(final row in results){
+      String tempUserName = row['userID'] as String;
+      rating = 0;
+      sum = 0;
+      temp = 0;
+      final results2 = await _sqldatabaseHelper.connection.query('SELECT rating FROM userRating WHERE userID = ?;',
+                                                          [tempUserName]); 
+      for(final row in results2){
+        temp = row['rating'] as double;
+        sum += temp;
+      }
+      rating = sum/results2.length;
+      members.add(Member(tempUserName, '', rating));
+    }
+    return members;
   }
 
   @override
@@ -50,10 +96,11 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
     // Check if info from homepage is correct (CAN DELETE v)
     final projectName = widget.projectName;
     final projectOwnerID = widget.projectOwnerID;
-    final projectDescription = widget.projectOwnerID;
+    final projectDescription = widget.projectDescription;
     print(widget.projectName + ' oooooooooooooooooooooooooooooooooooooooooo');
     print(widget.projectOwnerID + ' oooooooooooooooooooooooooooooooooooooooooo');
     print(widget.projectDescription + ' oooooooooooooooooooooooooooooooooooooooooo');
+    //_updateProgress(projectName, projectOwnerID);
     return GestureDetector(
       onTap: () => _model.unfocusNode.canRequestFocus
           ? FocusScope.of(context).requestFocus(_model.unfocusNode)
@@ -254,7 +301,11 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                             highlightColor: Colors.transparent,
                                             onTap: () async {
                                               context
-                                                  .pushNamed('GroupChatPage');
+                                                  .pushNamed('RatingPage', queryParameters: {
+                                                    'projectOwnerID': widget.projectOwnerID,
+                                                    'projectName': widget.projectName,
+                                                    'projectDescription': widget.projectDescription,
+                                                  });
                                             },
                                             child: Icon(
                                               Icons.message_rounded,
@@ -357,65 +408,81 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                     Container(
                                       width: 180.0,
                                       height: 40.0,
-                                      decoration: const BoxDecoration(),
-                                      child: ListView(
-                                        padding: EdgeInsets.zero,
-                                        primary: false,
-                                        scrollDirection: Axis.horizontal,
-                                        children: [
-                                          InkWell(
-                                            splashColor: Colors.transparent,
-                                            focusColor: Colors.transparent,
-                                            hoverColor: Colors.transparent,
-                                            highlightColor: Colors.transparent,
-                                            onTap: () async {
-                                              await showModalBottomSheet(
-                                                isScrollControlled: true,
-                                                backgroundColor:
-                                                    Colors.transparent,
-                                                enableDrag: false,
-                                                context: context,
-                                                builder: (context) {
-                                                  return GestureDetector(
-                                                    onTap: () => _model
-                                                            .unfocusNode
-                                                            .canRequestFocus
-                                                        ? FocusScope.of(context)
-                                                            .requestFocus(_model
-                                                                .unfocusNode)
-                                                        : FocusScope.of(context)
-                                                            .unfocus(),
-                                                    child: Padding(
-                                                      padding: MediaQuery
-                                                          .viewInsetsOf(
-                                                              context),
-                                                      child: const SizedBox(
-                                                        height: 150.0,
-                                                        child:
-                                                            ShowcaseProfileWidget(),
+                                      child : FutureBuilder(
+                                          future: _getMembers(), 
+                                          builder: (BuildContext context, AsyncSnapshot snapshot){
+                                            if(snapshot.data == null){
+                                              return SizedBox();
+                                            }
+                                            else{
+                                              return ListView.separated(
+                                                padding: EdgeInsets.zero,
+                                                primary: false,
+                                                scrollDirection: Axis.horizontal,
+                                                itemCount: snapshot.data.length,
+                                                separatorBuilder: (BuildContext context, int index) => SizedBox(width: 9.0),
+                                                itemBuilder: (BuildContext context, int index){
+                                                  return InkWell(
+                                                    splashColor: Colors.transparent,
+                                                    focusColor: Colors.transparent,
+                                                    hoverColor: Colors.transparent,
+                                                    highlightColor: Colors.transparent,
+                                                    onTap: () async {
+                                                      await showModalBottomSheet(    
+                                                        isScrollControlled: true,
+                                                        backgroundColor:
+                                                            Colors.transparent,
+                                                        enableDrag: false,
+                                                        context: context,
+                                                        builder: (context) {
+                                                          return GestureDetector(
+                                                            onTap: () => _model
+                                                                    .unfocusNode
+                                                                    .canRequestFocus
+                                                                ? FocusScope.of(context)
+                                                                    .requestFocus(_model
+                                                                        .unfocusNode)
+                                                                : FocusScope.of(context)
+                                                                    .unfocus(),
+                                                            child: Padding(
+                                                              padding: MediaQuery
+                                                                  .viewInsetsOf(
+                                                                      context),
+                                                              child: SizedBox(
+                                                                height: 150.0,
+                                                                child:
+                                                                    ShowcaseProfileWidget(
+                                                                      username: snapshot.data[index].username,
+                                                                      rating: snapshot.data[index].rating,
+                                                                    ), 
+                                                              ),
+                                                            ),
+                                                          );
+                                                        },
+                                                      ).then((value) =>
+                                                          safeSetState(() {}));
+                                                    },
+                                                    child: Container(
+                                                      width: 30.0,
+                                                      height: 30.0,
+                                                      clipBehavior: Clip.antiAlias,
+                                                      decoration: const BoxDecoration(
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                      child: Image.network(
+                                                        valueOrDefault(
+                                                        snapshot.data[index].profilePicture,
+                                                        'https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg',
+                                                        ),
                                                       ),
                                                     ),
                                                   );
-                                                },
-                                              ).then((value) =>
-                                                  safeSetState(() {}));
-                                            },
-                                            child: Container(
-                                              width: 30.0,
-                                              height: 30.0,
-                                              clipBehavior: Clip.antiAlias,
-                                              decoration: const BoxDecoration(
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: Image.network(
-                                                'https://picsum.photos/seed/939/600',
-                                                fit: BoxFit.cover,
-                                              ),
-                                            ),
-                                          ),
-                                        ].divide(const SizedBox(width: 2.0)),
-                                      ),
-                                    ),
+                                                }
+                                              );
+                                            }
+                                          }      
+                                      )
+                                    )
                                   ],
                                 ),
                               ),
@@ -1470,7 +1537,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                   'projectOwnerID': projectOwnerID,
                                   'projectName': projectName,
                                   'projectDescription': projectDescription,
-            });
+                                });
                               },
                             ),
                           ),

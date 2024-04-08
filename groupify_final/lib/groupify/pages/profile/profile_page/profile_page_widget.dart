@@ -291,6 +291,7 @@ class _ProfilePageWidgetState extends State<ProfilePageWidget> {
                                   FlutterFlowTheme.of(context).accent3,
                               itemCount: 5,
                               itemSize: 60.0,
+                              ignoreGestures: true,
                               glowColor: FlutterFlowTheme.of(context).tertiary,
                             ),
                           ),

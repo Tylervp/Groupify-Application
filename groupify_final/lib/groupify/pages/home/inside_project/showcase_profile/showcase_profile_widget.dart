@@ -7,7 +7,9 @@ import 'showcase_profile_model.dart';
 export 'showcase_profile_model.dart';
 
 class ShowcaseProfileWidget extends StatefulWidget {
-  const ShowcaseProfileWidget({super.key});
+  final String username;
+  final double? rating;
+  const ShowcaseProfileWidget({super.key, required this.username, this.rating});
 
   @override
   State<ShowcaseProfileWidget> createState() => _ShowcaseProfileWidgetState();
@@ -26,19 +28,18 @@ class _ShowcaseProfileWidgetState extends State<ShowcaseProfileWidget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => ShowcaseProfileModel());
-
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
 
   @override
   void dispose() {
     _model.maybeDispose();
-
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    double? tempRating = widget.rating; 
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(16.0, 16.0, 16.0, 16.0),
       child: Container(
@@ -61,9 +62,6 @@ class _ShowcaseProfileWidgetState extends State<ShowcaseProfileWidget> {
             focusColor: Colors.transparent,
             hoverColor: Colors.transparent,
             highlightColor: Colors.transparent,
-            onTap: () async {
-              context.pushNamed('ProjectPage');
-            },
             child: Container(
               height: 110.0,
               decoration: BoxDecoration(
@@ -110,9 +108,8 @@ class _ShowcaseProfileWidgetState extends State<ShowcaseProfileWidget> {
                                   padding: const EdgeInsetsDirectional.fromSTEB(
                                       8.0, 3.0, 0.0, 0.0),
                                   child: Text(
-                                    FFLocalizations.of(context).getText(
-                                      'i3iawjsr' /* Username */,
-                                    ),
+                                    widget.username,
+                                    overflow: TextOverflow.ellipsis,
                                     style: FlutterFlowTheme.of(context)
                                         .bodyMedium
                                         .override(
@@ -143,11 +140,12 @@ class _ShowcaseProfileWidgetState extends State<ShowcaseProfileWidget> {
                               color: FlutterFlowTheme.of(context).tertiary,
                             ),
                             direction: Axis.horizontal,
-                            initialRating: _model.ratingBarValue ??= 3.0,
+                            initialRating: (tempRating != null && !tempRating.isNaN) ? tempRating : 3.0,  // change(3.0) if the user is new
                             unratedColor: FlutterFlowTheme.of(context).accent3,
                             itemCount: 5,
                             itemSize: 30.0,
                             glowColor: FlutterFlowTheme.of(context).tertiary,
+                            ignoreGestures: true,
                           ),
                         ),
                       ].addToEnd(const SizedBox(height: 5.0)),

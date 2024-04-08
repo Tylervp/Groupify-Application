@@ -184,7 +184,11 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: 'RatingPage',
               path: 'ratingPage',
-              builder: (context, params) => const RatingPageWidget(),
+              builder: (context, params) => RatingPageWidget(
+                projectOwnerID: params.getParam('projectOwnerID', ParamType.String),
+                projectName: params.getParam('projectName', ParamType.String),
+                projectDescription: params.getParam('projectDescription', ParamType.String),
+              ),
             ),
             FFRoute(
               name: 'PasswordResetPage',

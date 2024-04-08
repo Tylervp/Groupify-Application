@@ -17,11 +17,11 @@ class Project {
   String projectName = '';
   String ownerID = '';
   String projectDescription = '';
-  double projectProgress = 0.0;
+  double projectProgress = 0;
   String projectDueDate = '';
   List<Member> projectMembers = [];
 
-  Project(String projectName, String ownerID, String projectDescription, double projectProgress, String projectDue, List<Member> projectMembers){
+  Project(String projectName, String ownerID, String projectDescription, double projectProgress, String projectDue, List<Member> projectMembers, /*List<double> tasksProgress*/){
     this.projectName = projectName;
     this.ownerID = ownerID;
     this.projectDescription = projectDescription;
@@ -73,27 +73,84 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     super.dispose();
   }
 
+  // Update project's progression
+  Future<void> _updateProgress(String pName, String pOwnerID) async{
+    List<double> tasksProgress = [];
+    double progress;
+    double projectProgress;
+    double sum = 0; 
+
+    final results = await _sqldatabaseHelper.connection.query('SELECT taskProgress FROM tasks WHERE projectName = ? and ownerID = ?;',
+                                                              [pName, pOwnerID]); 
+    for(final row in results){
+      String temp = row['taskProgress'].toStringAsFixed(2);
+      double progress = double.parse(temp);
+      tasksProgress.add(progress);
+      sum += progress;
+    }    
+    projectProgress = sum/tasksProgress.length;
+    await _sqldatabaseHelper.connection.query( 
+        'UPDATE projects SET projectProgress = ? WHERE projectName = ? and ownerID = ?;',
+            [projectProgress, pName, pOwnerID]);
+    print('PROJECT PROGRESS UPDATED');
+  }
+
   // Method to query projects a user is involved in and populate project list
   Future<List<Project>> _getProjects() async {
     List<Project> projects = [];
-    final results = await _sqldatabaseHelper.connection.query('select Projects.ownerID, Projects.projectName, Projects.projectDescription, Projects.projectProgress, Projects.projectDueDate from ProjectMembers JOIN Projects ON ProjectMembers.projectName = Projects.projectName and ProjectMembers.ownerID = Projects.ownerID where ProjectMembers.userID = ?;',
+    List<Member> members = [];
+    String tempName;
+    String tempOwnerID; 
+    String tempDescription;
+    String tempDueDate;
+    double tempProgress;
+
+    List<double> tasksProgress = [];
+    double progress = 0;
+    double projectProgress = 0;
+    double sum = 0;
+    String temp;
+    
+    // Get Name, ownerID and Decription of a projects
+    final results = await _sqldatabaseHelper.connection.query('select Projects.ownerID, Projects.projectName, Projects.projectDescription,Projects.projectProgress, Projects.projectDueDate from ProjectMembers JOIN Projects ON ProjectMembers.projectName = Projects.projectName and ProjectMembers.ownerID = Projects.ownerID where ProjectMembers.userID = ?;',
                                                             [currentUserDisplayName]);
     print('GOT THE PROJECTS');
     for(final row in results){
-      String tempName = row['projectName'] as String;
-      String tempOwnerID = row['ownerID'] as String;
-      String tempDescription = row['projectDescription'] as String;
-      double tempProgress = row['projectProgress'] as double;
-      String tempDueDate = row['projectDueDate'] as String;
+      tempName = row['projectName'] as String;
+      tempOwnerID = row['ownerID'] as String;
+      tempDescription = row['projectDescription'] as String;
+      tempProgress = row['projectProgress'] as double;
+      tempDueDate = row['projectDueDate'] as String;
+      
+      if(tempProgress != 0){  // If project has a progress of 0 (ex. just created), it has no tasks. Skip project progression update
+        // Update project's progression based on the progression of its tasks and fetch it
+        sum = 0;
+        tasksProgress = [];
+        final results2 = await _sqldatabaseHelper.connection.query('SELECT taskProgress FROM tasks WHERE projectName = ? and ownerID = ?;',
+                                                                [tempName, tempOwnerID]);                                                
+        for(final row in results2){
+          temp = row['taskProgress'].toStringAsFixed(2);
+          progress = double.parse(temp);
+          tasksProgress.add(progress);
+          sum += progress;
+        }    
+        projectProgress = sum/tasksProgress.length;
+        await _sqldatabaseHelper.connection.query( 
+          'UPDATE projects SET projectProgress = ? WHERE projectName = ? and ownerID = ?;',
+              [projectProgress, tempName, tempOwnerID]);
+        final results3 = await _sqldatabaseHelper.connection.query('select Projects.projectProgress, Projects.projectName, Projects.ownerID from ProjectMembers JOIN Projects ON ProjectMembers.projectName = Projects.projectName and ProjectMembers.ownerID = Projects.ownerID where ProjectMembers.userID = ? and ProjectMembers.ProjectName = ? and ProjectMembers.ownerID = ?;',
+                                                          [currentUserDisplayName, tempName, tempOwnerID]);
+        tempProgress = results3.first['projectProgress'] as double;
+      }
 
-      List<Member> members = [];
-      final results2 = await _sqldatabaseHelper.connection.query('SELECT userID FROM projectMembers WHERE projectName = ? and ownerID = ?;',
+      // Make a list of all the members associated with the project
+      members = [];
+      final results4 = await _sqldatabaseHelper.connection.query('SELECT userID FROM projectMembers WHERE projectName = ? and ownerID = ?;',
                                                           [tempName, tempOwnerID]);                                                   
-
-      for(final row in results2){
+      for(final row in results4){
         String tempUserName = row['userID'] as String;
-        members.add(Member(tempUserName, ''));  ////// query profile picture from firebase for each member
-      }   
+        members.add(Member(tempUserName, ''));  // query profile picture from firebase for each member
+      }    
       projects.insert(0, Project(tempName, tempOwnerID, tempDescription, tempProgress, tempDueDate, members));
     }
     _sqldatabaseHelper.closeConnection();
@@ -108,6 +165,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
 
   // Widget to create project container
   Widget projectContainer(BuildContext context, String pName, String pOwnerID, String pDescription, String pDue, Color c, double pProgress, List<Member> pMembers){ 
+    String temp = pProgress.toStringAsFixed(4);
+    pProgress = double.parse(temp);
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(
           15.0, 0.0, 15.0, 0.0),
@@ -117,11 +176,20 @@ class _HomePageWidgetState extends State<HomePageWidget> {
         hoverColor: Colors.transparent,
         highlightColor: Colors.transparent,
         onTap: () async {
-          context.pushNamed('ProjectPage', queryParameters: {
+          if(pProgress < 1.0){   // query the the progress of all the tasks. If all != 1.0 the go to ProjectPage
+            context.pushNamed('ProjectPage', queryParameters: {
             'projectOwnerID': pOwnerID,
             'projectName': pName,
             'projectDescription': pDescription,
             });
+          }
+          else{
+             context.pushNamed('RatingPage', queryParameters: {
+            'projectOwnerID': pOwnerID,
+            'projectName': pName,
+            'projectDescription': pDescription,
+            });
+          }
         },
         child: Container(
           height: 100.0,
@@ -176,8 +244,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                       0.0,
                                       0.0),
                           child: Text(
-                            pName, //////////////
-                            overflow: TextOverflow.ellipsis, ////////////
+                            pName, 
+                            overflow: TextOverflow.ellipsis,
                             style: FlutterFlowTheme
                                     .of(context)
                                 .bodyMedium
@@ -250,8 +318,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                             0.0,
                                             0.0),
                                 child: Text(
-                                  pDue,  /////////////////////////////
-                                  overflow: TextOverflow.ellipsis,  ////////////////////////////
+                                  pDue,
+                                  overflow: TextOverflow.ellipsis,
                                   style: FlutterFlowTheme
                                           .of(context)
                                       .bodyMedium
@@ -312,7 +380,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                     height: 200.0,
                                     child:
                                         OptionsProjectWidget(
-                                          pOwnerId: pOwnerID,    //////////////
+                                          pOwnerId: pOwnerID,
                                           pName: pName, 
                                           pDescription: pDescription, 
                                           pDue: pDue),  
@@ -395,7 +463,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                   shape: BoxShape
                                       .circle,
                                 ),
-                                child: Image.network(  /////////////////////////////
+                                child: Image.network( 
                                   valueOrDefault<String>(
                                     currentUserPhoto,    ////////// CHANGE TO OWNER PROFILE PICTURE
                                     'https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg',
@@ -447,13 +515,14 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                               height: 25.0,
                               decoration:
                                   const BoxDecoration(),
-                              child: ListView.builder(
+                              child: ListView.separated(
                                 padding:
                                     EdgeInsets.zero,
                                 primary: false,
                                 scrollDirection:
                                     Axis.horizontal,
                                 itemCount: pMembers.length,
+                                separatorBuilder: (BuildContext context, int index) => SizedBox(width: 2.0),
                                 itemBuilder: (BuildContext context, int index){
                                   return Container(
                                     width: 25.0,
@@ -726,7 +795,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                         future: _numInvitations(), 
                                         builder:  (BuildContext context, AsyncSnapshot snapshot){
                                           if(snapshot.data == null || snapshot.data == '0'){
-                                            return badges.Badge(       //////////////////////////////// badge
+                                            return badges.Badge(
                                               showBadge: false,
                                               shape: badges.BadgeShape.circle,
                                               badgeColor: FlutterFlowTheme.of(context)
@@ -763,7 +832,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                             );
                                           }
                                           else {
-                                            return badges.Badge(       //////////////////////////////// badge
+                                            return badges.Badge(
                                               badgeContent: Text(
                                                 snapshot.data,
                                                 style: FlutterFlowTheme.of(context)
@@ -862,7 +931,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                               snapshot.data[index].ownerID, snapshot.data[index].projectDescription,
                                               snapshot.data[index].projectDueDate, list_colors[colorIndex], 
                                               snapshot.data[index].projectProgress, 
-                                                snapshot.data[index].projectMembers);
+                                              snapshot.data[index].projectMembers);
                                     },
                                   ); 
                                 }

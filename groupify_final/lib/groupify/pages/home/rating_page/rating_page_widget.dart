@@ -7,9 +7,25 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'rating_page_model.dart';
 export 'rating_page_model.dart';
+import 'package:groupify_final/sql_database_connection.dart';
+import '/auth/firebase_auth/auth_util.dart';
+
+class Member {
+  String username = '';
+  String profilePicture = '';
+  //double rating = 0.0;
+
+  Member(String username, String profilePicture){
+    this.username = username;
+    this.profilePicture = profilePicture;
+  }
+}
 
 class RatingPageWidget extends StatefulWidget {
-  const RatingPageWidget({super.key});
+  final String projectOwnerID;
+  final String projectName;
+  final String projectDescription;
+  const RatingPageWidget({super.key, required this.projectOwnerID,required this.projectName, required this.projectDescription});
 
   @override
   State<RatingPageWidget> createState() => _RatingPageWidgetState();
@@ -17,22 +33,198 @@ class RatingPageWidget extends StatefulWidget {
 
 class _RatingPageWidgetState extends State<RatingPageWidget> {
   late RatingPageModel _model;
-
   final scaffoldKey = GlobalKey<ScaffoldState>();
+
+  // Connect to DB
+  late SQLDatabaseHelper _sqldatabaseHelper;
+  Future<void> _connectToDatabase() async {
+    await _sqldatabaseHelper.connectToDatabase();
+  }
 
   @override
   void initState() {
     super.initState();
     _model = createModel(context, () => RatingPageModel());
-
+    _sqldatabaseHelper = SQLDatabaseHelper();
+    _connectToDatabase();
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
 
   @override
   void dispose() {
     _model.dispose();
-
     super.dispose();
+  }
+
+  // Get all the members involved in the project
+  Future<List<Member>> _getMembers() async {
+    List<Member> members = [];
+
+    final results = await _sqldatabaseHelper.connection.query('SELECT userID FROM projectMembers WHERE projectName = ? and ownerID = ?;',
+                                                          [widget.projectName, widget.projectOwnerID]); 
+    print('GOT PROJECT MEMBERS');
+
+    for(final row in results){
+       String tempUserName = row['userID'] as String;
+       members.add(Member(tempUserName, ''));
+    }
+    return members;
+  }
+
+  // Map that will hold the ratings of each user
+  Map<String, double> memberRatings = {}; 
+  // Widget to build a container for each member
+  Widget memberContainer(BuildContext context, String username){
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(
+          15.0, 0.0, 15.0, 0.0),
+      child: InkWell(
+        splashColor: Colors.transparent,
+        focusColor: Colors.transparent,
+        hoverColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        child: Container(
+          height: 90.0,
+          decoration: BoxDecoration(
+            color: FlutterFlowTheme.of(context)
+                .overlay,
+            borderRadius:
+                BorderRadius.circular(20.0),
+            shape: BoxShape.rectangle,
+            border: Border.all(
+              color: Colors.transparent,
+              width: 0.0,
+            ),
+          ),
+          child: Padding(
+            padding:
+                const EdgeInsetsDirectional.fromSTEB(
+                    10.0, 0.0, 0.0, 5.0),
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Container(
+                  width: 65.0,
+                  height: 65.0,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                  ),
+                  child: Image.network(
+                    valueOrDefault(
+                      currentUserPhoto, 
+                      'https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg',
+                    ),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.max,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding:
+                          const EdgeInsetsDirectional
+                              .fromSTEB(8.0, 3.0,
+                                  0.0, 0.0),
+                      child: Text(
+                        username,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            FlutterFlowTheme.of(
+                                    context)
+                                .bodyMedium
+                                .override(
+                                  fontFamily: FlutterFlowTheme.of(
+                                          context)
+                                      .bodyMediumFamily,
+                                  fontSize: 23.0,
+                                  fontWeight:
+                                      FontWeight
+                                          .w600,
+                                  useGoogleFonts: GoogleFonts
+                                          .asMap()
+                                      .containsKey(
+                                          FlutterFlowTheme.of(context)
+                                              .bodyMediumFamily),
+                                ),
+                      ),
+                    ),
+                    Opacity(
+                      opacity: 0.4,
+                      child: SizedBox(
+                        width: 250.0,
+                        child: Divider(
+                          height: 10.0,
+                          thickness: 1.0,
+                          indent: 8.0,
+                          color:
+                              FlutterFlowTheme.of(
+                                      context)
+                                  .primaryText,
+                        ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisSize:
+                          MainAxisSize.max,
+                      children: [
+                        Padding(
+                          padding:
+                              const EdgeInsetsDirectional
+                                  .fromSTEB(
+                                      7.0,
+                                      0.0,
+                                      0.0,
+                                      0.0),
+                          child: Text(
+                            FFLocalizations.of(
+                                    context)
+                                .getText(
+                              '8vssdylo' /* Rating:  */,
+                            ),
+                            style: FlutterFlowTheme
+                                    .of(context)
+                                .bodyMedium,
+                          ),
+                        ),
+                        RatingBar.builder(
+                          onRatingUpdate: (newValue) {
+                            setState(() {
+                              memberRatings[username] = newValue; // Add ratings for the user to the dictionary
+                            });
+                          },
+                          itemBuilder: (context, index) => Icon(Icons.star_rounded, color: FlutterFlowTheme.of(context).tertiary,),
+                          direction: Axis.horizontal,
+                          initialRating:  memberRatings[username] ??= 3.0,  // instead of 3, use the user's current rating
+                          unratedColor: FlutterFlowTheme.of(context).accent3,
+                          itemCount: 5,
+                          itemSize: 34.0,
+                          minRating: 1.0,
+                          glowColor: FlutterFlowTheme.of(context).tertiary,
+                        ),
+                      ].divide(const SizedBox(width: 9.0)),
+                    ),
+                  ]
+                      .addToStart(const SizedBox(height: 5.0))
+                      .addToEnd(const SizedBox(height: 5.0)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _insertRatings() async {
+     for (var member in memberRatings.entries) {
+      await _sqldatabaseHelper.connection.query('Insert userRating (userID, rating) Values (?, ?);',
+                                                          [member.key, member.value]); 
+      print('Key: ' + member.key + '---------------------------------------');
+      print('Key: ' + member.value.toString() + '---------------------------------------');
+    };
   }
 
   @override
@@ -196,6 +388,42 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
                                               ),
                                         ),
                                       ),
+                                      Padding(
+                                        padding: const EdgeInsetsDirectional.fromSTEB(
+                                            0.0, 0.0, 15.0, 0.0),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.max,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.end,
+                                          children: [
+                                            Padding(
+                                              padding: const EdgeInsetsDirectional
+                                                  .fromSTEB(0.0, 0.0, 0.0, 5.0),
+                                              child: InkWell(
+                                                splashColor: Colors.transparent,
+                                                focusColor: Colors.transparent,
+                                                hoverColor: Colors.transparent,
+                                                highlightColor:
+                                                    Colors.transparent,
+                                                onTap: () async {
+                                                    context.pushNamed('ProjectPage', queryParameters: {
+                                                      'projectOwnerID': widget.projectOwnerID,
+                                                      'projectName': widget.projectName,
+                                                      'projectDescription': widget.projectDescription,
+                                                      });
+                                                },
+                                                child: Icon(
+                                                  Icons.close_rounded,
+                                                  color: FlutterFlowTheme.of(
+                                                          context)
+                                                      .primaryText,
+                                                  size: 35.0,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -217,14 +445,12 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
                                             15.0, 0.0, 0.0, 0.0),
                                         child: Container(
                                           width: 368.0,
-                                          height: 77.0,
+                                          height: 98.0,
                                           decoration: const BoxDecoration(),
                                           alignment:
                                               const AlignmentDirectional(0.0, -1.0),
                                           child: Text(
-                                            FFLocalizations.of(context).getText(
-                                              '676mvfty' /* Please rate your fellow group ... */,
-                                            ),
+                                            'The project has been complete! Please rate your fellow group members based on their performance in the project. Try to be as honest as possible.',
                                             textAlign: TextAlign.start,
                                             style: FlutterFlowTheme.of(context)
                                                 .bodyMedium
@@ -252,341 +478,43 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
                             Container(
                               height: 530.0,
                               decoration: const BoxDecoration(),
-                              child: ListView(
-                                padding: const EdgeInsets.fromLTRB(
-                                  0,
-                                  20.0,
-                                  0,
-                                  0,
-                                ),
-                                shrinkWrap: true,
-                                scrollDirection: Axis.vertical,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsetsDirectional.fromSTEB(
-                                        15.0, 0.0, 15.0, 0.0),
-                                    child: InkWell(
-                                      splashColor: Colors.transparent,
-                                      focusColor: Colors.transparent,
-                                      hoverColor: Colors.transparent,
-                                      highlightColor: Colors.transparent,
-                                      onTap: () async {
-                                        context.pushNamed('ProjectPage');
-                                      },
-                                      child: Container(
-                                        height: 90.0,
-                                        decoration: BoxDecoration(
-                                          color: FlutterFlowTheme.of(context)
-                                              .overlay,
-                                          borderRadius:
-                                              BorderRadius.circular(20.0),
-                                          shape: BoxShape.rectangle,
-                                          border: Border.all(
-                                            color: Colors.transparent,
-                                            width: 0.0,
+                              child: FutureBuilder(
+                                    future: _getMembers(), 
+                                    builder: (BuildContext context, AsyncSnapshot snapshot){
+                                      if(snapshot.data == null){
+                                        return const Center(
+                                          child: CircularProgressIndicator(
+                                            color: Color.fromARGB(100, 57, 210, 192),
+                                            backgroundColor: Color.fromARGB(30, 57, 210, 192),
+                                            strokeWidth: 4,
                                           ),
-                                        ),
-                                        child: Padding(
-                                          padding:
-                                              const EdgeInsetsDirectional.fromSTEB(
-                                                  10.0, 0.0, 0.0, 5.0),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.max,
-                                            children: [
-                                              Container(
-                                                width: 65.0,
-                                                height: 65.0,
-                                                clipBehavior: Clip.antiAlias,
-                                                decoration: const BoxDecoration(
-                                                  shape: BoxShape.circle,
-                                                ),
-                                                child: Image.network(
-                                                  'https://picsum.photos/seed/513/600',
-                                                  fit: BoxFit.cover,
-                                                ),
-                                              ),
-                                              Column(
-                                                mainAxisSize: MainAxisSize.max,
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsetsDirectional
-                                                            .fromSTEB(8.0, 3.0,
-                                                                0.0, 0.0),
-                                                    child: Text(
-                                                      FFLocalizations.of(
-                                                              context)
-                                                          .getText(
-                                                        '8wpejko5' /* Username */,
-                                                      ),
-                                                      style:
-                                                          FlutterFlowTheme.of(
-                                                                  context)
-                                                              .bodyMedium
-                                                              .override(
-                                                                fontFamily: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .bodyMediumFamily,
-                                                                fontSize: 23.0,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w600,
-                                                                useGoogleFonts: GoogleFonts
-                                                                        .asMap()
-                                                                    .containsKey(
-                                                                        FlutterFlowTheme.of(context)
-                                                                            .bodyMediumFamily),
-                                                              ),
-                                                    ),
-                                                  ),
-                                                  Opacity(
-                                                    opacity: 0.4,
-                                                    child: SizedBox(
-                                                      width: 250.0,
-                                                      child: Divider(
-                                                        height: 10.0,
-                                                        thickness: 1.0,
-                                                        indent: 8.0,
-                                                        color:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .primaryText,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.max,
-                                                    children: [
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsetsDirectional
-                                                                .fromSTEB(
-                                                                    8.0,
-                                                                    0.0,
-                                                                    0.0,
-                                                                    0.0),
-                                                        child: Text(
-                                                          FFLocalizations.of(
-                                                                  context)
-                                                              .getText(
-                                                            '8vssdylo' /* Rating:  */,
-                                                          ),
-                                                          style: FlutterFlowTheme
-                                                                  .of(context)
-                                                              .bodyMedium,
-                                                        ),
-                                                      ),
-                                                      RatingBar.builder(
-                                                        onRatingUpdate: (newValue) =>
-                                                            setState(() => _model
-                                                                    .ratingBarValue1 =
-                                                                newValue),
-                                                        itemBuilder:
-                                                            (context, index) =>
-                                                                Icon(
-                                                          Icons.star_rounded,
-                                                          color: FlutterFlowTheme
-                                                                  .of(context)
-                                                              .tertiary,
-                                                        ),
-                                                        direction:
-                                                            Axis.horizontal,
-                                                        initialRating: _model
-                                                                .ratingBarValue1 ??=
-                                                            3.0,
-                                                        unratedColor:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .accent3,
-                                                        itemCount: 5,
-                                                        itemSize: 35.0,
-                                                        glowColor:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .tertiary,
-                                                      ),
-                                                    ].divide(
-                                                        const SizedBox(width: 9.0)),
-                                                  ),
-                                                ]
-                                                    .addToStart(
-                                                        const SizedBox(height: 5.0))
-                                                    .addToEnd(
-                                                        const SizedBox(height: 5.0)),
-                                              ),
-                                            ],
+                                        );
+                                      }
+                                      else {
+                                        return ListView.separated(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            0,
+                                            20.0,
+                                            0,
+                                            0,
                                           ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsetsDirectional.fromSTEB(
-                                        15.0, 0.0, 15.0, 0.0),
-                                    child: InkWell(
-                                      splashColor: Colors.transparent,
-                                      focusColor: Colors.transparent,
-                                      hoverColor: Colors.transparent,
-                                      highlightColor: Colors.transparent,
-                                      onTap: () async {
-                                        context.pushNamed('ProjectPage');
-                                      },
-                                      child: Container(
-                                        height: 90.0,
-                                        decoration: BoxDecoration(
-                                          color: FlutterFlowTheme.of(context)
-                                              .overlay,
-                                          borderRadius:
-                                              BorderRadius.circular(20.0),
-                                          shape: BoxShape.rectangle,
-                                          border: Border.all(
-                                            color: Colors.transparent,
-                                            width: 0.0,
-                                          ),
-                                        ),
-                                        child: Padding(
-                                          padding:
-                                              const EdgeInsetsDirectional.fromSTEB(
-                                                  10.0, 0.0, 0.0, 5.0),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.max,
-                                            children: [
-                                              Container(
-                                                width: 65.0,
-                                                height: 65.0,
-                                                clipBehavior: Clip.antiAlias,
-                                                decoration: const BoxDecoration(
-                                                  shape: BoxShape.circle,
-                                                ),
-                                                child: Image.network(
-                                                  'https://picsum.photos/seed/513/600',
-                                                  fit: BoxFit.cover,
-                                                ),
-                                              ),
-                                              Column(
-                                                mainAxisSize: MainAxisSize.max,
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsetsDirectional
-                                                            .fromSTEB(8.0, 3.0,
-                                                                0.0, 0.0),
-                                                    child: Text(
-                                                      FFLocalizations.of(
-                                                              context)
-                                                          .getText(
-                                                        'if5jqr4o' /* Username */,
-                                                      ),
-                                                      style:
-                                                          FlutterFlowTheme.of(
-                                                                  context)
-                                                              .bodyMedium
-                                                              .override(
-                                                                fontFamily: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .bodyMediumFamily,
-                                                                fontSize: 23.0,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w600,
-                                                                useGoogleFonts: GoogleFonts
-                                                                        .asMap()
-                                                                    .containsKey(
-                                                                        FlutterFlowTheme.of(context)
-                                                                            .bodyMediumFamily),
-                                                              ),
-                                                    ),
-                                                  ),
-                                                  Opacity(
-                                                    opacity: 0.4,
-                                                    child: SizedBox(
-                                                      width: 250.0,
-                                                      child: Divider(
-                                                        height: 10.0,
-                                                        thickness: 1.0,
-                                                        indent: 8.0,
-                                                        color:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .primaryText,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.max,
-                                                    children: [
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsetsDirectional
-                                                                .fromSTEB(
-                                                                    8.0,
-                                                                    0.0,
-                                                                    0.0,
-                                                                    0.0),
-                                                        child: Text(
-                                                          FFLocalizations.of(
-                                                                  context)
-                                                              .getText(
-                                                            'h2j71jhl' /* Rating:  */,
-                                                          ),
-                                                          style: FlutterFlowTheme
-                                                                  .of(context)
-                                                              .bodyMedium,
-                                                        ),
-                                                      ),
-                                                      RatingBar.builder(
-                                                        onRatingUpdate: (newValue) =>
-                                                            setState(() => _model
-                                                                    .ratingBarValue2 =
-                                                                newValue),
-                                                        itemBuilder:
-                                                            (context, index) =>
-                                                                Icon(
-                                                          Icons.star_rounded,
-                                                          color: FlutterFlowTheme
-                                                                  .of(context)
-                                                              .tertiary,
-                                                        ),
-                                                        direction:
-                                                            Axis.horizontal,
-                                                        initialRating: _model
-                                                                .ratingBarValue2 ??=
-                                                            3.0,
-                                                        unratedColor:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .accent3,
-                                                        itemCount: 5,
-                                                        itemSize: 35.0,
-                                                        glowColor:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .tertiary,
-                                                      ),
-                                                    ].divide(
-                                                        const SizedBox(width: 9.0)),
-                                                  ),
-                                                ]
-                                                    .addToStart(
-                                                        const SizedBox(height: 5.0))
-                                                    .addToEnd(
-                                                        const SizedBox(height: 5.0)),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ].divide(const SizedBox(height: 20.0)),
+                                          shrinkWrap: true,
+                                          scrollDirection: Axis.vertical,
+                                          itemCount: snapshot.data.length,
+                                          separatorBuilder: (BuildContext context, int index) => SizedBox(height: 15.0),
+                                          itemBuilder: (BuildContext context, int index){
+                                            if(currentUserDisplayName == snapshot.data[index].username){
+                                              return SizedBox();
+                                            }
+                                            else{
+                                              return memberContainer(context, snapshot.data[index].username);
+                                            }
+                                          }
+                                        );
+                                      }
+                                    }
                               ),
-                            ),
+                            )
                           ],
                         ),
                         Align(
@@ -594,6 +522,8 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
                           child: FFButtonWidget(
                             onPressed: () async {
                               context.pushNamed('HomePage');
+                              _insertRatings();
+                              // Call method that updates users' ratings in the db for 'ratings' list
                             },
                             text: FFLocalizations.of(context).getText(
                               'lykhybrz' /* Confirm */,
