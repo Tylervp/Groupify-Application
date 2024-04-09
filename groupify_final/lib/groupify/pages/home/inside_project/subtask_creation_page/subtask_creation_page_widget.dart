@@ -15,11 +15,12 @@ import '/groupify/pages/home/home_page/home_page_widget.dart';
 
 
 class SubtaskCreationPageWidget extends StatefulWidget {
+  final String taskName;
   final String projectOwnerID;
   final String projectName;
   final String projectDescription;
 
-  const SubtaskCreationPageWidget({super.key, required this.projectOwnerID,required this.projectName, required this.projectDescription});
+  const SubtaskCreationPageWidget({super.key, required this.taskName, required this.projectOwnerID,required this.projectName, required this.projectDescription});
 
   @override
   State<SubtaskCreationPageWidget> createState() =>
@@ -55,6 +56,7 @@ Future<void> _connectToDatabase() async {
   }
 
   Future<void> _insertSubtask(String? taskDueDate) async {
+    final String tName = widget.taskName;
     final String projectName = widget.projectName;
     final String ownerID = widget.projectOwnerID;
     final String subtaskName = _model.subtaskNameController.text;
@@ -64,8 +66,8 @@ Future<void> _connectToDatabase() async {
     final String subtaskAssignedString = subtaskAssigned?.join(', ') ?? '';
 
     final results = await _sqldatabaseHelper.connection.query(
-        'INSERT INTO Subtasks (projectName, ownerID, taskName, subTaskName, subTaskDescription, subTaskProgress, subTaskDifficulty, subTaskAssigned, subTaskDate) VALUES (?, ?, "Ligma", ?, ?, 0, ?, ?, ?)',
-        [projectName, ownerID, subtaskName, subtaskDescription, subtaskDifficulty, subtaskAssignedString, taskDueDate]);
+        'INSERT INTO Subtasks (projectName, ownerID, taskName, subTaskName, subTaskDescription, subTaskProgress, subTaskDifficulty, subTaskAssigned, subTaskDueDate) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)',
+        [projectName, ownerID, tName, subtaskName, subtaskDescription, subtaskDifficulty, subtaskAssignedString, taskDueDate]);
     print('Inserted task with ID ${results.insertId}');
   }
 

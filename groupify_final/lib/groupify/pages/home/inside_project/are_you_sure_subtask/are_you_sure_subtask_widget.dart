@@ -5,9 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'are_you_sure_subtask_model.dart';
 export 'are_you_sure_subtask_model.dart';
+import 'package:groupify_final/sql_database_connection.dart';
 
 class AreYouSureSubtaskWidget extends StatefulWidget {
-  const AreYouSureSubtaskWidget({super.key});
+  final String? projectName;
+  final String? pOwnerId;
+  final String? pDescription;
+  final String? tName;
+  final String? stName;
+  const AreYouSureSubtaskWidget({super.key, this.projectName, this.pOwnerId, this.pDescription, this.tName, this.stName});
 
   @override
   State<AreYouSureSubtaskWidget> createState() =>
@@ -16,6 +22,11 @@ class AreYouSureSubtaskWidget extends StatefulWidget {
 
 class _AreYouSureSubtaskWidgetState extends State<AreYouSureSubtaskWidget> {
   late AreYouSureSubtaskModel _model;
+
+  late SQLDatabaseHelper _sqldatabaseHelper;
+  Future<void> _connectToDatabase() async {
+    await _sqldatabaseHelper.connectToDatabase();
+  }
 
   @override
   void setState(VoidCallback callback) {
@@ -28,6 +39,9 @@ class _AreYouSureSubtaskWidgetState extends State<AreYouSureSubtaskWidget> {
     super.initState();
     _model = createModel(context, () => AreYouSureSubtaskModel());
 
+    _sqldatabaseHelper = SQLDatabaseHelper();
+    _connectToDatabase();
+
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
 
@@ -36,6 +50,12 @@ class _AreYouSureSubtaskWidgetState extends State<AreYouSureSubtaskWidget> {
     _model.maybeDispose();
 
     super.dispose();
+  }
+
+Future<void> _deleteSubTask(String? projectName, String? pOwnerID, String? tName, String? stName) async {
+    await _sqldatabaseHelper.connection.query( 
+      'DELETE FROM Subtasks WHERE projectName = ? and ownerID = ? and taskName = ? and subTaskName = ?;', [projectName, pOwnerID, tName, stName]);
+
   }
 
   @override
@@ -93,7 +113,11 @@ class _AreYouSureSubtaskWidgetState extends State<AreYouSureSubtaskWidget> {
                 children: [
                   FFButtonWidget(
                     onPressed: () async {
-                      context.pushNamed('ProjectPage');
+                      _deleteSubTask(widget.projectName, widget.pOwnerId, widget.tName, widget.stName);
+                      context.pushNamed('ProjectPage', queryParameters: {
+                                  'projectOwnerID': widget.pOwnerId,
+                                  'projectName': widget.projectName,
+                                  'projectDescription': widget.pDescription,});
                     },
                     text: FFLocalizations.of(context).getText(
                       'jaw66i4j' /* Yes */,

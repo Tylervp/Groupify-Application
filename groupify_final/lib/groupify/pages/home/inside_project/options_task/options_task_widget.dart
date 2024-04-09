@@ -7,7 +7,16 @@ import 'options_task_model.dart';
 export 'options_task_model.dart';
 
 class OptionsTaskWidget extends StatefulWidget {
-  const OptionsTaskWidget({super.key});
+  final String? projectName;
+  final String? pOwnerId;
+  final String? pDescription;
+  final String? tName;
+  final String? tDescription;
+  final double? tProgress;
+  final double? tDifficulty;
+  final String? tAssigned;
+  final String? tDue;
+  const OptionsTaskWidget({super.key, this.projectName, this.pOwnerId, this.pDescription, this.tName, this.tDescription, this.tProgress, this.tDifficulty, this.tAssigned, this.tDue});
 
   @override
   State<OptionsTaskWidget> createState() => _OptionsTaskWidgetState();
@@ -39,6 +48,7 @@ class _OptionsTaskWidgetState extends State<OptionsTaskWidget> {
 
   @override
   Widget build(BuildContext context) {
+    print(widget.tDifficulty.toString());
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Container(
@@ -108,7 +118,17 @@ class _OptionsTaskWidgetState extends State<OptionsTaskWidget> {
                 hoverColor: Colors.transparent,
                 highlightColor: Colors.transparent,
                 onTap: () async {
-                  context.pushNamed('EditTaskPage');
+                  context.pushNamed('EditTaskPage', queryParameters: {
+                                  'projectName': widget.projectName,
+                                  'pOwnerID': widget.pOwnerId,
+                                  'pDescription': widget.pDescription,
+                                  'tName': widget.tName,
+                                  'tDescription': widget.tDescription,
+                                  'tProgess': widget.tProgress.toString(),
+                                  'tDifficulty': widget.tDifficulty.toString(),
+                                  'tAssigned': widget.tAssigned,
+                                  'tDue': widget.tDue,
+                });
                 },
                 child: Container(
                   width: double.infinity,
@@ -172,9 +192,14 @@ class _OptionsTaskWidgetState extends State<OptionsTaskWidget> {
                     builder: (context) {
                       return Padding(
                         padding: MediaQuery.viewInsetsOf(context),
-                        child: const SizedBox(
+                        child: SizedBox(
                           height: 180.0,
-                          child: AreYouSureTaskWidget(),
+                          child: AreYouSureTaskWidget( 
+                            projectName: widget.projectName,
+                            pOwnerId: widget.pOwnerId,
+                            pDescription: widget.pDescription,
+                            tName: widget.tName,
+                          ),
                         ),
                       );
                     },

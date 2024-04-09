@@ -70,7 +70,7 @@ Future<void> _connectToDatabase() async {
     final String taskAssignedString = taskAssigned?.join(', ') ?? '';
 
     final results = await _sqldatabaseHelper.connection.query(
-        'INSERT INTO Tasks (projectName, ownerID, taskName, taskDescription, taskProgress, taskDifficulty, taskAssigned, taskDate) VALUES (?, ?, ?, ?, 0, ?, ?, ?)',
+        'INSERT INTO Tasks (projectName, ownerID, taskName, taskDescription, taskProgress, taskDifficulty, taskAssigned, taskDueDate) VALUES (?, ?, ?, ?, 0, ?, ?, ?)',
         [projectName, ownerID, taskName, taskDescription, taskDifficulty, taskAssignedString, taskDueDate]);
     print('Inserted task with ID ${results.insertId}');
   }

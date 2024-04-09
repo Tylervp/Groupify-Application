@@ -7,7 +7,17 @@ import 'options_subtask_model.dart';
 export 'options_subtask_model.dart';
 
 class OptionsSubtaskWidget extends StatefulWidget {
-  const OptionsSubtaskWidget({super.key});
+  final String? projectName;
+  final String? pOwnerId;
+  final String? pDescription;
+  final String? tName;
+  final String? stName;
+  final String? stDescription;
+  final double? stProgress;
+  final double? stDifficulty;
+  final String? stAssigned;
+  final String? stDue;
+  const OptionsSubtaskWidget({super.key, this.projectName, this.pOwnerId, this.pDescription, this.tName, this.stName, this.stDescription, this.stProgress, this.stDifficulty, this.stAssigned, this.stDue});
 
   @override
   State<OptionsSubtaskWidget> createState() => _OptionsSubtaskWidgetState();
@@ -108,7 +118,18 @@ class _OptionsSubtaskWidgetState extends State<OptionsSubtaskWidget> {
                 hoverColor: Colors.transparent,
                 highlightColor: Colors.transparent,
                 onTap: () async {
-                  context.pushNamed('EditSubtaskPage');
+                  context.pushNamed('EditSubtaskPage', queryParameters: {
+                                  'projectOwnerID': widget.pOwnerId,
+                                  'projectName': widget.projectName,
+                                  'projectDescription': widget.pDescription,
+                                  'tName': widget.tName,
+                                  'stName': widget.stName,
+                                  'stDescription': widget.stDescription,
+                                  'stProgress': widget.stProgress,
+                                  'stDifficulty': widget.stDifficulty,
+                                  'stAssigned': widget.stAssigned,
+                                  'stDue': widget.stDue,
+                });
                 },
                 child: Container(
                   width: double.infinity,
@@ -172,9 +193,15 @@ class _OptionsSubtaskWidgetState extends State<OptionsSubtaskWidget> {
                     builder: (context) {
                       return Padding(
                         padding: MediaQuery.viewInsetsOf(context),
-                        child: const SizedBox(
+                        child: SizedBox(
                           height: 180.0,
-                          child: AreYouSureSubtaskWidget(),
+                          child: AreYouSureSubtaskWidget(
+                            projectName: widget.projectName,
+                            pOwnerId: widget.pOwnerId,
+                            pDescription: widget.pDescription,
+                            tName: widget.tName,
+                            stName: widget.stName,
+                          ),
                         ),
                       );
                     },

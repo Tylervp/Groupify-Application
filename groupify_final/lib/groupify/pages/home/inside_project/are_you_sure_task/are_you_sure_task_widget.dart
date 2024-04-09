@@ -5,9 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'are_you_sure_task_model.dart';
 export 'are_you_sure_task_model.dart';
+import 'package:groupify_final/sql_database_connection.dart';
 
 class AreYouSureTaskWidget extends StatefulWidget {
-  const AreYouSureTaskWidget({super.key});
+  final String? projectName;
+  final String? pOwnerId;
+  final String? pDescription;
+  final String? tName;
+  const AreYouSureTaskWidget({super.key, this.projectName, this.pOwnerId, this.pDescription, this.tName});
 
   @override
   State<AreYouSureTaskWidget> createState() => _AreYouSureTaskWidgetState();
@@ -22,10 +27,26 @@ class _AreYouSureTaskWidgetState extends State<AreYouSureTaskWidget> {
     _model.onUpdate();
   }
 
+  late SQLDatabaseHelper _sqldatabaseHelper;
+  Future<void> _connectToDatabase() async {
+    await _sqldatabaseHelper.connectToDatabase();
+  }
+
+  Future<void> _deleteTask(String? projectName, String? pOwnerID, String? tName) async {
+    await _sqldatabaseHelper.connection.query( 
+      'DELETE FROM Subtasks WHERE projectName = ? and ownerID = ? and taskName = ?;', [projectName, pOwnerID, tName]);
+
+    await _sqldatabaseHelper.connection.query( 
+      'DELETE FROM Tasks WHERE projectName = ? and ownerID = ? and taskName = ?;', [projectName, pOwnerID, tName]);
+  }
+
   @override
   void initState() {
     super.initState();
     _model = createModel(context, () => AreYouSureTaskModel());
+
+    _sqldatabaseHelper = SQLDatabaseHelper();
+    _connectToDatabase();
 
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
@@ -92,7 +113,12 @@ class _AreYouSureTaskWidgetState extends State<AreYouSureTaskWidget> {
                 children: [
                   FFButtonWidget(
                     onPressed: () async {
-                      context.pushNamed('ProjectPage');
+                      _deleteTask(widget.projectName, widget.pOwnerId, widget.tName);
+                      context.pushNamed('ProjectPage', queryParameters: {
+                                  'projectOwnerID': widget.pOwnerId,
+                                  'projectName': widget.projectName,
+                                  'projectDescription': widget.pDescription,
+                              });
                     },
                     text: FFLocalizations.of(context).getText(
                       'p79ycexh' /* Yes */,
