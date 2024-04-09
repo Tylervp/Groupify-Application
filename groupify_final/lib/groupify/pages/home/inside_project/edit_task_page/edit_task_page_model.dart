@@ -3,15 +3,11 @@ import '/flutter_flow/form_field_controller.dart';
 import 'edit_task_page_widget.dart' show EditTaskPageWidget;
 import 'package:flutter/material.dart';
 
+
 class EditTaskPageModel extends FlutterFlowModel<EditTaskPageWidget> {
   ///  State fields for stateful widgets in this page.
 
   final unfocusNode = FocusNode();
-
-  FocusNode? taskNameFocusNode;
-  TextEditingController? taskNameController;
-  String? Function(BuildContext, String?)? taskNameControllerValidator;
-
 
   FocusNode? taskDescriptionFocusNode;
   TextEditingController? taskDescriptionController;
@@ -32,9 +28,6 @@ class EditTaskPageModel extends FlutterFlowModel<EditTaskPageWidget> {
   @override
   void dispose() {
     unfocusNode.dispose();
-
-    taskNameFocusNode?.dispose();
-    taskNameController?.dispose();
 
     taskDescriptionFocusNode?.dispose();
     taskDescriptionController?.dispose();

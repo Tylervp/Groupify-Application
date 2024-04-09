@@ -49,6 +49,7 @@ class _OptionsSubtaskWidgetState extends State<OptionsSubtaskWidget> {
 
   @override
   Widget build(BuildContext context) {
+    print('this is the stDiff ' + widget.stDifficulty.toString());
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Container(
@@ -119,14 +120,14 @@ class _OptionsSubtaskWidgetState extends State<OptionsSubtaskWidget> {
                 highlightColor: Colors.transparent,
                 onTap: () async {
                   context.pushNamed('EditSubtaskPage', queryParameters: {
-                                  'projectOwnerID': widget.pOwnerId,
                                   'projectName': widget.projectName,
-                                  'projectDescription': widget.pDescription,
+                                  'pOwnerId': widget.pOwnerId,
+                                  'pDescription': widget.pDescription,
                                   'tName': widget.tName,
                                   'stName': widget.stName,
                                   'stDescription': widget.stDescription,
-                                  'stProgress': widget.stProgress,
-                                  'stDifficulty': widget.stDifficulty,
+                                  'stProgress': widget.stProgress.toString(),
+                                  'stDifficulty': widget.stDifficulty.toString(),
                                   'stAssigned': widget.stAssigned,
                                   'stDue': widget.stDue,
                 });

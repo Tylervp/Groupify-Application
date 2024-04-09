@@ -62,6 +62,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => HomePageModel());
+    
     _sqldatabaseHelper = SQLDatabaseHelper();
     _connectToDatabase();
     WidgetsBinding.instance.addPostFrameCallback((_) => setState((){}));
