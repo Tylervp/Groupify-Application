@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'edit_task_page_model.dart';
 export 'edit_task_page_model.dart';
 import 'package:groupify_final/sql_database_connection.dart';
+import 'package:percent_indicator/percent_indicator.dart';
 
 class EditTaskPageWidget extends StatefulWidget {
   final String? projectName;
@@ -17,11 +18,11 @@ class EditTaskPageWidget extends StatefulWidget {
   final String? pDescription;
   final String? tName;
   final String? tDescription;
-  final String? tProgess;
+  final String? tProgress;
   final String? tDifficulty;
   final String? tAssigned;
   final String? tDue;
-  const EditTaskPageWidget({super.key, this.projectName, this.pOwnerId, this.pDescription, this.tName, this.tDescription, this.tProgess, this.tDifficulty, this.tAssigned, this.tDue});
+  const EditTaskPageWidget({super.key, this.projectName, this.pOwnerId, this.pDescription, this.tName, this.tDescription, this.tProgress, this.tDifficulty, this.tAssigned, this.tDue});
 
   @override
   State<EditTaskPageWidget> createState() => _EditTaskPageWidgetState();
@@ -42,9 +43,6 @@ class _EditTaskPageWidgetState extends State<EditTaskPageWidget> {
     super.initState();
     _model = createModel(context, () => EditTaskPageModel());
 
-    _model.taskNameController ??= TextEditingController(text: widget.tName);
-    _model.taskNameFocusNode ??= FocusNode();
-
     _model.taskDescriptionController ??= TextEditingController(text: widget.tDescription);
     _model.taskDescriptionFocusNode ??= FocusNode();
 
@@ -54,16 +52,40 @@ class _EditTaskPageWidgetState extends State<EditTaskPageWidget> {
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
 
-Future<void> _updateTask(double? newtProgress, String? newtDue) async {
+Future<List<String>> _getMembers() async {
+  List<String> mems = [];
+  final results = await _sqldatabaseHelper.connection.query(
+    'select userID from ProjectMembers where ownerID = ? and projectName = ?;',
+    [widget.pOwnerId, widget.projectName],
+  );
+  for (final row in results) {
+    String tempmem = row['userID'] as String;
+    mems.add(tempmem);
+  }
+  //_sqldatabaseHelper.closeConnection();
+  return mems;
+}
+
+Future<void> _updateTask(String? newtDue) async {
   final String newtDescription = _model.taskDescriptionController.text;
   final double? newtDifficulty = _model.ratingBarValue;
+  final double newtProgress = double.parse(widget.tProgress ?? '0.0');
   final List<String>? taskAssigned = _model.dropDownValueController?.value;
   final String newtAssigned = taskAssigned?.join(', ') ?? '';
 
+  print('this is the newtDescription ' + newtDescription);
+  print('this is the newtDifficulty ' + newtDifficulty.toString());
+  print('this is the newtAssigned ' + newtAssigned);
+  print('this is the newtProgress ' + newtProgress.toString());
+  print('this is the newtDue ' + newtDue.toString());
+  print('this is the projectName ' + widget.projectName.toString());
+  print('this is the pOwnerId ' + widget.pOwnerId.toString());
+  print('this is the tName ' + widget.tName.toString());
+
   try{
     final results = await _sqldatabaseHelper.connection.query( 
-        'update Tasks set taskDescription = "hisisdumbasshit", taskProgress = ?, taskDifficulty = ?, taskAssigned = ?, taskDueDate = ? where projectName = ? and ownerID = ? and taskName = ?;',
-            [newtProgress, newtDifficulty, newtAssigned, newtDue, widget.projectName, widget.pOwnerId, widget.tName]);
+        'update Tasks set taskDescription = ?, taskProgress = ?, taskDifficulty = ?, taskAssigned = ?, taskDueDate = ? where projectName = ? and ownerID = ? and taskName = ?;',
+            [newtDescription, newtProgress, newtDifficulty, newtAssigned, newtDue, widget.projectName, widget.pOwnerId, widget.tName]);
    
     print('TASK UPDATED  ${results.insertId}');
   } catch (e) {print('this is the error ' + e.toString());}
@@ -77,6 +99,7 @@ Future<void> _updateTask(double? newtProgress, String? newtDue) async {
     super.dispose();
   }
 
+  String? ntDue = '';
   @override
   Widget build(BuildContext context) {
     List<String> selectedValue = [];
@@ -85,12 +108,16 @@ Future<void> _updateTask(double? newtProgress, String? newtDue) async {
     if (widget.tAssigned != null) {
     selectedValue.add(widget.tAssigned!);
     }
-    final diff = widget.tDifficulty.toString();
-    final ass = widget.tAssigned.toString();
-    print('this is the tAssigned ' + ass);
-    print('this is the tDIfficulty ' + diff);
-    double? ntProgress = 0.0;
-    String? ntDue ='';
+
+    print('this is the projectName '+ widget.projectName.toString());
+    print('this is the pDescription ' + widget.pDescription.toString());
+    print('this is the pOwnerId ' + widget.pOwnerId.toString());
+    print('this is the tName ' + widget.tName.toString());
+    print('this is the tDescription ' + widget.tDescription.toString());
+    print('this is the tProgress ' + widget.tProgress.toString());
+    print('this is the tDifficulty ' + widget.tDifficulty.toString());
+    print('this is the tAssigned ' + widget.tAssigned.toString());
+    print('this is the tDue ' + widget.tDue.toString());
     return GestureDetector(
       onTap: () => _model.unfocusNode.canRequestFocus
           ? FocusScope.of(context).requestFocus(_model.unfocusNode)
@@ -270,10 +297,10 @@ Future<void> _updateTask(double? newtProgress, String? newtDue) async {
                                                 onTap: () async {
                                                   context
                                                       .pushNamed('ProjectPage', queryParameters: {
-                                  'projectOwnerID': widget.pOwnerId,
-                                  'projectName': widget.projectName,
-                                  'projectDescription': widget.pDescription,
-                              });
+                                                      'projectOwnerID': widget.pOwnerId,
+                                                      'projectName': widget.projectName,
+                                                      'projectDescription': widget.pDescription,
+                                                    });
                                                 },
                                                 child: Icon(
                                                   Icons.close_rounded,
@@ -522,24 +549,21 @@ Future<void> _updateTask(double? newtProgress, String? newtDue) async {
                                     ),
                                   ),
                                 ),
+                                FutureBuilder<List<String>>(
+  future: _getMembers(),
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return Center(child: CircularProgressIndicator());
+    } else if (snapshot.hasError) {
+      return Center(child: Text('Error: ${snapshot.error}'));
+    } else {
+      final List<String> options = snapshot.data ?? []; // Provide a default empty list if data is null
+      return
                                 FlutterFlowDropDown<String>(
                                   multiSelectController: _model
                                           .dropDownValueController ??=
                                       FormFieldController<List<String>>(selectedValue),
-                                  options: [
-                                    FFLocalizations.of(context).getText(
-                                      'mlxsxz9s' /* 3 */,
-                                    ),
-                                    FFLocalizations.of(context).getText(
-                                      'nge5va5h' /* 4 */,
-                                    ),
-                                    FFLocalizations.of(context).getText(
-                                      'cks5f0f7' /* 5 */,
-                                    ),
-                                    FFLocalizations.of(context).getText(
-                                      '4dylwsq9' /* 6 */,
-                                    )
-                                  ],
+                                  options: options,
                                   width: 300.0,
                                   height: 50.0,
                                   textStyle:
@@ -567,16 +591,77 @@ Future<void> _updateTask(double? newtProgress, String? newtDue) async {
                                   isMultiSelect: true,
                                   onMultiSelectChanged: (val) => setState(
                                       () => _model.dropDownValue = val),
-                                ),
+                                );
+    }
+  },
+),
                               ],
                             ),
-                          ],
-                        ),
+
+                            Padding(
+                              padding: const EdgeInsetsDirectional.fromSTEB(
+                                  0.0, 15.0, 0.0, 15.0),
+                              child: Row(
+                              mainAxisSize: MainAxisSize.max,
+                              children: [
+                                Align(
+                                  alignment: const AlignmentDirectional(-1.0, 0.0),
+                                  child: Padding(
+                                    padding: const EdgeInsetsDirectional.fromSTEB(
+                                        25.0, 0.0, 0.0, 3.0),
+                                    child: Text(
+                                      FFLocalizations.of(context).getText(
+                                        '27hchqvw' /* Progress:  */,
+                                      ),
+                                      style: FlutterFlowTheme.of(context)
+                                          .bodyMedium,
+                                    ),
+                                  ),
+                                ),
+                                Align(
+                                  alignment: const AlignmentDirectional(0.0, 0.0),
+                                  child: Padding(
+                                    padding: const EdgeInsetsDirectional.fromSTEB(
+                                        5.0, 5.0, 0.0, 2.0),
+                                    child: LinearPercentIndicator(
+                                      percent: double.parse(widget.tProgress ?? '0.0'),
+                                      width: 280.0,
+                                      lineHeight: 18.0,
+                                      animation: true,
+                                      animateFromLastPercent: true,
+                                      progressColor:
+                                          FlutterFlowTheme.of(context).tertiary,
+                                      backgroundColor:
+                                          FlutterFlowTheme.of(context).accent3,
+                                      center: Text(
+                                        '${double.parse(widget.tProgress ?? '0.0') * 100 % 1 == 0 ? (double.parse(widget.tProgress ?? '0.0') * 100).toInt() : (double.parse(widget.tProgress ?? '0.0') * 100).toStringAsFixed(2)}%',
+                                        textAlign: TextAlign.start,
+                                        style: FlutterFlowTheme.of(context)
+                                            .headlineSmall
+                                            .override(
+                                              fontFamily: 'Oswald',
+                                              color: Colors.black,
+                                              fontSize: 13.0,
+                                              fontWeight: FontWeight.w600,
+                                              useGoogleFonts:
+                                                  GoogleFonts.asMap()
+                                                      .containsKey('Oswald'),
+                                            ),
+                                      ),
+                                      barRadius: const Radius.circular(20.0),
+                                      padding: EdgeInsets.zero,
+                                    ),
+                                  ),
+                                ),   
+                            
+
+                            ],
+                        ),),],),
                         Align(
                           alignment: const AlignmentDirectional(0.0, 0.0),
                           child: FFButtonWidget(
                             onPressed: () async {
-                              _updateTask(ntProgress, ntDue);
+                              _updateTask(ntDue);
                               context.pushNamed('ProjectPage', queryParameters: {
                                   'projectOwnerID': widget.pOwnerId,
                                   'projectName': widget.projectName,
@@ -617,11 +702,11 @@ Future<void> _updateTask(double? newtProgress, String? newtDue) async {
                         ),
                       ],
                     ),
-                  ),
+          ),
                 ),
               ),
             ),
-          ],
+        ],
         ),
       ),
     );

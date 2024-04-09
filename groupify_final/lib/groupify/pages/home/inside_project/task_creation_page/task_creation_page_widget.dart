@@ -31,9 +31,7 @@ class TaskCreationPageWidget extends StatefulWidget {
 class _TaskCreationPageWidgetState extends State<TaskCreationPageWidget> {
   late TaskCreationPageModel _model;
   late SQLDatabaseHelper _sqldatabaseHelper;
-  final scaffoldKey = GlobalKey<ScaffoldState>();
-
-  
+  final scaffoldKey = GlobalKey<ScaffoldState>();  
 
   @override
   void initState() {
@@ -49,7 +47,6 @@ class _TaskCreationPageWidgetState extends State<TaskCreationPageWidget> {
     _sqldatabaseHelper = SQLDatabaseHelper();
     _connectToDatabase();
 
-    
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
 
@@ -59,6 +56,21 @@ Future<void> _connectToDatabase() async {
      print('projectName: ${widget.projectName}');
      print('projectDescription: ${widget.projectDescription}');
   }
+
+
+Future<List<String>> _getMembers() async {
+  List<String> mems = [];
+  final results = await _sqldatabaseHelper.connection.query(
+    'select userID from ProjectMembers where ownerID = ? and projectName = ?;',
+    [widget.projectOwnerID, widget.projectName],
+  );
+  for (final row in results) {
+    String tempmem = row['userID'] as String;
+    mems.add(tempmem);
+  }
+  //_sqldatabaseHelper.closeConnection();
+  return mems;
+}
 
  Future<void> _insertTask(String? taskDueDate) async {
     final String? projectName = widget.projectName;
@@ -605,52 +617,43 @@ String? tDue = '';
                                     ),
                                   ),
                                 ),
-                                FlutterFlowDropDown<String>(
-                                  multiSelectController: _model
-                                          .dropDownValueController ??=
-                                      FormFieldController<List<String>>(null),
-                                  options: [
-                                    FFLocalizations.of(context).getText(
-                                      's6zbmlri' /* 3 */,
-                                    ),
-                                    FFLocalizations.of(context).getText(
-                                      'j3ii2nur' /* 4 */,
-                                    ),
-                                    FFLocalizations.of(context).getText(
-                                      'vmk9oplj' /* 5 */,
-                                    ),
-                                    FFLocalizations.of(context).getText(
-                                      '3zfhzx8y' /* 6 */,
-                                    )
-                                  ],
-                                  width: 300.0,
-                                  height: 50.0,
-                                  textStyle:
-                                      FlutterFlowTheme.of(context).bodyMedium,
-                                  hintText: FFLocalizations.of(context).getText(
-                                    'gyvywh4h' /* Please select... */,
-                                  ),
-                                  icon: Icon(
-                                    Icons.keyboard_arrow_down_rounded,
-                                    color: FlutterFlowTheme.of(context)
-                                        .secondaryText,
-                                    size: 24.0,
-                                  ),
-                                  fillColor:
-                                      FlutterFlowTheme.of(context).overlay,
-                                  elevation: 2.0,
-                                  borderColor: Colors.transparent,
-                                  borderWidth: 2.0,
-                                  borderRadius: 8.0,
-                                  margin: const EdgeInsetsDirectional.fromSTEB(
-                                      16.0, 4.0, 16.0, 4.0),
-                                  hidesUnderline: true,
-                                  isOverButton: true,
-                                  isSearchable: false,
-                                  isMultiSelect: true,
-                                  onMultiSelectChanged: (val) => setState(
-                                      () => _model.dropDownValue = val),
-                                ),
+FutureBuilder<List<String>>(
+  future: _getMembers(),
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return Center(child: CircularProgressIndicator());
+    } else if (snapshot.hasError) {
+      return Center(child: Text('Error: ${snapshot.error}'));
+    } else {
+      final List<String> options = snapshot.data ?? []; // Provide a default empty list if data is null
+      return FlutterFlowDropDown<String>(
+        multiSelectController: _model.dropDownValueController ??= FormFieldController<List<String>>(null),
+        options: options,
+        width: 300.0,
+        height: 50.0,
+        textStyle: FlutterFlowTheme.of(context).bodyMedium,
+        hintText: FFLocalizations.of(context).getText('gyvywh4h' /* Please select... */),
+        icon: Icon(
+          Icons.keyboard_arrow_down_rounded,
+          color: FlutterFlowTheme.of(context).secondaryText,
+          size: 24.0,
+        ),
+        fillColor: FlutterFlowTheme.of(context).overlay,
+        elevation: 2.0,
+        borderColor: Colors.transparent,
+        borderWidth: 2.0,
+        borderRadius: 8.0,
+        margin: const EdgeInsetsDirectional.fromSTEB(16.0, 4.0, 16.0, 4.0),
+        hidesUnderline: true,
+        isOverButton: true,
+        isSearchable: false,
+        isMultiSelect: true,
+        onMultiSelectChanged: (val) => setState(() => _model.dropDownValue = val),
+      );
+    }
+  },
+)
+
                               ],
                             ),
                           ],

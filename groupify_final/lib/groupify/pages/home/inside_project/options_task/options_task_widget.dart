@@ -48,7 +48,16 @@ class _OptionsTaskWidgetState extends State<OptionsTaskWidget> {
 
   @override
   Widget build(BuildContext context) {
-    print(widget.tDifficulty.toString());
+    print('this is the projectName '+ widget.projectName.toString());
+    print('this is the pDescription ' + widget.pDescription.toString());
+    print('this is the pOwnerId ' + widget.pOwnerId.toString());
+    print('this is the tName ' + widget.tName.toString());
+    print('this is the tDescription ' + widget.tDescription.toString());
+    print('this is the tProgress ' + widget.tProgress.toString());
+    print('this is the tDifficulty ' + widget.tDifficulty.toString());
+    print('this is the tAssigned ' + widget.tAssigned.toString());
+    print('this is the tDue ' + widget.tDue.toString());
+    
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Container(
@@ -120,11 +129,11 @@ class _OptionsTaskWidgetState extends State<OptionsTaskWidget> {
                 onTap: () async {
                   context.pushNamed('EditTaskPage', queryParameters: {
                                   'projectName': widget.projectName,
-                                  'pOwnerID': widget.pOwnerId,
+                                  'pOwnerId': widget.pOwnerId,
                                   'pDescription': widget.pDescription,
                                   'tName': widget.tName,
                                   'tDescription': widget.tDescription,
-                                  'tProgess': widget.tProgress.toString(),
+                                  'tProgress': widget.tProgress.toString(),
                                   'tDifficulty': widget.tDifficulty.toString(),
                                   'tAssigned': widget.tAssigned,
                                   'tDue': widget.tDue,

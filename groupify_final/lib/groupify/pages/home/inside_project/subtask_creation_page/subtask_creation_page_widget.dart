@@ -55,6 +55,20 @@ Future<void> _connectToDatabase() async {
     await _sqldatabaseHelper.connectToDatabase();
   }
 
+  Future<List<String>> _getMembers() async {
+  List<String> mems = [];
+  final results = await _sqldatabaseHelper.connection.query(
+    'select userID from ProjectMembers where ownerID = ? and projectName = ?;',
+    [widget.projectOwnerID, widget.projectName],
+  );
+  for (final row in results) {
+    String tempmem = row['userID'] as String;
+    mems.add(tempmem);
+  }
+  //_sqldatabaseHelper.closeConnection();
+  return mems;
+}
+
   Future<void> _insertSubtask(String? taskDueDate) async {
     final String tName = widget.taskName;
     final String projectName = widget.projectName;
@@ -601,24 +615,21 @@ Future<void> _connectToDatabase() async {
                                     ),
                                   ),
                                 ),
+                                FutureBuilder<List<String>>(
+  future: _getMembers(),
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return Center(child: CircularProgressIndicator());
+    } else if (snapshot.hasError) {
+      return Center(child: Text('Error: ${snapshot.error}'));
+    } else {
+      final List<String> options = snapshot.data ?? []; // Provide a default empty list if data is null
+      return
                                 FlutterFlowDropDown<String>(
                                   multiSelectController: _model
                                           .dropDownValueController ??=
                                       FormFieldController<List<String>>(null),
-                                  options: [
-                                    FFLocalizations.of(context).getText(
-                                      'b51pongy' /* 3 */,
-                                    ),
-                                    FFLocalizations.of(context).getText(
-                                      'jg4k9rt2' /* 4 */,
-                                    ),
-                                    FFLocalizations.of(context).getText(
-                                      '5pb1mnqa' /* 5 */,
-                                    ),
-                                    FFLocalizations.of(context).getText(
-                                      '0df262s3' /* 6 */,
-                                    )
-                                  ],
+                                  options: options,
                                   width: 300.0,
                                   height: 50.0,
                                   textStyle:
@@ -646,7 +657,8 @@ Future<void> _connectToDatabase() async {
                                   isMultiSelect: true,
                                   onMultiSelectChanged: (val) => setState(
                                       () => _model.dropDownValue = val),
-                                ),
+                                );
+    }},)
                               ],
                             ),
                           ],

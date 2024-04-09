@@ -10,9 +10,20 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'edit_subtask_page_model.dart';
 export 'edit_subtask_page_model.dart';
+import 'package:groupify_final/sql_database_connection.dart';
 
 class EditSubtaskPageWidget extends StatefulWidget {
-  const EditSubtaskPageWidget({super.key});
+  final String? projectName;
+  final String? pOwnerId;
+  final String? pDescription;
+  final String? tName;
+  final String? stName;
+  final String? stDescription;
+  final String? stProgress;
+  final String? stDifficulty;
+  final String? stAssigned;
+  final String? stDue;
+  const EditSubtaskPageWidget({super.key, this.projectName, this.pOwnerId, this.pDescription, this.tName, this.stName, this.stDescription, this.stProgress, this.stDifficulty, this.stAssigned, this.stDue});
 
   @override
   State<EditSubtaskPageWidget> createState() => _EditSubtaskPageWidgetState();
@@ -23,16 +34,25 @@ class _EditSubtaskPageWidgetState extends State<EditSubtaskPageWidget> {
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
+  late SQLDatabaseHelper _sqldatabaseHelper;
+  Future<void> _connectToDatabase() async {
+    await _sqldatabaseHelper.connectToDatabase();
+  }
+
+
   @override
   void initState() {
     super.initState();
     _model = createModel(context, () => EditSubtaskPageModel());
 
-    _model.emailAddressController1 ??= TextEditingController();
-    _model.emailAddressFocusNode1 ??= FocusNode();
+    _model.subtaskNameController ??= TextEditingController(text: widget.stName);
+    _model.subtaskNameFocusNode ??= FocusNode();
 
-    _model.emailAddressController2 ??= TextEditingController();
-    _model.emailAddressFocusNode2 ??= FocusNode();
+    _model.subtaskDescriptionController ??= TextEditingController(text: widget.stDescription);
+    _model.subtaskDescriptionFocusNode ??= FocusNode();
+
+    _sqldatabaseHelper = SQLDatabaseHelper();
+    _connectToDatabase();
 
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
@@ -44,8 +64,62 @@ class _EditSubtaskPageWidgetState extends State<EditSubtaskPageWidget> {
     super.dispose();
   }
 
+
+Future<List<String>> _getMembers() async {
+  List<String> mems = [];
+  final results = await _sqldatabaseHelper.connection.query(
+    'select userID from ProjectMembers where ownerID = ? and projectName = ?;',
+    [widget.pOwnerId, widget.projectName],
+  );
+  for (final row in results) {
+    String tempmem = row['userID'] as String;
+    mems.add(tempmem);
+  }
+  //_sqldatabaseHelper.closeConnection();
+  return mems;
+}
+
+Future<void> _updateSubTask(String? newstDue) async {
+  final String newstName = _model.subtaskNameController.text;
+  final String newstDescription = _model.subtaskDescriptionController.text;
+  final double newstProgress = double.parse(widget.stProgress ?? '0.0');
+  final double? newstDifficulty = _model.ratingBarValue;
+  final List<String>? taskAssigned = _model.dropDownValueController?.value;
+  final String newstAssigned = taskAssigned?.join(', ') ?? '';
+
+  print('this is the newtDescription ' + newstDescription);
+  print('this is the newtDifficulty ' + newstDifficulty.toString());
+  print('this is the newtAssigned ' + newstAssigned);
+  print('this is the newtProgress ' + newstProgress.toString());
+  print('this is the newtDue ' + newstDue.toString());
+  print('this is the projectName ' + widget.projectName.toString());
+  print('this is the pOwnerId ' + widget.pOwnerId.toString());
+  print('this is the tName ' + widget.tName.toString());
+
+  try{
+    final results = await _sqldatabaseHelper.connection.query( 
+        'update Tasks set subTaskName = ?, subTaskDescription = ?, subTaskProgress = ?, subTaskDifficulty = ?, subTaskAssigned = ?, subTaskDueDate = ? where projectName = ? and ownerID = ? and taskName = ? and subTaskName = ?;',
+            [newstName, newstDescription, newstProgress, newstDifficulty, newstAssigned, newstDue, widget.projectName, widget.pOwnerId, widget.tName, widget.stName]);
+   
+    print('TASK UPDATED  ${results.insertId}');
+  } catch (e) {print('this is the error ' + e.toString());}
+    _sqldatabaseHelper.closeConnection();
+  }
+
+  String? nstDue = '';
   @override
   Widget build(BuildContext context) {
+
+    print('this is the projectName '+ widget.projectName.toString());
+    print('this is the pDescription ' + widget.pDescription.toString());
+    print('this is the pOwnerId ' + widget.pOwnerId.toString());
+    print('this is the tName ' + widget.tName.toString());
+    print('this is the stName ' + widget.stName.toString());
+    print('this is the stDescription ' + widget.stDescription.toString());
+    print('this is the stProgress ' + widget.stProgress.toString());
+    print('this is the stDifficulty ' + widget.stDifficulty.toString());
+    print('this is the stAssigned ' + widget.stAssigned.toString());
+    print('this is the stDue ' + widget.stDue.toString());
     return GestureDetector(
       onTap: () => _model.unfocusNode.canRequestFocus
           ? FocusScope.of(context).requestFocus(_model.unfocusNode)
@@ -224,7 +298,11 @@ class _EditSubtaskPageWidgetState extends State<EditSubtaskPageWidget> {
                                                     Colors.transparent,
                                                 onTap: () async {
                                                   context
-                                                      .pushNamed('ProjectPage');
+                                                      .pushNamed('ProjectPage', queryParameters: {
+                                                      'projectOwnerID': widget.pOwnerId,
+                                                      'projectName': widget.projectName,
+                                                      'projectDescription': widget.pDescription,
+                                                    });
                                                 },
                                                 child: Icon(
                                                   Icons.close_rounded,
@@ -261,8 +339,8 @@ class _EditSubtaskPageWidgetState extends State<EditSubtaskPageWidget> {
                               padding: const EdgeInsetsDirectional.fromSTEB(
                                   24.0, 0.0, 24.0, 15.0),
                               child: TextFormField(
-                                controller: _model.emailAddressController1,
-                                focusNode: _model.emailAddressFocusNode1,
+                                controller: _model.subtaskNameController,
+                                focusNode: _model.subtaskNameFocusNode,
                                 obscureText: false,
                                 decoration: InputDecoration(
                                   labelStyle:
@@ -312,7 +390,7 @@ class _EditSubtaskPageWidgetState extends State<EditSubtaskPageWidget> {
                                 style: FlutterFlowTheme.of(context).bodyMedium,
                                 maxLines: null,
                                 validator: _model
-                                    .emailAddressController1Validator
+                                    .subtaskNameControllerValidator
                                     .asValidator(context),
                               ),
                             ),
@@ -334,8 +412,8 @@ class _EditSubtaskPageWidgetState extends State<EditSubtaskPageWidget> {
                               padding: const EdgeInsetsDirectional.fromSTEB(
                                   24.0, 0.0, 24.0, 15.0),
                               child: TextFormField(
-                                controller: _model.emailAddressController2,
-                                focusNode: _model.emailAddressFocusNode2,
+                                controller: _model.subtaskDescriptionController,
+                                focusNode: _model.subtaskDescriptionFocusNode,
                                 obscureText: false,
                                 decoration: InputDecoration(
                                   labelStyle:
@@ -385,7 +463,7 @@ class _EditSubtaskPageWidgetState extends State<EditSubtaskPageWidget> {
                                 style: FlutterFlowTheme.of(context).bodyMedium,
                                 maxLines: 10,
                                 validator: _model
-                                    .emailAddressController2Validator
+                                    .subtaskDescriptionControllerValidator
                                     .asValidator(context),
                               ),
                             ),
@@ -480,7 +558,7 @@ class _EditSubtaskPageWidgetState extends State<EditSubtaskPageWidget> {
                                             locale: FFLocalizations.of(context)
                                                 .languageCode,
                                           ),
-                                          'Select a date',
+                                          (widget.stDue == null)  ? 'Select a date' : widget.stDue.toString(),
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -521,24 +599,21 @@ class _EditSubtaskPageWidgetState extends State<EditSubtaskPageWidget> {
                                       ),
                                     ),
                                   ),
+                                  FutureBuilder<List<String>>(
+  future: _getMembers(),
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return Center(child: CircularProgressIndicator());
+    } else if (snapshot.hasError) {
+      return Center(child: Text('Error: ${snapshot.error}'));
+    } else {
+      final List<String> options = snapshot.data ?? []; // Provide a default empty list if data is null
+      return
                                   FlutterFlowDropDown<String>(
                                     multiSelectController: _model
                                             .dropDownValueController ??=
                                         FormFieldController<List<String>>(null),
-                                    options: [
-                                      FFLocalizations.of(context).getText(
-                                        '84nddnrp' /* 3 */,
-                                      ),
-                                      FFLocalizations.of(context).getText(
-                                        '8epd72zv' /* 4 */,
-                                      ),
-                                      FFLocalizations.of(context).getText(
-                                        '6jnson3u' /* 5 */,
-                                      ),
-                                      FFLocalizations.of(context).getText(
-                                        'oo8za3tg' /* 6 */,
-                                      )
-                                    ],
+                                    options: options,
                                     width: 300.0,
                                     height: 50.0,
                                     textStyle:
@@ -567,7 +642,10 @@ class _EditSubtaskPageWidgetState extends State<EditSubtaskPageWidget> {
                                     isMultiSelect: true,
                                     onMultiSelectChanged: (val) => setState(
                                         () => _model.dropDownValue = val),
-                                  ),
+                                  );
+    }
+  },
+),
                                 ],
                               ),
                             ),
@@ -600,8 +678,7 @@ class _EditSubtaskPageWidgetState extends State<EditSubtaskPageWidget> {
                                           FlutterFlowTheme.of(context).tertiary,
                                     ),
                                     direction: Axis.horizontal,
-                                    initialRating: _model.ratingBarValue ??=
-                                        3.0,
+                                    initialRating: double.parse(widget.stDifficulty ?? '3.0'),
                                     unratedColor:
                                         FlutterFlowTheme.of(context).accent3,
                                     itemCount: 5,
@@ -635,7 +712,7 @@ class _EditSubtaskPageWidgetState extends State<EditSubtaskPageWidget> {
                                     padding: const EdgeInsetsDirectional.fromSTEB(
                                         5.0, 5.0, 0.0, 2.0),
                                     child: LinearPercentIndicator(
-                                      percent: 0.5,
+                                      percent: double.parse(widget.stProgress ?? '0.0'),
                                       width: 280.0,
                                       lineHeight: 18.0,
                                       animation: true,
@@ -645,9 +722,7 @@ class _EditSubtaskPageWidgetState extends State<EditSubtaskPageWidget> {
                                       backgroundColor:
                                           FlutterFlowTheme.of(context).accent3,
                                       center: Text(
-                                        FFLocalizations.of(context).getText(
-                                          'qdrb7g0u' /* 50% */,
-                                        ),
+                                        '${double.parse(widget.stProgress ?? '0.0') * 100 % 1 == 0 ? (double.parse(widget.stProgress ?? '0.0') * 100).toInt() : (double.parse(widget.stProgress ?? '0.0') * 100).toStringAsFixed(2)}%',
                                         textAlign: TextAlign.start,
                                         style: FlutterFlowTheme.of(context)
                                             .headlineSmall
@@ -674,7 +749,12 @@ class _EditSubtaskPageWidgetState extends State<EditSubtaskPageWidget> {
                           alignment: const AlignmentDirectional(0.0, 0.0),
                           child: FFButtonWidget(
                             onPressed: () async {
-                              context.pushNamed('ProjectPage');
+                              _updateSubTask(nstDue);
+                              context.pushNamed('ProjectPage', queryParameters: {
+                                                      'projectOwnerID': widget.pOwnerId,
+                                                      'projectName': widget.projectName,
+                                                      'projectDescription': widget.pDescription,
+                                                    });
                             },
                             text: FFLocalizations.of(context).getText(
                               '4te14s09' /* Edit Subtask */,

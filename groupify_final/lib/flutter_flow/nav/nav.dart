@@ -172,7 +172,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
                 pDescription: params.getParam('pDescription', ParamType.String),
                 tName: params.getParam('tName', ParamType.String),
                 tDescription: params.getParam('tDescription', ParamType.String),
-                tProgess: params.getParam('tProgress', ParamType.String),
+                tProgress: params.getParam('tProgress', ParamType.String),
                 tDifficulty: params.getParam('tDifficulty', ParamType.String),
                 tAssigned: params.getParam('tAssigned', ParamType.String),
                 tDue: params.getParam('tDue', ParamType.String),      
@@ -181,7 +181,18 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: 'EditSubtaskPage',
               path: 'editSubtaskPage',
-              builder: (context, params) => const EditSubtaskPageWidget(),
+              builder: (context, params) => EditSubtaskPageWidget(
+                projectName: params.getParam('projectName', ParamType.String),
+                pOwnerId: params.getParam('pOwnerId', ParamType.String),
+                pDescription: params.getParam('pDescription', ParamType.String),
+                tName: params.getParam('tName', ParamType.String),
+                stName: params.getParam('stName', ParamType.String),
+                stDescription: params.getParam('stDescription', ParamType.String),
+                stProgress: params.getParam('stProgress', ParamType.String),
+                stDifficulty: params.getParam('stDifficulty', ParamType.String),
+                stAssigned: params.getParam('stAssigned', ParamType.String),
+                stDue: params.getParam('stDue', ParamType.String), 
+              ),
             ),
             FFRoute(
               name: 'SubtaskCreationPage',
