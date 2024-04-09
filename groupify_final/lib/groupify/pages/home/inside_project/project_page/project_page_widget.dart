@@ -55,8 +55,6 @@ class SubTask {
   }
 }
 
-
-
 class Member {
   String username = '';
   String profilePicture = '';
@@ -95,9 +93,6 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
     super.initState();
 
     _model = createModel(context, () => ProjectPageModel());
-
-    _sqldatabaseHelper = SQLDatabaseHelper();
-    _connectToDatabase();
 
     _sqldatabaseHelper = SQLDatabaseHelper();
     _connectToDatabase();
@@ -144,20 +139,22 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                                             [widget.projectName, widget.projectOwnerID]);
     print('GOT THE TASKS');
     for(final row in results){
+      
       String temptaskName = row['taskName'] as String;
       String temptaskDescription = row['taskDescription'] as String;
       double temptaskProgress = row['taskProgress'] as double;
       double temptaskDifficulty = row['taskDifficulty'] as double;
       String temptaskAssigned = row['taskAssigned'] as String;
       String temptaskDueDate = row['taskDueDate'] as String;
-
+      
+      print(temptaskName + '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>');
       tasks.insert(0, Task(temptaskName, temptaskDescription, temptaskProgress, temptaskDifficulty, temptaskAssigned, temptaskDueDate));
     }
-    _sqldatabaseHelper.closeConnection();
+    //_sqldatabaseHelper.closeConnection();
     return tasks;
   }
 
-Future<List<SubTask>> _getSubTasks(taskName) async {
+  Future<List<SubTask>> _getSubTasks(taskName) async {
     List<SubTask> subtasks = [];
     try{
     final results = await _sqldatabaseHelper.connection.query('select taskName, subTaskName, subTaskDescription, subTaskProgress, subTaskDifficulty, subTaskAssigned, subTaskDueDate from Subtasks where projectName = ? and ownerID = ? and taskName = ?;',
@@ -175,7 +172,7 @@ Future<List<SubTask>> _getSubTasks(taskName) async {
       subtasks.insert(0, SubTask(temptaskName, tempsubTaskName, tempsubTaskDescription, tempsubTaskProgress, tempsubTaskDifficulty, tempsubTaskAssigned, tempsubTaskDueDate));
     }} catch (e)
     { print('Error fetching subtasks: $e');};
-    _sqldatabaseHelper.closeConnection();
+    //_sqldatabaseHelper.closeConnection();
     return subtasks;
   }
 
@@ -522,7 +519,7 @@ Future<List<SubTask>> _getSubTasks(taskName) async {
 
   }
 
-Widget subTaskContainer(BuildContext context, String tName, String stName, String stDescription, double stProgress, double stDifficulty, String stAssigned, String stDue){ 
+  Widget subTaskContainer(BuildContext context, String tName, String stName, String stDescription, double stProgress, double stDifficulty, String stAssigned, String stDue){ 
     return Padding(
   padding: EdgeInsetsDirectional.fromSTEB(15, 5, 0, 0),
   child: Row(
@@ -1279,97 +1276,84 @@ Widget subTaskContainer(BuildContext context, String tName, String stName, Strin
                           Container(
                             height: 565.0,
                             decoration: const BoxDecoration(),
-                            child:
-                            
-                            
-                             FutureBuilder(
-    future: _getTasks(),
-    builder: (BuildContext context, AsyncSnapshot snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return Center(
-          child: CircularProgressIndicator(
-            color: Color.fromARGB(100, 57, 210, 192),
-            backgroundColor: Color.fromARGB(30, 57, 210, 192),
-            strokeWidth: 4,
-          ),
-        );
-      } else {
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(0, 5.0, 0, 0),
-            shrinkWrap: true,
-            scrollDirection: Axis.vertical,
-            itemCount: snapshot.data.length,
-            separatorBuilder: (BuildContext context, int index) => SizedBox(height: 15),
-            itemBuilder: (BuildContext context, int index) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Task widget
-                  taskContainer(
-                    context,
-                    snapshot.data[index].taskName,
-                    snapshot.data[index].taskDescription,
-                    snapshot.data[index].taskProgress,
-                    snapshot.data[index].taskDifficulty,
-                    snapshot.data[index].taskAssigned,
-                    snapshot.data[index].taskDueDate,
-                  ),
-FutureBuilder(
-  future: _getSubTasks(snapshot.data[index].taskName),
-  builder: (BuildContext context, AsyncSnapshot subtaskSnapshot) {
-    if (subtaskSnapshot.connectionState == ConnectionState.waiting) {
-      return Center(
-          child: CircularProgressIndicator(
-            color: Color.fromARGB(100, 57, 210, 192),
-            backgroundColor: Color.fromARGB(30, 57, 210, 192),
-            strokeWidth: 4,
-          ),
-        ); // Or return null;
-    } else {
-        if (subtaskSnapshot.data.length == null) {
-          return Center(
-          child: CircularProgressIndicator(
-            color: Color.fromARGB(100, 57, 210, 192),
-            backgroundColor: Color.fromARGB(30, 57, 210, 192),
-            strokeWidth: 4,
-          ),
-        );; // Or return null;
-        } else {
-          if (subtaskSnapshot.hasError){
-            return Text('Error: ${subtaskSnapshot.error}');
-          } else {
-          // Build subtask widgets
-          return Column(
-            children: List.generate(subtaskSnapshot.data.length ?? 0, (subtaskIndex) {
-              return subTaskContainer(
-                context,
-                subtaskSnapshot.data[subtaskIndex].taskName,
-                subtaskSnapshot.data[subtaskIndex].subTaskName,
-                subtaskSnapshot.data[subtaskIndex].subTaskDescription,
-                subtaskSnapshot.data[subtaskIndex].subTaskProgress,
-                subtaskSnapshot.data[subtaskIndex].subTaskDifficulty,
-                subtaskSnapshot.data[subtaskIndex].subTaskAssigned,
-                subtaskSnapshot.data[subtaskIndex].subTaskDueDate,
-              );
-            }),
-          );
-        }
-      }
-    }
-  },
-)
-
-                ],
-              );
-            },
-          );
-        }
-      }
-  ),
-),
-
-
-
+                            child: 
+                            FutureBuilder(
+                              future: _getTasks(),
+                              builder: (BuildContext context, AsyncSnapshot snapshot) {
+                                if (snapshot.data == null) {
+                                  return Center(
+                                    child: CircularProgressIndicator(
+                                      color: Color.fromARGB(99, 120, 227, 215),
+                                      backgroundColor: Color.fromARGB(30, 57, 210, 192),
+                                      strokeWidth: 4,
+                                    ),
+                                  );
+                                } 
+                                else {
+                                    return ListView.separated(
+                                      padding: const EdgeInsets.fromLTRB(0, 5.0, 0, 0),
+                                      shrinkWrap: true,
+                                      scrollDirection: Axis.vertical,
+                                      itemCount: snapshot.data.length,
+                                      separatorBuilder: (BuildContext context, int index) => SizedBox(height: 15),
+                                      itemBuilder: (BuildContext context, int index) {
+                                        return Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            // Task widget
+                                            taskContainer(
+                                              context,
+                                              snapshot.data[index].taskName,
+                                              snapshot.data[index].taskDescription,
+                                              snapshot.data[index].taskProgress,
+                                              snapshot.data[index].taskDifficulty,
+                                              snapshot.data[index].taskAssigned,
+                                              snapshot.data[index].taskDueDate,
+                                            ),
+                                            FutureBuilder(
+                                              future: _getSubTasks(snapshot.data[index].taskName),
+                                              builder: (BuildContext context, AsyncSnapshot subtasksnapshot) {
+                                                if (subtasksnapshot.data == null) {
+                                                  return const Center(
+                                                    child: CircularProgressIndicator(
+                                                      color: Color.fromARGB(99, 120, 227, 215),
+                                                      backgroundColor: Color.fromARGB(30, 57, 210, 192),
+                                                      strokeWidth: 4,
+                                                    ),
+                                                  );
+                                                } else {
+                                                    return ListView.separated(
+                                                      padding: const EdgeInsets.fromLTRB(0, 5.0, 0, 0),
+                                                      shrinkWrap: true,
+                                                      scrollDirection: Axis.vertical,
+                                                      itemCount: subtasksnapshot.data.length,
+                                                      separatorBuilder: (BuildContext context, int index) => SizedBox(height: 15),
+                                                      itemBuilder: (BuildContext context, int index) {
+                                                        return Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            // Task widget
+                                                            subTaskContainer(
+                                                              context,
+                                                              subtasksnapshot.data[index].taskName,
+                                                              subtasksnapshot.data[index].subTaskName,
+                                                              subtasksnapshot.data[index].subTaskDescription,
+                                                              subtasksnapshot.data[index].subTaskProgress,
+                                                              subtasksnapshot.data[index].subTaskDifficulty,
+                                                              subtasksnapshot.data[index].subTaskAssigned,
+                                                              subtasksnapshot.data[index].subTaskDueDate,
+                                                            )
+                                                          ]
+                                                        );
+                                                      });
+                                                      }})],
+                                        );
+                                      },
+                                    );
+                                  }
+                                }
+                            ),
+                          ),
 
                           Padding(
                             padding: const EdgeInsetsDirectional.fromSTEB(
