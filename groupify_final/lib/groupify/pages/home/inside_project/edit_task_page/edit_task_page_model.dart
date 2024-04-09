@@ -7,14 +7,16 @@ class EditTaskPageModel extends FlutterFlowModel<EditTaskPageWidget> {
   ///  State fields for stateful widgets in this page.
 
   final unfocusNode = FocusNode();
-  // State field(s) for emailAddress widget.
-  FocusNode? emailAddressFocusNode1;
-  TextEditingController? emailAddressController1;
-  String? Function(BuildContext, String?)? emailAddressController1Validator;
-  // State field(s) for emailAddress widget.
-  FocusNode? emailAddressFocusNode2;
-  TextEditingController? emailAddressController2;
-  String? Function(BuildContext, String?)? emailAddressController2Validator;
+
+  FocusNode? taskNameFocusNode;
+  TextEditingController? taskNameController;
+  String? Function(BuildContext, String?)? taskNameControllerValidator;
+
+
+  FocusNode? taskDescriptionFocusNode;
+  TextEditingController? taskDescriptionController;
+  String? Function(BuildContext, String?)? taskDescriptionControllerValidator;
+
   DateTime? datePicked;
   // State field(s) for RatingBar widget.
   double? ratingBarValue;
@@ -30,11 +32,12 @@ class EditTaskPageModel extends FlutterFlowModel<EditTaskPageWidget> {
   @override
   void dispose() {
     unfocusNode.dispose();
-    emailAddressFocusNode1?.dispose();
-    emailAddressController1?.dispose();
 
-    emailAddressFocusNode2?.dispose();
-    emailAddressController2?.dispose();
+    taskNameFocusNode?.dispose();
+    taskNameController?.dispose();
+
+    taskDescriptionFocusNode?.dispose();
+    taskDescriptionController?.dispose();
   }
 
   /// Action blocks are added here.

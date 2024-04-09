@@ -9,9 +9,19 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'edit_task_page_model.dart';
 export 'edit_task_page_model.dart';
+import 'package:groupify_final/sql_database_connection.dart';
 
 class EditTaskPageWidget extends StatefulWidget {
-  const EditTaskPageWidget({super.key});
+  final String? projectName;
+  final String? pOwnerId;
+  final String? pDescription;
+  final String? tName;
+  final String? tDescription;
+  final String? tProgess;
+  final String? tDifficulty;
+  final String? tAssigned;
+  final String? tDue;
+  const EditTaskPageWidget({super.key, this.projectName, this.pOwnerId, this.pDescription, this.tName, this.tDescription, this.tProgess, this.tDifficulty, this.tAssigned, this.tDue});
 
   @override
   State<EditTaskPageWidget> createState() => _EditTaskPageWidgetState();
@@ -22,18 +32,42 @@ class _EditTaskPageWidgetState extends State<EditTaskPageWidget> {
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
+  late SQLDatabaseHelper _sqldatabaseHelper;
+  Future<void> _connectToDatabase() async {
+    await _sqldatabaseHelper.connectToDatabase();
+  }
+
   @override
   void initState() {
     super.initState();
     _model = createModel(context, () => EditTaskPageModel());
 
-    _model.emailAddressController1 ??= TextEditingController();
-    _model.emailAddressFocusNode1 ??= FocusNode();
+    _model.taskNameController ??= TextEditingController(text: widget.tName);
+    _model.taskNameFocusNode ??= FocusNode();
 
-    _model.emailAddressController2 ??= TextEditingController();
-    _model.emailAddressFocusNode2 ??= FocusNode();
+    _model.taskDescriptionController ??= TextEditingController(text: widget.tDescription);
+    _model.taskDescriptionFocusNode ??= FocusNode();
+
+    _sqldatabaseHelper = SQLDatabaseHelper();
+    _connectToDatabase();
 
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
+  }
+
+Future<void> _updateTask(double? newtProgress, String? newtDue) async {
+  final String newtDescription = _model.taskDescriptionController.text;
+  final double? newtDifficulty = _model.ratingBarValue;
+  final List<String>? taskAssigned = _model.dropDownValueController?.value;
+  final String newtAssigned = taskAssigned?.join(', ') ?? '';
+
+  try{
+    final results = await _sqldatabaseHelper.connection.query( 
+        'update Tasks set taskDescription = "hisisdumbasshit", taskProgress = ?, taskDifficulty = ?, taskAssigned = ?, taskDueDate = ? where projectName = ? and ownerID = ? and taskName = ?;',
+            [newtProgress, newtDifficulty, newtAssigned, newtDue, widget.projectName, widget.pOwnerId, widget.tName]);
+   
+    print('TASK UPDATED  ${results.insertId}');
+  } catch (e) {print('this is the error ' + e.toString());}
+    _sqldatabaseHelper.closeConnection();
   }
 
   @override
@@ -45,6 +79,18 @@ class _EditTaskPageWidgetState extends State<EditTaskPageWidget> {
 
   @override
   Widget build(BuildContext context) {
+    List<String> selectedValue = [];
+
+    // Check if widget.tAssigned is not null and add it to the selectedValue list
+    if (widget.tAssigned != null) {
+    selectedValue.add(widget.tAssigned!);
+    }
+    final diff = widget.tDifficulty.toString();
+    final ass = widget.tAssigned.toString();
+    print('this is the tAssigned ' + ass);
+    print('this is the tDIfficulty ' + diff);
+    double? ntProgress = 0.0;
+    String? ntDue ='';
     return GestureDetector(
       onTap: () => _model.unfocusNode.canRequestFocus
           ? FocusScope.of(context).requestFocus(_model.unfocusNode)
@@ -223,7 +269,11 @@ class _EditTaskPageWidgetState extends State<EditTaskPageWidget> {
                                                     Colors.transparent,
                                                 onTap: () async {
                                                   context
-                                                      .pushNamed('ProjectPage');
+                                                      .pushNamed('ProjectPage', queryParameters: {
+                                  'projectOwnerID': widget.pOwnerId,
+                                  'projectName': widget.projectName,
+                                  'projectDescription': widget.pDescription,
+                              });
                                                 },
                                                 child: Icon(
                                                   Icons.close_rounded,
@@ -242,99 +292,12 @@ class _EditTaskPageWidgetState extends State<EditTaskPageWidget> {
                                 ),
                               ),
                             ),
-                            Align(
-                              alignment: const AlignmentDirectional(-1.0, 0.0),
-                              child: Padding(
-                                padding: const EdgeInsetsDirectional.fromSTEB(
-                                    25.0, 0.0, 0.0, 3.0),
-                                child: Text(
-                                  FFLocalizations.of(context).getText(
-                                    '855fnml8' /* Task Name */,
-                                  ),
-                                  style:
-                                      FlutterFlowTheme.of(context).bodyMedium,
-                                ),
-                              ),
-                            ),
                             Padding(
                               padding: const EdgeInsetsDirectional.fromSTEB(
                                   24.0, 0.0, 24.0, 15.0),
                               child: TextFormField(
-                                controller: _model.emailAddressController1,
-                                focusNode: _model.emailAddressFocusNode1,
-                                obscureText: false,
-                                decoration: InputDecoration(
-                                  labelStyle:
-                                      FlutterFlowTheme.of(context).bodySmall,
-                                  hintText: FFLocalizations.of(context).getText(
-                                    '4hkp363v' /* Enter task name... */,
-                                  ),
-                                  hintStyle:
-                                      FlutterFlowTheme.of(context).bodySmall,
-                                  enabledBorder: OutlineInputBorder(
-                                    borderSide: const BorderSide(
-                                      color: Color(0x00E0E3E7),
-                                      width: 1.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8.0),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderSide: const BorderSide(
-                                      color: Color(0x00000000),
-                                      width: 1.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8.0),
-                                  ),
-                                  errorBorder: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                      color:
-                                          FlutterFlowTheme.of(context).primary,
-                                      width: 1.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8.0),
-                                  ),
-                                  focusedErrorBorder: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                      color:
-                                          FlutterFlowTheme.of(context).primary,
-                                      width: 1.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8.0),
-                                  ),
-                                  filled: true,
-                                  fillColor:
-                                      FlutterFlowTheme.of(context).overlay,
-                                  contentPadding:
-                                      const EdgeInsetsDirectional.fromSTEB(
-                                          20.0, 24.0, 20.0, 24.0),
-                                ),
-                                style: FlutterFlowTheme.of(context).bodyMedium,
-                                maxLines: null,
-                                validator: _model
-                                    .emailAddressController1Validator
-                                    .asValidator(context),
-                              ),
-                            ),
-                            Align(
-                              alignment: const AlignmentDirectional(-1.0, 0.0),
-                              child: Padding(
-                                padding: const EdgeInsetsDirectional.fromSTEB(
-                                    25.0, 0.0, 0.0, 3.0),
-                                child: Text(
-                                  FFLocalizations.of(context).getText(
-                                    'fbv2isin' /* Task Description */,
-                                  ),
-                                  style:
-                                      FlutterFlowTheme.of(context).bodyMedium,
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsetsDirectional.fromSTEB(
-                                  24.0, 0.0, 24.0, 15.0),
-                              child: TextFormField(
-                                controller: _model.emailAddressController2,
-                                focusNode: _model.emailAddressFocusNode2,
+                                controller: _model.taskDescriptionController,
+                                focusNode: _model.taskDescriptionFocusNode,
                                 obscureText: false,
                                 decoration: InputDecoration(
                                   labelStyle:
@@ -384,7 +347,7 @@ class _EditTaskPageWidgetState extends State<EditTaskPageWidget> {
                                 style: FlutterFlowTheme.of(context).bodyMedium,
                                 maxLines: 10,
                                 validator: _model
-                                    .emailAddressController2Validator
+                                    .taskDescriptionControllerValidator
                                     .asValidator(context),
                               ),
                             ),
@@ -456,6 +419,8 @@ class _EditTaskPageWidgetState extends State<EditTaskPageWidget> {
                                         datePickedDate.month,
                                         datePickedDate.day,
                                       );
+                                      final temp = DateFormat('MM/d/yyyy').format(datePickedDate);
+                                      ntDue = temp.toString();
                                     });
                                   }
                                 },
@@ -479,7 +444,7 @@ class _EditTaskPageWidgetState extends State<EditTaskPageWidget> {
                                             locale: FFLocalizations.of(context)
                                                 .languageCode,
                                           ),
-                                          'Select a date',
+                                          (widget.tDue == null)  ? 'Select a date' : widget.tDue.toString(),
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -529,8 +494,7 @@ class _EditTaskPageWidgetState extends State<EditTaskPageWidget> {
                                           FlutterFlowTheme.of(context).tertiary,
                                     ),
                                     direction: Axis.horizontal,
-                                    initialRating: _model.ratingBarValue ??=
-                                        3.0,
+                                    initialRating: double.parse(widget.tDifficulty ?? '3.0'),
                                     unratedColor:
                                         FlutterFlowTheme.of(context).accent3,
                                     itemCount: 5,
@@ -561,7 +525,7 @@ class _EditTaskPageWidgetState extends State<EditTaskPageWidget> {
                                 FlutterFlowDropDown<String>(
                                   multiSelectController: _model
                                           .dropDownValueController ??=
-                                      FormFieldController<List<String>>(null),
+                                      FormFieldController<List<String>>(selectedValue),
                                   options: [
                                     FFLocalizations.of(context).getText(
                                       'mlxsxz9s' /* 3 */,
@@ -612,7 +576,12 @@ class _EditTaskPageWidgetState extends State<EditTaskPageWidget> {
                           alignment: const AlignmentDirectional(0.0, 0.0),
                           child: FFButtonWidget(
                             onPressed: () async {
-                              context.pushNamed('ProjectPage');
+                              _updateTask(ntProgress, ntDue);
+                              context.pushNamed('ProjectPage', queryParameters: {
+                                  'projectOwnerID': widget.pOwnerId,
+                                  'projectName': widget.projectName,
+                                  'projectDescription': widget.pDescription,
+                              });
                             },
                             text: FFLocalizations.of(context).getText(
                               'u3accrhc' /* Edit Task */,

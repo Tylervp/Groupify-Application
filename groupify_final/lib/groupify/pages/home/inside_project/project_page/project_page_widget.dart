@@ -16,6 +16,47 @@ import 'project_page_model.dart';
 export 'project_page_model.dart';
 import 'package:groupify_final/sql_database_connection.dart';
 
+
+class Task {
+  String taskName = '';
+  String taskDescription = '';
+  double taskProgress = 0.0;
+  double taskDifficulty = 0.0;
+  String taskAssigned = '';
+  String taskDueDate = '';
+
+  Task(String taskName, String taskDescription, double taskProgress, double taskDifficulty, String taskAssigned, String taskDueDate){
+    this.taskName = taskName;
+    this.taskDescription = taskDescription;
+    this.taskProgress = taskProgress;
+    this.taskDifficulty = taskDifficulty;
+    this.taskAssigned = taskAssigned;
+    this.taskDueDate = taskDueDate;
+  }
+}
+
+class SubTask {
+  String taskName = '';
+  String subTaskName = '';
+  String subTaskDescription = '';
+  double subTaskProgress = 0.0;
+  double subTaskDifficulty = 0.0;
+  String subTaskAssigned = '';
+  String subTaskDueDate = '';
+
+  SubTask(String taskName, String subTaskName, String subTaskDescription, double subTaskProgress, double subTaskDifficulty, String subTaskAssigned, String subTaskDueDate){
+    this.taskName = taskName;
+    this.subTaskName = subTaskName;
+    this.subTaskDescription = subTaskDescription;
+    this.subTaskProgress = subTaskProgress;
+    this.subTaskDifficulty = subTaskDifficulty;
+    this.subTaskAssigned = subTaskAssigned;
+    this.subTaskDueDate = subTaskDueDate;
+  }
+}
+
+
+
 class Member {
   String username = '';
   String profilePicture = '';
@@ -43,10 +84,21 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
   late ProjectPageModel _model;
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // Connect to DB
+  late SQLDatabaseHelper _sqldatabaseHelper;
+  Future<void> _connectToDatabase() async {
+    await _sqldatabaseHelper.connectToDatabase();
+  }
+
   @override
   void initState() {
     super.initState();
+
     _model = createModel(context, () => ProjectPageModel());
+
+    _sqldatabaseHelper = SQLDatabaseHelper();
+    _connectToDatabase();
+
     _sqldatabaseHelper = SQLDatabaseHelper();
     _connectToDatabase();
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
@@ -56,12 +108,6 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
   void dispose() {
     _model.dispose();
     super.dispose();
-  }
-
-  // Connect to DB
-  late SQLDatabaseHelper _sqldatabaseHelper;
-  Future<void> _connectToDatabase() async {
-    await _sqldatabaseHelper.connectToDatabase();
   }
 
   // Method to get members of the project
@@ -91,6 +137,720 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
     return members;
   }
 
+  // Method to query projects a user is involved in and populate project list
+  Future<List<Task>> _getTasks() async {
+    List<Task> tasks = [];
+    final results = await _sqldatabaseHelper.connection.query('select taskName, taskDescription, taskProgress, taskDifficulty, taskAssigned, taskDueDate from Tasks where projectName = ? and ownerId = ?',
+                                                            [widget.projectName, widget.projectOwnerID]);
+    print('GOT THE TASKS');
+    for(final row in results){
+      String temptaskName = row['taskName'] as String;
+      String temptaskDescription = row['taskDescription'] as String;
+      double temptaskProgress = row['taskProgress'] as double;
+      double temptaskDifficulty = row['taskDifficulty'] as double;
+      String temptaskAssigned = row['taskAssigned'] as String;
+      String temptaskDueDate = row['taskDueDate'] as String;
+
+      tasks.insert(0, Task(temptaskName, temptaskDescription, temptaskProgress, temptaskDifficulty, temptaskAssigned, temptaskDueDate));
+    }
+    _sqldatabaseHelper.closeConnection();
+    return tasks;
+  }
+
+Future<List<SubTask>> _getSubTasks(taskName) async {
+    List<SubTask> subtasks = [];
+    try{
+    final results = await _sqldatabaseHelper.connection.query('select taskName, subTaskName, subTaskDescription, subTaskProgress, subTaskDifficulty, subTaskAssigned, subTaskDueDate from Subtasks where projectName = ? and ownerID = ? and taskName = ?;',
+                                                            [widget.projectName, widget.projectOwnerID, taskName]);
+    print('GOT THE SUBTASKS');
+    for(final row in results){
+      String temptaskName = row['taskName'] as String;
+      String tempsubTaskName = row['subTaskName'] as String;
+      String tempsubTaskDescription = row['subTaskDescription'] as String;
+      double tempsubTaskProgress = row['subTaskProgress'] as double;
+      double tempsubTaskDifficulty = row['subTaskDifficulty'] as double;
+      String tempsubTaskAssigned = row['subTaskAssigned'] as String;
+      String tempsubTaskDueDate = row['subTaskDueDate'] as String;
+
+      subtasks.insert(0, SubTask(temptaskName, tempsubTaskName, tempsubTaskDescription, tempsubTaskProgress, tempsubTaskDifficulty, tempsubTaskAssigned, tempsubTaskDueDate));
+    }} catch (e)
+    { print('Error fetching subtasks: $e');};
+    _sqldatabaseHelper.closeConnection();
+    return subtasks;
+  }
+
+  // Widget to create project container
+  Widget taskContainer(BuildContext context, String tName, String tDescription, double tProgress, double tDifficulty, String tAssigned, String tDue){ 
+    print('this is the tAssigned ' + tAssigned);
+    return Padding(
+  padding: EdgeInsetsDirectional.fromSTEB(15, 0, 15, 0),
+  child: InkWell(
+    splashColor: Colors.transparent,
+    focusColor: Colors.transparent,
+    hoverColor: Colors.transparent,
+    highlightColor: Colors.transparent,
+    onTap: () async {
+      await showModalBottomSheet(
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        enableDrag: false,
+        context: context,
+        builder: (context) {
+          return GestureDetector(
+            onTap: () => _model.unfocusNode.canRequestFocus
+                ? FocusScope.of(context).requestFocus(_model.unfocusNode)
+                : FocusScope.of(context).unfocus(),
+            child: Padding(
+              padding: MediaQuery.viewInsetsOf(context),
+              child: Container(
+                height: 350,
+                child: TaskSubtaskDescriptionWidget(),
+              ),
+            ),
+          );
+        },
+      ).then((value) => safeSetState(() {}));
+    },
+    child: Container(
+      height: 75,
+      decoration: BoxDecoration(
+        color: FlutterFlowTheme.of(context).overlay,
+        borderRadius: BorderRadius.circular(20),
+        shape: BoxShape.rectangle,
+        border: Border.all(
+          color: Colors.transparent,
+          width: 0,
+        ),
+      ),
+      child: Padding(
+        padding: EdgeInsetsDirectional.fromSTEB(0, 0, 0, 5),
+        child: Column(
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Padding(
+              padding: EdgeInsetsDirectional.fromSTEB(15, 5, 10, 0),
+              child: Row(
+                mainAxisSize: MainAxisSize.max,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    width: 145,
+                    decoration: BoxDecoration(),
+                    child: Padding(
+                      padding: EdgeInsetsDirectional.fromSTEB(0, 3, 0, 0),
+                      child: Text(
+                        tName,
+                        overflow:TextOverflow.ellipsis,
+                        style: FlutterFlowTheme.of(context)
+                            .bodyMedium
+                            .override(
+                              fontFamily: 'Urbanist',
+                              fontSize: 23,
+                              letterSpacing: 0,
+                              fontWeight: FontWeight.w600,
+                              useGoogleFonts:
+                                  GoogleFonts.asMap().containsKey('Urbanist'),
+                            ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsetsDirectional.fromSTEB(5, 3, 10, 0),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        Padding(
+                          padding: EdgeInsetsDirectional.fromSTEB(0, 3, 0, 3),
+                          child: Text(
+                            FFLocalizations.of(context).getText(
+                              'y58t59f4' /* Due: */,
+                            ),
+                            style: FlutterFlowTheme.of(context)
+                                .bodyMedium
+                                .override(
+                                  fontFamily: 'Urbanist',
+                                  fontSize: 17,
+                                  letterSpacing: 0,
+                                  fontWeight: FontWeight.normal,
+                                  useGoogleFonts: GoogleFonts.asMap()
+                                      .containsKey('Urbanist'),
+                                ),
+                          ),
+                        ),
+                        Container(
+                          width: 87,
+                          decoration: BoxDecoration(),
+                          child: Padding(
+                            padding:
+                                EdgeInsetsDirectional.fromSTEB(0, 3, 0, 0),
+                            child: Text(
+                              tDue,
+                              style: FlutterFlowTheme.of(context)
+                                  .bodyMedium
+                                  .override(
+                                    fontFamily: 'Urbanist',
+                                    fontSize: 17,
+                                    letterSpacing: 0,
+                                    fontWeight: FontWeight.normal,
+                                    useGoogleFonts: GoogleFonts.asMap()
+                                        .containsKey('Urbanist'),
+                                  ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      Padding(
+                        padding: EdgeInsetsDirectional.fromSTEB(0, 0, 4, 0),
+                        child: InkWell(
+                          splashColor: Colors.transparent,
+                          focusColor: Colors.transparent,
+                          hoverColor: Colors.transparent,
+                          highlightColor: Colors.transparent,
+                          onTap: () async {
+                            await showModalBottomSheet(
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              enableDrag: false,
+                              context: context,
+                              builder: (context) {
+                                return GestureDetector(
+                                  onTap: () => _model
+                                          .unfocusNode.canRequestFocus
+                                      ? FocusScope.of(context)
+                                          .requestFocus(_model.unfocusNode)
+                                      : FocusScope.of(context).unfocus(),
+                                  child: Padding(
+                                    padding: MediaQuery.viewInsetsOf(context),
+                                    child: Container(
+                                      height: 200,
+                                      child: OptionsTaskWidget(
+                                          projectName: widget.projectName,
+                                          pOwnerId: widget.projectOwnerID,
+                                          pDescription: widget.projectDescription,    //////////////
+                                          tName: tName, 
+                                          tDescription: tDescription,
+                                          tProgress: tProgress, 
+                                          tDifficulty: tDifficulty,
+                                          tAssigned: tAssigned,
+                                          tDue: tDue),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ).then((value) => safeSetState(() {}));
+                          },
+                          child: Icon(
+                            Icons.more_vert,
+                            color: FlutterFlowTheme.of(context).primaryText,
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsetsDirectional.fromSTEB(0, 5, 0, 2),
+                        child: FlutterFlowIconButton(
+                          borderColor: Colors.transparent,
+                          borderRadius: 30,
+                          borderWidth: 1,
+                          buttonSize: 25,
+                          fillColor:
+                              FlutterFlowTheme.of(context).primaryBackground,
+                          icon: Icon(
+                            Icons.add,
+                            color: FlutterFlowTheme.of(context).primaryText,
+                            size: 10,
+                          ),
+                          onPressed: () async {
+                            context.pushNamed('SubtaskCreationPage', queryParameters: {
+                                  'taskName': tName,
+                                  'projectOwnerID': widget.projectOwnerID,
+                                  'projectName': widget.projectName,
+                                  'projectDescription': widget.projectDescription,
+            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Align(
+              alignment: AlignmentDirectional(0, 0),
+              child: Padding(
+                padding: EdgeInsetsDirectional.fromSTEB(20, 0, 10, 0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        Text(
+                          FFLocalizations.of(context).getText(
+                            'xlgpir3u' /* Assigned:  */,
+                          ),
+                          style: FlutterFlowTheme.of(context)
+                              .bodyMedium
+                              .override(
+                                fontFamily: 'Urbanist',
+                                fontSize: 17,
+                                letterSpacing: 0,
+                                fontWeight: FontWeight.normal,
+                                useGoogleFonts: GoogleFonts.asMap()
+                                    .containsKey('Urbanist'),
+                              ),
+                        ),
+                        Container(
+                          width: 60,
+                          height: 25,
+                          decoration: BoxDecoration(),
+                          child: ListView(
+                            padding: EdgeInsets.zero,
+                            primary: false,
+                            scrollDirection: Axis.horizontal,
+                            children: [
+                              Container(
+                                width: 25,
+                                height: 25,
+                                clipBehavior: Clip.antiAlias,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Image.network(
+                                  'https://picsum.photos/seed/939/600',
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ].divide(SizedBox(width: 2)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      width: 60,
+                      decoration: BoxDecoration(),
+                      child: Padding(
+                        padding: EdgeInsetsDirectional.fromSTEB(5, 0, 0, 0),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.max,
+                          children: [
+                            Container(
+                              width: 28,
+                              decoration: BoxDecoration(),
+                              child: Text(
+                                '${tDifficulty.toString()[0]}/5',
+                                style: FlutterFlowTheme.of(context)
+                                    .bodyMedium
+                                    .override(
+                                      fontFamily: FlutterFlowTheme.of(context)
+                                          .bodyMediumFamily,
+                                      fontSize: 18,
+                                      letterSpacing: 0,
+                                      useGoogleFonts: GoogleFonts.asMap()
+                                          .containsKey(
+                                              FlutterFlowTheme.of(context)
+                                                  .bodyMediumFamily),
+                                    ),
+                              ),
+                            ),
+                            Icon(
+                              Icons.star_rounded,
+                              color: FlutterFlowTheme.of(context).tertiary,
+                              size: 24,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Align(
+                      alignment: AlignmentDirectional(0, 0),
+                      child: Padding(
+                        padding: EdgeInsetsDirectional.fromSTEB(2, 0, 2, 0),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.max,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            LinearPercentIndicator(
+                              percent: tProgress,
+                              width: 120,
+                              lineHeight: 18,
+                              animation: true,
+                              animateFromLastPercent: true,
+                              progressColor:
+                                  FlutterFlowTheme.of(context).tertiary,
+                              backgroundColor:
+                                  FlutterFlowTheme.of(context).accent3,
+                              center: Text(
+                                '${tProgress * 100 % 1 == 0 ? (tProgress * 100).toInt() : (tProgress * 100).toStringAsFixed(2)}%',
+                                style: FlutterFlowTheme.of(context)
+                                    .headlineSmall
+                                    .override(
+                                      fontFamily: 'Oswald',
+                                      color: Colors.black,
+                                      fontSize: 13,
+                                      letterSpacing: 0,
+                                      fontWeight: FontWeight.w600,
+                                      useGoogleFonts: GoogleFonts.asMap()
+                                          .containsKey('Oswald'),
+                                    ),
+                              ),
+                              barRadius: Radius.circular(20),
+                              padding: EdgeInsets.zero,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  ),
+);
+
+  }
+
+Widget subTaskContainer(BuildContext context, String tName, String stName, String stDescription, double stProgress, double stDifficulty, String stAssigned, String stDue){ 
+    return Padding(
+  padding: EdgeInsetsDirectional.fromSTEB(15, 5, 0, 0),
+  child: Row(
+    mainAxisSize: MainAxisSize.max,
+    children: [
+      Padding(
+        padding: EdgeInsetsDirectional.fromSTEB(4, 0, 0, 0),
+        child: Icon(
+          Icons.subdirectory_arrow_right,
+          color: FlutterFlowTheme.of(context).secondaryText,
+          size: 25,
+        ),
+      ),
+      Expanded(
+        child: Padding(
+          padding: EdgeInsetsDirectional.fromSTEB(0, 0, 15, 0),
+          child: InkWell(
+            splashColor: Colors.transparent,
+            focusColor: Colors.transparent,
+            hoverColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            onTap: () async {
+              await showModalBottomSheet(
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                enableDrag: false,
+                context: context,
+                builder: (context) {
+                  return GestureDetector(
+                    onTap: () => _model.unfocusNode.canRequestFocus
+                        ? FocusScope.of(context)
+                            .requestFocus(_model.unfocusNode)
+                        : FocusScope.of(context).unfocus(),
+                    child: Padding(
+                      padding: MediaQuery.viewInsetsOf(context),
+                      child: Container(
+                        height: 350,
+                        child: TaskSubtaskDescriptionWidget(),
+                      ),
+                    ),
+                  );
+                },
+              ).then((value) => safeSetState(() {}));
+            },
+            child: Container(
+              height: 75,
+              decoration: BoxDecoration(
+                color: FlutterFlowTheme.of(context).overlay,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Padding(
+                padding: EdgeInsetsDirectional.fromSTEB(0, 0, 0, 5),
+                child: Column(
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Padding(
+                      padding: EdgeInsetsDirectional.fromSTEB(15, 5, 4, 0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.max,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            width: 155,
+                            decoration: BoxDecoration(),
+                            child: Padding(
+                              padding:
+                                  EdgeInsetsDirectional.fromSTEB(0, 3, 0, 0),
+                              child: Text(
+                                stName,
+                                style: FlutterFlowTheme.of(context)
+                                    .bodyMedium
+                                    .override(
+                                      fontFamily: 'Urbanist',
+                                      fontSize: 23,
+                                      letterSpacing: 0,
+                                      fontWeight: FontWeight.w600,
+                                      useGoogleFonts: GoogleFonts.asMap()
+                                          .containsKey('Urbanist'),
+                                    ),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding:
+                                EdgeInsetsDirectional.fromSTEB(4, 3, 3, 0),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.max,
+                              children: [
+                                Padding(
+                                  padding: EdgeInsetsDirectional.fromSTEB(
+                                      0, 3, 3, 0),
+                                  child: Text(
+                                    FFLocalizations.of(context).getText(
+                                      '611wb6zh' /* Due: */,
+                                    ),
+                                    style: FlutterFlowTheme.of(context)
+                                        .bodyMedium
+                                        .override(
+                                          fontFamily: 'Urbanist',
+                                          fontSize: 17,
+                                          letterSpacing: 0,
+                                          fontWeight: FontWeight.normal,
+                                          useGoogleFonts: GoogleFonts.asMap()
+                                              .containsKey('Urbanist'),
+                                        ),
+                                  ),
+                                ),
+                                Container(
+                                  width: 87,
+                                  decoration: BoxDecoration(),
+                                  child: Padding(
+                                    padding: EdgeInsetsDirectional.fromSTEB(
+                                        0, 3, 0, 0),
+                                    child: Text(
+                                      stDue,
+                                      style: FlutterFlowTheme.of(context)
+                                          .bodyMedium
+                                          .override(
+                                            fontFamily: 'Urbanist',
+                                            fontSize: 17,
+                                            letterSpacing: 0,
+                                            fontWeight: FontWeight.normal,
+                                            useGoogleFonts:
+                                                GoogleFonts.asMap()
+                                                    .containsKey('Urbanist'),
+                                          ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          InkWell(
+                            splashColor: Colors.transparent,
+                            focusColor: Colors.transparent,
+                            hoverColor: Colors.transparent,
+                            highlightColor: Colors.transparent,
+                            onTap: () async {
+                              await showModalBottomSheet(
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                enableDrag: false,
+                                context: context,
+                                builder: (context) {
+                                  return GestureDetector(
+                                    onTap: () => _model
+                                            .unfocusNode.canRequestFocus
+                                        ? FocusScope.of(context)
+                                            .requestFocus(_model.unfocusNode)
+                                        : FocusScope.of(context).unfocus(),
+                                    child: Padding(
+                                      padding:
+                                          MediaQuery.viewInsetsOf(context),
+                                      child: Container(
+                                        height: 200,
+                                        child: OptionsSubtaskWidget(
+                                          projectName: widget.projectName,
+                                          pOwnerId: widget.projectOwnerID,
+                                          pDescription: widget.projectDescription,
+                                          tName: tName,    //////////////
+                                          stName: stName, 
+                                          stDescription: stDescription,
+                                          stProgress: stProgress, 
+                                          stDifficulty: stDifficulty,
+                                          stAssigned: stAssigned,
+                                          stDue: stDue),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ).then((value) => safeSetState(() {}));
+                            },
+                            child: Icon(
+                              Icons.more_vert,
+                              color: FlutterFlowTheme.of(context).primaryText,
+                              size: 24,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsetsDirectional.fromSTEB(15, 0, 7, 0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.max,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.max,
+                            children: [
+                              Text(
+                                FFLocalizations.of(context).getText(
+                                  'zemnchb3' /* Assigned:  */,
+                                ),
+                                style: FlutterFlowTheme.of(context)
+                                    .bodyMedium
+                                    .override(
+                                      fontFamily: 'Urbanist',
+                                      fontSize: 17,
+                                      letterSpacing: 0,
+                                      fontWeight: FontWeight.normal,
+                                      useGoogleFonts: GoogleFonts.asMap()
+                                          .containsKey('Urbanist'),
+                                    ),
+                              ),
+                              Container(
+                                width: 45,
+                                height: 25,
+                                decoration: BoxDecoration(),
+                                child: ListView(
+                                  padding: EdgeInsets.zero,
+                                  primary: false,
+                                  scrollDirection: Axis.horizontal,
+                                  children: [
+                                    Container(
+                                      width: 25,
+                                      height: 25,
+                                      clipBehavior: Clip.antiAlias,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Image.network(
+                                        'https://picsum.photos/seed/409/600',
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ].divide(SizedBox(width: 2)),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            width: 60,
+                            decoration: BoxDecoration(),
+                            child: Padding(
+                              padding:
+                                  EdgeInsetsDirectional.fromSTEB(3, 0, 0, 0),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.max,
+                                children: [
+                                  Container(
+                                    width: 28,
+                                    decoration: BoxDecoration(),
+                                    child: Text(
+                                      '${stDifficulty.toString()[0]}/5',
+                                      style: FlutterFlowTheme.of(context)
+                                          .bodyMedium
+                                          .override(
+                                            fontFamily:
+                                                FlutterFlowTheme.of(context)
+                                                    .bodyMediumFamily,
+                                            fontSize: 18,
+                                            letterSpacing: 0,
+                                            useGoogleFonts: GoogleFonts
+                                                    .asMap()
+                                                .containsKey(
+                                                    FlutterFlowTheme.of(
+                                                            context)
+                                                        .bodyMediumFamily),
+                                          ),
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.star_rounded,
+                                    color:
+                                        FlutterFlowTheme.of(context).tertiary,
+                                    size: 24,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding:
+                                EdgeInsetsDirectional.fromSTEB(0, 0, 2, 0),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.max,
+                              children: [
+                                LinearPercentIndicator(
+                                  percent: stProgress,
+                                  width: 105,
+                                  lineHeight: 18,
+                                  animation: true,
+                                  animateFromLastPercent: true,
+                                  progressColor:
+                                      FlutterFlowTheme.of(context).tertiary,
+                                  backgroundColor:
+                                      FlutterFlowTheme.of(context).accent3,
+                                  center: Text(
+                                    '${stProgress * 100 % 1 == 0 ? (stProgress * 100).toInt() : (stProgress * 100).toStringAsFixed(2)}%',
+                                    style: FlutterFlowTheme.of(context)
+                                        .headlineSmall
+                                        .override(
+                                          fontFamily: 'Oswald',
+                                          color: Colors.black,
+                                          fontSize: 13,
+                                          letterSpacing: 0,
+                                          fontWeight: FontWeight.w600,
+                                          useGoogleFonts: GoogleFonts.asMap()
+                                              .containsKey('Oswald'),
+                                        ),
+                                  ),
+                                  barRadius: Radius.circular(20),
+                                  padding: EdgeInsets.zero,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ],
+  ),
+);
+
+
+}
+
+  String? taskName2 = 'issueissue';
   @override
   Widget build(BuildContext context) {
     // Check if info from homepage is correct (CAN DELETE v)
@@ -519,1004 +1279,98 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                           Container(
                             height: 565.0,
                             decoration: const BoxDecoration(),
-                            child: ListView(
-                              padding: const EdgeInsets.fromLTRB(
-                                0,
-                                5.0,
-                                0,
-                                0,
-                              ),
-                              shrinkWrap: true,
-                              scrollDirection: Axis.vertical,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsetsDirectional.fromSTEB(
-                                      15.0, 0.0, 15.0, 0.0),
-                                  child: InkWell(
-                                    splashColor: Colors.transparent,
-                                    focusColor: Colors.transparent,
-                                    hoverColor: Colors.transparent,
-                                    highlightColor: Colors.transparent,
-                                    onTap: () async {
-                                      await showModalBottomSheet(
-                                        isScrollControlled: true,
-                                        backgroundColor: Colors.transparent,
-                                        enableDrag: false,
-                                        context: context,
-                                        builder: (context) {
-                                          return GestureDetector(
-                                            onTap: () => _model
-                                                    .unfocusNode.canRequestFocus
-                                                ? FocusScope.of(context)
-                                                    .requestFocus(
-                                                        _model.unfocusNode)
-                                                : FocusScope.of(context)
-                                                    .unfocus(),
-                                            child: Padding(
-                                              padding: MediaQuery.viewInsetsOf(
-                                                  context),
-                                              child: const SizedBox(
-                                                height: 350.0,
-                                                child:
-                                                    TaskSubtaskDescriptionWidget(),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ).then((value) => safeSetState(() {}));
-                                    },
-                                    child: Container(
-                                      height: 75.0,
-                                      decoration: BoxDecoration(
-                                        color: FlutterFlowTheme.of(context)
-                                            .overlay,
-                                        borderRadius:
-                                            BorderRadius.circular(20.0),
-                                        shape: BoxShape.rectangle,
-                                        border: Border.all(
-                                          color: Colors.transparent,
-                                          width: 0.0,
-                                        ),
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsetsDirectional.fromSTEB(
-                                            0.0, 0.0, 0.0, 5.0),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.max,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.start,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            Padding(
-                                              padding: const EdgeInsetsDirectional
-                                                  .fromSTEB(
-                                                      15.0, 5.0, 10.0, 0.0),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.max,
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Container(
-                                                    width: 145.0,
-                                                    decoration: const BoxDecoration(),
-                                                    child: Padding(
-                                                      padding:
-                                                          const EdgeInsetsDirectional
-                                                              .fromSTEB(
-                                                                  0.0,
-                                                                  3.0,
-                                                                  0.0,
-                                                                  0.0),
-                                                      child: Text(
-                                                        FFLocalizations.of(
-                                                                context)
-                                                            .getText(
-                                                          '6ssxwsdu' /* Task Name */,
-                                                        ),
-                                                        style: FlutterFlowTheme
-                                                                .of(context)
-                                                            .bodyMedium
-                                                            .override(
-                                                              fontFamily:
-                                                                  'Urbanist',
-                                                              fontSize: 23.0,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w600,
-                                                              useGoogleFonts: GoogleFonts
-                                                                      .asMap()
-                                                                  .containsKey(
-                                                                      'Urbanist'),
-                                                            ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsetsDirectional
-                                                            .fromSTEB(5.0, 3.0,
-                                                                10.0, 0.0),
-                                                    child: Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.max,
-                                                      children: [
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsetsDirectional
-                                                                  .fromSTEB(
-                                                                      0.0,
-                                                                      3.0,
-                                                                      0.0,
-                                                                      0.0),
-                                                          child: Text(
-                                                            FFLocalizations.of(
-                                                                    context)
-                                                                .getText(
-                                                              'y58t59f4' /* Due: */,
-                                                            ),
-                                                            style: FlutterFlowTheme
-                                                                    .of(context)
-                                                                .bodyMedium
-                                                                .override(
-                                                                  fontFamily:
-                                                                      'Urbanist',
-                                                                  fontSize:
-                                                                      17.0,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .normal,
-                                                                  useGoogleFonts: GoogleFonts
-                                                                          .asMap()
-                                                                      .containsKey(
-                                                                          'Urbanist'),
-                                                                ),
-                                                          ),
-                                                        ),
-                                                        Container(
-                                                          width: 87.0,
-                                                          decoration:
-                                                              const BoxDecoration(),
-                                                          child: Padding(
-                                                            padding:
-                                                                const EdgeInsetsDirectional
-                                                                    .fromSTEB(
-                                                                        3.0,
-                                                                        3.0,
-                                                                        0.0,
-                                                                        0.0),
-                                                            child: Text(
-                                                              FFLocalizations.of(
-                                                                      context)
-                                                                  .getText(
-                                                                'apd6y9kd' /* 12/30/2024 */,
-                                                              ),
-                                                              style: FlutterFlowTheme
-                                                                      .of(context)
-                                                                  .bodyMedium
-                                                                  .override(
-                                                                    fontFamily:
-                                                                        'Urbanist',
-                                                                    fontSize:
-                                                                        17.0,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .normal,
-                                                                    useGoogleFonts: GoogleFonts
-                                                                            .asMap()
-                                                                        .containsKey(
-                                                                            'Urbanist'),
-                                                                  ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.max,
-                                                    children: [
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsetsDirectional
-                                                                .fromSTEB(
-                                                                    0.0,
-                                                                    0.0,
-                                                                    4.0,
-                                                                    0.0),
-                                                        child: InkWell(
-                                                          splashColor: Colors
-                                                              .transparent,
-                                                          focusColor: Colors
-                                                              .transparent,
-                                                          hoverColor: Colors
-                                                              .transparent,
-                                                          highlightColor: Colors
-                                                              .transparent,
-                                                          onTap: () async {
-                                                            await showModalBottomSheet(
-                                                              isScrollControlled:
-                                                                  true,
-                                                              backgroundColor:
-                                                                  Colors
-                                                                      .transparent,
-                                                              enableDrag: false,
-                                                              context: context,
-                                                              builder:
-                                                                  (context) {
-                                                                return GestureDetector(
-                                                                  onTap: () => _model
-                                                                          .unfocusNode
-                                                                          .canRequestFocus
-                                                                      ? FocusScope.of(
-                                                                              context)
-                                                                          .requestFocus(_model
-                                                                              .unfocusNode)
-                                                                      : FocusScope.of(
-                                                                              context)
-                                                                          .unfocus(),
-                                                                  child:
-                                                                      Padding(
-                                                                    padding: MediaQuery
-                                                                        .viewInsetsOf(
-                                                                            context),
-                                                                    child:
-                                                                        const SizedBox(
-                                                                      height:
-                                                                          200.0,
-                                                                      child:
-                                                                          OptionsTaskWidget(),
-                                                                    ),
-                                                                  ),
-                                                                );
-                                                              },
-                                                            ).then((value) =>
-                                                                safeSetState(
-                                                                    () {}));
-                                                          },
-                                                          child: Icon(
-                                                            Icons.more_vert,
-                                                            color: FlutterFlowTheme
-                                                                    .of(context)
-                                                                .primaryText,
-                                                            size: 24.0,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsetsDirectional
-                                                                .fromSTEB(
-                                                                    0.0,
-                                                                    5.0,
-                                                                    0.0,
-                                                                    2.0),
-                                                        child:
-                                                            FlutterFlowIconButton(
-                                                          borderColor: Colors
-                                                              .transparent,
-                                                          borderRadius: 30.0,
-                                                          borderWidth: 1.0,
-                                                          buttonSize: 25.0,
-                                                          fillColor: FlutterFlowTheme
-                                                                  .of(context)
-                                                              .primaryBackground,
-                                                          icon: Icon(
-                                                            Icons.add,
-                                                            color: FlutterFlowTheme
-                                                                    .of(context)
-                                                                .primaryText,
-                                                            size: 10.0,
-                                                          ),
-                                                          onPressed: () async {
-                                                            context.pushNamed(
-                                                                'SubtaskCreationPage', queryParameters: {
-                                  'projectOwnerID': widget.projectOwnerID,
-                                  'projectName': widget.projectName,
-                                  'projectDescription': widget.projectDescription,
-                              });
-                                                          },
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            Align(
-                                              alignment: const AlignmentDirectional(
-                                                  0.0, 0.0),
-                                              child: Padding(
-                                                padding: const EdgeInsetsDirectional
-                                                    .fromSTEB(
-                                                        20.0, 0.0, 10.0, 0.0),
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.max,
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.max,
-                                                      children: [
-                                                        Text(
-                                                          FFLocalizations.of(
-                                                                  context)
-                                                              .getText(
-                                                            'xlgpir3u' /* Assigned:  */,
-                                                          ),
-                                                          style: FlutterFlowTheme
-                                                                  .of(context)
-                                                              .bodyMedium
-                                                              .override(
-                                                                fontFamily:
-                                                                    'Urbanist',
-                                                                fontSize: 17.0,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .normal,
-                                                                useGoogleFonts: GoogleFonts
-                                                                        .asMap()
-                                                                    .containsKey(
-                                                                        'Urbanist'),
-                                                              ),
-                                                        ),
-                                                        Container(
-                                                          width: 60.0,
-                                                          height: 25.0,
-                                                          decoration:
-                                                              const BoxDecoration(),
-                                                          child: ListView(
-                                                            padding:
-                                                                EdgeInsets.zero,
-                                                            primary: false,
-                                                            scrollDirection:
-                                                                Axis.horizontal,
-                                                            children: [
-                                                              Container(
-                                                                width: 25.0,
-                                                                height: 25.0,
-                                                                clipBehavior: Clip
-                                                                    .antiAlias,
-                                                                decoration:
-                                                                    const BoxDecoration(
-                                                                  shape: BoxShape
-                                                                      .circle,
-                                                                ),
-                                                                child: Image
-                                                                    .network(
-                                                                  'https://picsum.photos/seed/939/600',
-                                                                  fit: BoxFit
-                                                                      .cover,
-                                                                ),
-                                                              ),
-                                                            ].divide(const SizedBox(
-                                                                width: 2.0)),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    Container(
-                                                      width: 60.0,
-                                                      decoration:
-                                                          const BoxDecoration(),
-                                                      child: Padding(
-                                                        padding:
-                                                            const EdgeInsetsDirectional
-                                                                .fromSTEB(
-                                                                    5.0,
-                                                                    0.0,
-                                                                    0.0,
-                                                                    0.0),
-                                                        child: Row(
-                                                          mainAxisSize:
-                                                              MainAxisSize.max,
-                                                          children: [
-                                                            Container(
-                                                              width: 28.0,
-                                                              decoration:
-                                                                  const BoxDecoration(),
-                                                              child: Text(
-                                                                FFLocalizations.of(
-                                                                        context)
-                                                                    .getText(
-                                                                  'opmi8fkl' /* 4/5 */,
-                                                                ),
-                                                                style: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .bodyMedium
-                                                                    .override(
-                                                                      fontFamily:
-                                                                          FlutterFlowTheme.of(context)
-                                                                              .bodyMediumFamily,
-                                                                      fontSize:
-                                                                          18.0,
-                                                                      useGoogleFonts: GoogleFonts
-                                                                              .asMap()
-                                                                          .containsKey(
-                                                                              FlutterFlowTheme.of(context).bodyMediumFamily),
-                                                                    ),
-                                                              ),
-                                                            ),
-                                                            Icon(
-                                                              Icons
-                                                                  .star_rounded,
-                                                              color: FlutterFlowTheme
-                                                                      .of(context)
-                                                                  .tertiary,
-                                                              size: 24.0,
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    Align(
-                                                      alignment:
-                                                          const AlignmentDirectional(
-                                                              0.0, 0.0),
-                                                      child: Padding(
-                                                        padding:
-                                                            const EdgeInsetsDirectional
-                                                                .fromSTEB(
-                                                                    2.0,
-                                                                    0.0,
-                                                                    2.0,
-                                                                    0.0),
-                                                        child: Row(
-                                                          mainAxisSize:
-                                                              MainAxisSize.max,
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .center,
-                                                          children: [
-                                                            LinearPercentIndicator(
-                                                              percent: 0.5,
-                                                              width: 120.0,
-                                                              lineHeight: 18.0,
-                                                              animation: true,
-                                                              animateFromLastPercent:
-                                                                  true,
-                                                              progressColor:
-                                                                  FlutterFlowTheme.of(
-                                                                          context)
-                                                                      .tertiary,
-                                                              backgroundColor:
-                                                                  FlutterFlowTheme.of(
-                                                                          context)
-                                                                      .accent3,
-                                                              center: Text(
-                                                                FFLocalizations.of(
-                                                                        context)
-                                                                    .getText(
-                                                                  'zfzgua40' /* 50% */,
-                                                                ),
-                                                                style: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .headlineSmall
-                                                                    .override(
-                                                                      fontFamily:
-                                                                          'Oswald',
-                                                                      color: Colors
-                                                                          .black,
-                                                                      fontSize:
-                                                                          13.0,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w600,
-                                                                      useGoogleFonts: GoogleFonts
-                                                                              .asMap()
-                                                                          .containsKey(
-                                                                              'Oswald'),
-                                                                    ),
-                                                              ),
-                                                              barRadius: const Radius
-                                                                  .circular(
-                                                                      20.0),
-                                                              padding:
-                                                                  EdgeInsets
-                                                                      .zero,
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsetsDirectional.fromSTEB(
-                                      15.0, 0.0, 0.0, 0.0),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.max,
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsetsDirectional.fromSTEB(
-                                            4.0, 0.0, 0.0, 0.0),
-                                        child: Icon(
-                                          Icons.subdirectory_arrow_right,
-                                          color: FlutterFlowTheme.of(context)
-                                              .secondaryText,
-                                          size: 25.0,
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Padding(
-                                          padding:
-                                              const EdgeInsetsDirectional.fromSTEB(
-                                                  0.0, 0.0, 15.0, 0.0),
-                                          child: InkWell(
-                                            splashColor: Colors.transparent,
-                                            focusColor: Colors.transparent,
-                                            hoverColor: Colors.transparent,
-                                            highlightColor: Colors.transparent,
-                                            onTap: () async {
-                                              await showModalBottomSheet(
-                                                isScrollControlled: true,
-                                                backgroundColor:
-                                                    Colors.transparent,
-                                                enableDrag: false,
-                                                context: context,
-                                                builder: (context) {
-                                                  return GestureDetector(
-                                                    onTap: () => _model
-                                                            .unfocusNode
-                                                            .canRequestFocus
-                                                        ? FocusScope.of(context)
-                                                            .requestFocus(_model
-                                                                .unfocusNode)
-                                                        : FocusScope.of(context)
-                                                            .unfocus(),
-                                                    child: Padding(
-                                                      padding: MediaQuery
-                                                          .viewInsetsOf(
-                                                              context),
-                                                      child: const SizedBox(
-                                                        height: 350.0,
-                                                        child:
-                                                            TaskSubtaskDescriptionWidget(),
-                                                      ),
-                                                    ),
-                                                  );
-                                                },
-                                              ).then((value) =>
-                                                  safeSetState(() {}));
-                                            },
-                                            child: Container(
-                                              height: 75.0,
-                                              decoration: BoxDecoration(
-                                                color:
-                                                    FlutterFlowTheme.of(context)
-                                                        .overlay,
-                                                borderRadius:
-                                                    BorderRadius.circular(20.0),
-                                              ),
-                                              child: Padding(
-                                                padding: const EdgeInsetsDirectional
-                                                    .fromSTEB(
-                                                        0.0, 0.0, 0.0, 5.0),
-                                                child: Column(
-                                                  mainAxisSize:
-                                                      MainAxisSize.max,
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.start,
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.center,
-                                                  children: [
-                                                    Padding(
-                                                      padding:
-                                                          const EdgeInsetsDirectional
-                                                              .fromSTEB(
-                                                                  15.0,
-                                                                  5.0,
-                                                                  4.0,
-                                                                  0.0),
-                                                      child: Row(
-                                                        mainAxisSize:
-                                                            MainAxisSize.max,
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .spaceBetween,
-                                                        children: [
-                                                          Container(
-                                                            width: 155.0,
-                                                            decoration:
-                                                                const BoxDecoration(),
-                                                            child: Padding(
-                                                              padding:
-                                                                  const EdgeInsetsDirectional
-                                                                      .fromSTEB(
-                                                                          0.0,
-                                                                          3.0,
-                                                                          0.0,
-                                                                          0.0),
-                                                              child: Text(
-                                                                FFLocalizations.of(
-                                                                        context)
-                                                                    .getText(
-                                                                  'h0riw7oh' /* Subtask Name */,
-                                                                ),
-                                                                style: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .bodyMedium
-                                                                    .override(
-                                                                      fontFamily:
-                                                                          'Urbanist',
-                                                                      fontSize:
-                                                                          23.0,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w600,
-                                                                      useGoogleFonts: GoogleFonts
-                                                                              .asMap()
-                                                                          .containsKey(
-                                                                              'Urbanist'),
-                                                                    ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          Padding(
-                                                            padding:
-                                                                const EdgeInsetsDirectional
-                                                                    .fromSTEB(
-                                                                        4.0,
-                                                                        3.0,
-                                                                        3.0,
-                                                                        0.0),
-                                                            child: Row(
-                                                              mainAxisSize:
-                                                                  MainAxisSize
-                                                                      .max,
-                                                              children: [
-                                                                Padding(
-                                                                  padding: const EdgeInsetsDirectional
-                                                                      .fromSTEB(
-                                                                          0.0,
-                                                                          3.0,
-                                                                          0.0,
-                                                                          0.0),
-                                                                  child: Text(
-                                                                    FFLocalizations.of(
-                                                                            context)
-                                                                        .getText(
-                                                                      '611wb6zh' /* Due: */,
-                                                                    ),
-                                                                    style: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .bodyMedium
-                                                                        .override(
-                                                                          fontFamily:
-                                                                              'Urbanist',
-                                                                          fontSize:
-                                                                              17.0,
-                                                                          fontWeight:
-                                                                              FontWeight.normal,
-                                                                          useGoogleFonts:
-                                                                              GoogleFonts.asMap().containsKey('Urbanist'),
-                                                                        ),
-                                                                  ),
-                                                                ),
-                                                                Container(
-                                                                  width: 87.0,
-                                                                  decoration:
-                                                                      const BoxDecoration(),
-                                                                  child:
-                                                                      Padding(
-                                                                    padding: const EdgeInsetsDirectional
-                                                                        .fromSTEB(
-                                                                            3.0,
-                                                                            3.0,
-                                                                            0.0,
-                                                                            0.0),
-                                                                    child: Text(
-                                                                      FFLocalizations.of(
-                                                                              context)
-                                                                          .getText(
-                                                                        '9s13yr85' /* 12/30/2024 */,
-                                                                      ),
-                                                                      style: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .bodyMedium
-                                                                          .override(
-                                                                            fontFamily:
-                                                                                'Urbanist',
-                                                                            fontSize:
-                                                                                17.0,
-                                                                            fontWeight:
-                                                                                FontWeight.normal,
-                                                                            useGoogleFonts:
-                                                                                GoogleFonts.asMap().containsKey('Urbanist'),
-                                                                          ),
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                          InkWell(
-                                                            splashColor: Colors
-                                                                .transparent,
-                                                            focusColor: Colors
-                                                                .transparent,
-                                                            hoverColor: Colors
-                                                                .transparent,
-                                                            highlightColor:
-                                                                Colors
-                                                                    .transparent,
-                                                            onTap: () async {
-                                                              await showModalBottomSheet(
-                                                                isScrollControlled:
-                                                                    true,
-                                                                backgroundColor:
-                                                                    Colors
-                                                                        .transparent,
-                                                                enableDrag:
-                                                                    false,
-                                                                context:
-                                                                    context,
-                                                                builder:
-                                                                    (context) {
-                                                                  return GestureDetector(
-                                                                    onTap: () => _model
-                                                                            .unfocusNode
-                                                                            .canRequestFocus
-                                                                        ? FocusScope.of(context).requestFocus(_model
-                                                                            .unfocusNode)
-                                                                        : FocusScope.of(context)
-                                                                            .unfocus(),
-                                                                    child:
-                                                                        Padding(
-                                                                      padding: MediaQuery
-                                                                          .viewInsetsOf(
-                                                                              context),
-                                                                      child:
-                                                                          const SizedBox(
-                                                                        height:
-                                                                            200.0,
-                                                                        child:
-                                                                            OptionsSubtaskWidget(),
-                                                                      ),
-                                                                    ),
-                                                                  );
-                                                                },
-                                                              ).then((value) =>
-                                                                  safeSetState(
-                                                                      () {}));
-                                                            },
-                                                            child: Icon(
-                                                              Icons.more_vert,
-                                                              color: FlutterFlowTheme
-                                                                      .of(context)
-                                                                  .primaryText,
-                                                              size: 24.0,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    Padding(
-                                                      padding:
-                                                          const EdgeInsetsDirectional
-                                                              .fromSTEB(
-                                                                  15.0,
-                                                                  0.0,
-                                                                  7.0,
-                                                                  0.0),
-                                                      child: Row(
-                                                        mainAxisSize:
-                                                            MainAxisSize.max,
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .spaceBetween,
-                                                        children: [
-                                                          Row(
-                                                            mainAxisSize:
-                                                                MainAxisSize
-                                                                    .max,
-                                                            children: [
-                                                              Text(
-                                                                FFLocalizations.of(
-                                                                        context)
-                                                                    .getText(
-                                                                  'zemnchb3' /* Assigned:  */,
-                                                                ),
-                                                                style: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .bodyMedium
-                                                                    .override(
-                                                                      fontFamily:
-                                                                          'Urbanist',
-                                                                      fontSize:
-                                                                          17.0,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .normal,
-                                                                      useGoogleFonts: GoogleFonts
-                                                                              .asMap()
-                                                                          .containsKey(
-                                                                              'Urbanist'),
-                                                                    ),
-                                                              ),
-                                                              Container(
-                                                                width: 45.0,
-                                                                height: 25.0,
-                                                                decoration:
-                                                                    const BoxDecoration(),
-                                                                child: ListView(
-                                                                  padding:
-                                                                      EdgeInsets
-                                                                          .zero,
-                                                                  primary:
-                                                                      false,
-                                                                  scrollDirection:
-                                                                      Axis.horizontal,
-                                                                  children: [
-                                                                    Container(
-                                                                      width:
-                                                                          25.0,
-                                                                      height:
-                                                                          25.0,
-                                                                      clipBehavior:
-                                                                          Clip.antiAlias,
-                                                                      decoration:
-                                                                          const BoxDecoration(
-                                                                        shape: BoxShape
-                                                                            .circle,
-                                                                      ),
-                                                                      child: Image
-                                                                          .network(
-                                                                        'https://picsum.photos/seed/409/600',
-                                                                        fit: BoxFit
-                                                                            .cover,
-                                                                      ),
-                                                                    ),
-                                                                  ].divide(const SizedBox(
-                                                                      width:
-                                                                          2.0)),
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                          Container(
-                                                            width: 60.0,
-                                                            decoration:
-                                                                const BoxDecoration(),
-                                                            child: Padding(
-                                                              padding:
-                                                                  const EdgeInsetsDirectional
-                                                                      .fromSTEB(
-                                                                          3.0,
-                                                                          0.0,
-                                                                          0.0,
-                                                                          0.0),
-                                                              child: Row(
-                                                                mainAxisSize:
-                                                                    MainAxisSize
-                                                                        .max,
-                                                                children: [
-                                                                  Container(
-                                                                    width: 28.0,
-                                                                    decoration:
-                                                                        const BoxDecoration(),
-                                                                    child: Text(
-                                                                      FFLocalizations.of(
-                                                                              context)
-                                                                          .getText(
-                                                                        'iz2u2gk4' /* 5/5 */,
-                                                                      ),
-                                                                      style: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .bodyMedium
-                                                                          .override(
-                                                                            fontFamily:
-                                                                                FlutterFlowTheme.of(context).bodyMediumFamily,
-                                                                            fontSize:
-                                                                                18.0,
-                                                                            useGoogleFonts:
-                                                                                GoogleFonts.asMap().containsKey(FlutterFlowTheme.of(context).bodyMediumFamily),
-                                                                          ),
-                                                                    ),
-                                                                  ),
-                                                                  Icon(
-                                                                    Icons
-                                                                        .star_rounded,
-                                                                    color: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .tertiary,
-                                                                    size: 24.0,
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          Padding(
-                                                            padding:
-                                                                const EdgeInsetsDirectional
-                                                                    .fromSTEB(
-                                                                        0.0,
-                                                                        0.0,
-                                                                        2.0,
-                                                                        0.0),
-                                                            child: Row(
-                                                              mainAxisSize:
-                                                                  MainAxisSize
-                                                                      .max,
-                                                              children: [
-                                                                LinearPercentIndicator(
-                                                                  percent: 0.5,
-                                                                  width: 105.0,
-                                                                  lineHeight:
-                                                                      18.0,
-                                                                  animation:
-                                                                      true,
-                                                                  animateFromLastPercent:
-                                                                      true,
-                                                                  progressColor:
-                                                                      FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .tertiary,
-                                                                  backgroundColor:
-                                                                      FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .accent3,
-                                                                  center: Text(
-                                                                    FFLocalizations.of(
-                                                                            context)
-                                                                        .getText(
-                                                                      'qhisv69k' /* 50% */,
-                                                                    ),
-                                                                    style: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .headlineSmall
-                                                                        .override(
-                                                                          fontFamily:
-                                                                              'Oswald',
-                                                                          color:
-                                                                              Colors.black,
-                                                                          fontSize:
-                                                                              13.0,
-                                                                          fontWeight:
-                                                                              FontWeight.w600,
-                                                                          useGoogleFonts:
-                                                                              GoogleFonts.asMap().containsKey('Oswald'),
-                                                                        ),
-                                                                  ),
-                                                                  barRadius: const Radius
-                                                                      .circular(
-                                                                          20.0),
-                                                                  padding:
-                                                                      EdgeInsets
-                                                                          .zero,
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ].divide(const SizedBox(height: 10.0)),
-                            ),
-                          ),
+                            child:
+                            
+                            
+                             FutureBuilder(
+    future: _getTasks(),
+    builder: (BuildContext context, AsyncSnapshot snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return Center(
+          child: CircularProgressIndicator(
+            color: Color.fromARGB(100, 57, 210, 192),
+            backgroundColor: Color.fromARGB(30, 57, 210, 192),
+            strokeWidth: 4,
+          ),
+        );
+      } else {
+          return ListView.separated(
+            padding: const EdgeInsets.fromLTRB(0, 5.0, 0, 0),
+            shrinkWrap: true,
+            scrollDirection: Axis.vertical,
+            itemCount: snapshot.data.length,
+            separatorBuilder: (BuildContext context, int index) => SizedBox(height: 15),
+            itemBuilder: (BuildContext context, int index) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Task widget
+                  taskContainer(
+                    context,
+                    snapshot.data[index].taskName,
+                    snapshot.data[index].taskDescription,
+                    snapshot.data[index].taskProgress,
+                    snapshot.data[index].taskDifficulty,
+                    snapshot.data[index].taskAssigned,
+                    snapshot.data[index].taskDueDate,
+                  ),
+FutureBuilder(
+  future: _getSubTasks(snapshot.data[index].taskName),
+  builder: (BuildContext context, AsyncSnapshot subtaskSnapshot) {
+    if (subtaskSnapshot.connectionState == ConnectionState.waiting) {
+      return Center(
+          child: CircularProgressIndicator(
+            color: Color.fromARGB(100, 57, 210, 192),
+            backgroundColor: Color.fromARGB(30, 57, 210, 192),
+            strokeWidth: 4,
+          ),
+        ); // Or return null;
+    } else {
+        if (subtaskSnapshot.data.length == null) {
+          return Center(
+          child: CircularProgressIndicator(
+            color: Color.fromARGB(100, 57, 210, 192),
+            backgroundColor: Color.fromARGB(30, 57, 210, 192),
+            strokeWidth: 4,
+          ),
+        );; // Or return null;
+        } else {
+          if (subtaskSnapshot.hasError){
+            return Text('Error: ${subtaskSnapshot.error}');
+          } else {
+          // Build subtask widgets
+          return Column(
+            children: List.generate(subtaskSnapshot.data.length ?? 0, (subtaskIndex) {
+              return subTaskContainer(
+                context,
+                subtaskSnapshot.data[subtaskIndex].taskName,
+                subtaskSnapshot.data[subtaskIndex].subTaskName,
+                subtaskSnapshot.data[subtaskIndex].subTaskDescription,
+                subtaskSnapshot.data[subtaskIndex].subTaskProgress,
+                subtaskSnapshot.data[subtaskIndex].subTaskDifficulty,
+                subtaskSnapshot.data[subtaskIndex].subTaskAssigned,
+                subtaskSnapshot.data[subtaskIndex].subTaskDueDate,
+              );
+            }),
+          );
+        }
+      }
+    }
+  },
+)
+
+                ],
+              );
+            },
+          );
+        }
+      }
+  ),
+),
+
+
+
+
                           Padding(
                             padding: const EdgeInsetsDirectional.fromSTEB(
                                 312.0, 435.0, 0.0, 0.0),
@@ -1534,23 +1388,25 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                               ),
                               onPressed: () async {
                                 context.pushNamed('TaskCreationPage', queryParameters: {
-                                  'projectOwnerID': projectOwnerID,
-                                  'projectName': projectName,
-                                  'projectDescription': projectDescription,
-                                });
+                                  'projectOwnerID': widget.projectOwnerID,
+                                  'projectName': widget.projectName,
+                                  'projectDescription': widget.projectDescription,
+                                  });
+                                
                               },
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                          
+                        ],
                 ),
-              ),
+                    
             ),
-          ],
+                ),
         ),
-      ),
+      
+          ]))
     );
-  }
+}
 }

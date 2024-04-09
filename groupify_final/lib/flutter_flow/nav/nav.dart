@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '/auth/base_auth_user_provider.dart';
 import '/groupify/pages/home/home_page/home_page_widget.dart';
+import '/groupify/pages/home/inside_project/project_page/project_page_widget.dart';
 
 import '/index.dart';
 import '/main.dart';
@@ -165,7 +166,17 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: 'EditTaskPage',
               path: 'editTaskPage',
-              builder: (context, params) => const EditTaskPageWidget(),
+              builder: (context, params) => EditTaskPageWidget(
+                projectName: params.getParam('projectName', ParamType.String),
+                pOwnerId: params.getParam('pOwnerId', ParamType.String),
+                pDescription: params.getParam('pDescription', ParamType.String),
+                tName: params.getParam('tName', ParamType.String),
+                tDescription: params.getParam('tDescription', ParamType.String),
+                tProgess: params.getParam('tProgress', ParamType.String),
+                tDifficulty: params.getParam('tDifficulty', ParamType.String),
+                tAssigned: params.getParam('tAssigned', ParamType.String),
+                tDue: params.getParam('tDue', ParamType.String),      
+                ),
             ),
             FFRoute(
               name: 'EditSubtaskPage',
@@ -176,6 +187,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               name: 'SubtaskCreationPage',
               path: 'SubtaskCreationPage',
               builder: (context, params) => SubtaskCreationPageWidget(
+                taskName: params.getParam('taskName', ParamType.String),
                 projectOwnerID: params.getParam('projectOwnerID', ParamType.String),
                 projectName: params.getParam('projectName', ParamType.String),
                 projectDescription: params.getParam('projectDescription', ParamType.String),
