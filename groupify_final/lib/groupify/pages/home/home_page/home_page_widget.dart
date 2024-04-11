@@ -21,6 +21,8 @@ class Project {
   String projectDueDate = '';
   List<Member> projectMembers = [];
 
+  //uh8f8huwf8hu
+
   Project(String projectName, String ownerID, String projectDescription, double projectProgress, String projectDue, List<Member> projectMembers, /*List<double> tasksProgress*/){
     this.projectName = projectName;
     this.ownerID = ownerID;
