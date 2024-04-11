@@ -205,6 +205,7 @@ class _SettingsWidgetState extends State<SettingsWidget>
                                               FlutterFlowTheme.of(context)
                                                   .displayMediumFamily,
                                           fontSize: 40.0,
+                                          letterSpacing: 0.0,
                                           useGoogleFonts: GoogleFonts.asMap()
                                               .containsKey(
                                                   FlutterFlowTheme.of(context)
@@ -269,6 +270,7 @@ class _SettingsWidgetState extends State<SettingsWidget>
                                     fontFamily: FlutterFlowTheme.of(context)
                                         .bodyMediumFamily,
                                     fontSize: 22.0,
+                                    letterSpacing: 0.0,
                                     fontWeight: FontWeight.w500,
                                     useGoogleFonts: GoogleFonts.asMap()
                                         .containsKey(
@@ -308,6 +310,46 @@ class _SettingsWidgetState extends State<SettingsWidget>
                                     fontFamily: FlutterFlowTheme.of(context)
                                         .bodyMediumFamily,
                                     fontSize: 22.0,
+                                    letterSpacing: 0.0,
+                                    useGoogleFonts: GoogleFonts.asMap()
+                                        .containsKey(
+                                            FlutterFlowTheme.of(context)
+                                                .bodyMediumFamily),
+                                  ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Divider(
+                        thickness: 1.0,
+                        indent: 15.0,
+                        endIndent: 15.0,
+                        color: FlutterFlowTheme.of(context).accent4,
+                      ),
+                      Align(
+                        alignment: const AlignmentDirectional(-1.0, 0.0),
+                        child: Padding(
+                          padding: const EdgeInsetsDirectional.fromSTEB(
+                              20.0, 0.0, 0.0, 0.0),
+                          child: InkWell(
+                            splashColor: Colors.transparent,
+                            focusColor: Colors.transparent,
+                            hoverColor: Colors.transparent,
+                            highlightColor: Colors.transparent,
+                            onTap: () async {
+                              context.pushNamed('AddClassesPage');
+                            },
+                            child: Text(
+                              FFLocalizations.of(context).getText(
+                                '0q8ftfgb' /* Modify Classes */,
+                              ),
+                              style: FlutterFlowTheme.of(context)
+                                  .bodyMedium
+                                  .override(
+                                    fontFamily: FlutterFlowTheme.of(context)
+                                        .bodyMediumFamily,
+                                    fontSize: 22.0,
+                                    letterSpacing: 0.0,
                                     useGoogleFonts: GoogleFonts.asMap()
                                         .containsKey(
                                             FlutterFlowTheme.of(context)
@@ -408,7 +450,10 @@ class _SettingsWidgetState extends State<SettingsWidget>
                                           BoxShadow(
                                             blurRadius: 4.0,
                                             color: Color(0x430B0D0F),
-                                            offset: Offset(0.0, 2.0),
+                                            offset: Offset(
+                                              0.0,
+                                              2.0,
+                                            ),
                                           )
                                         ],
                                         borderRadius:
