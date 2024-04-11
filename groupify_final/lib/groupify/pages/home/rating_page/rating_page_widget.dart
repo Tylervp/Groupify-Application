@@ -13,7 +13,6 @@ import '/auth/firebase_auth/auth_util.dart';
 class Member {
   String username = '';
   String profilePicture = '';
-  //double rating = 0.0;
 
   Member(String username, String profilePicture){
     this.username = username;
@@ -56,19 +55,41 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
     super.dispose();
   }
 
-  // Get all the members involved in the project
+  // Get all the members involved in the project when it was completed
   Future<List<Member>> _getMembers() async {
     List<Member> members = [];
 
-    final results = await _sqldatabaseHelper.connection.query('SELECT userID FROM projectMembers WHERE projectName = ? and ownerID = ?;',
+    final results = await _sqldatabaseHelper.connection.query('SELECT userID FROM finalProjectMembers WHERE projectName = ? and ownerID = ?;',
                                                           [widget.projectName, widget.projectOwnerID]); 
     print('GOT PROJECT MEMBERS');
-
     for(final row in results){
        String tempUserName = row['userID'] as String;
        members.add(Member(tempUserName, ''));
     }
     return members;
+  }
+
+  // Remove current user from project once you submit the survey
+  _leaveProject(String pName, String pOwnerID) async{
+    final results = await _sqldatabaseHelper.connection.query('SELECT userID FROM projectMembers WHERE projectName = ? AND ownerID = ?;', [pName, pOwnerID]);
+     
+     // last member in project so need to delete the whole project
+    if(results.length == 1){
+      await _sqldatabaseHelper.connection.query( 'DELETE FROM finalProjectMembers WHERE projectName = ? and ownerID = ?;', [pName, pOwnerID]);
+      await _sqldatabaseHelper.connection.query( 'DELETE FROM projectMembers WHERE projectName = ? and ownerID = ?;', [pName, pOwnerID]);
+      await _sqldatabaseHelper.connection.query( 'DELETE FROM Subtasks WHERE projectName = ? and ownerID = ?;', [pName, pOwnerID]);
+      await _sqldatabaseHelper.connection.query( 'DELETE FROM Tasks WHERE projectName = ? and ownerID = ?;', [pName, pOwnerID]);
+      await _sqldatabaseHelper.connection.query( 'DELETE FROM projects WHERE projectName = ? and ownerId = ?;', [pName, pOwnerID]);
+    }
+    else{ // just leave the project becasue there is still members in it
+      await _sqldatabaseHelper.connection.query( 'DELETE FROM projectMembers WHERE projectName = ? and ownerID = ? and userID = ?;', [pName, pOwnerID, currentUserDisplayName]);
+      await _sqldatabaseHelper.connection.query( 
+        'UPDATE Subtasks SET subTaskAssigned = ? WHERE projectName = ? and ownerID = ?;', 
+        ['', pName, pOwnerID]);
+      await _sqldatabaseHelper.connection.query( 
+        'UPDATE Tasks SET taskAssigned = ? WHERE projectName = ? and ownerID = ? and taskAssigned = ?;', 
+        ['', pName, pOwnerID, currentUserDisplayName]);
+    }
   }
 
   // Map that will hold the ratings of each user
@@ -222,9 +243,7 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
      for (var member in memberRatings.entries) {
       await _sqldatabaseHelper.connection.query('Insert userRating (userID, rating) Values (?, ?);',
                                                           [member.key, member.value]); 
-      print('Key: ' + member.key + '---------------------------------------');
-      print('Key: ' + member.value.toString() + '---------------------------------------');
-    };
+    }
   }
 
   @override
@@ -433,7 +452,7 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
                               alignment: const AlignmentDirectional(0.0, 0.0),
                               child: Padding(
                                 padding: const EdgeInsetsDirectional.fromSTEB(
-                                    0.0, 10.0, 0.0, 0.0),
+                                    0.0, 0.0, 0.0, 0.0),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.max,
                                   mainAxisAlignment: MainAxisAlignment.start,
@@ -445,12 +464,12 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
                                             15.0, 0.0, 0.0, 0.0),
                                         child: Container(
                                           width: 368.0,
-                                          height: 98.0,
+                                          height: 122, //
                                           decoration: const BoxDecoration(),
                                           alignment:
                                               const AlignmentDirectional(0.0, -1.0),
                                           child: Text(
-                                            'The project has been complete! Please rate your fellow group members based on their performance in the project. Try to be as honest as possible.',
+                                            'The project has been complete! Please rate your fellow group members based on their performance. Once you click confirm, you will be taken out of the project.',
                                             textAlign: TextAlign.start,
                                             style: FlutterFlowTheme.of(context)
                                                 .bodyMedium
@@ -518,12 +537,12 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
                           ],
                         ),
                         Align(
-                          alignment: const AlignmentDirectional(0.0, 0.28),
+                          alignment: const AlignmentDirectional(0.0, 0.28),  //.28
                           child: FFButtonWidget(
                             onPressed: () async {
+                              _leaveProject(widget.projectName, widget.projectOwnerID);
                               context.pushNamed('HomePage');
                               _insertRatings();
-                              // Call method that updates users' ratings in the db for 'ratings' list
                             },
                             text: FFLocalizations.of(context).getText(
                               'lykhybrz' /* Confirm */,

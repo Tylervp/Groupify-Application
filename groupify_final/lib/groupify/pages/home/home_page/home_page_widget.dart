@@ -54,12 +54,6 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   late HomePageModel _model;
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Connect to DB
-  late SQLDatabaseHelper _sqldatabaseHelper;
-  Future<void> _connectToDatabase() async {
-    await _sqldatabaseHelper.connectToDatabase();
-  }
-
   @override
   void initState() {
     super.initState();
@@ -76,26 +70,10 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     super.dispose();
   }
 
-  // Update project's progression
-  Future<void> _updateProgress(String pName, String pOwnerID) async{
-    List<double> tasksProgress = [];
-    double progress;
-    double projectProgress;
-    double sum = 0; 
-
-    final results = await _sqldatabaseHelper.connection.query('SELECT taskProgress FROM tasks WHERE projectName = ? and ownerID = ?;',
-                                                              [pName, pOwnerID]); 
-    for(final row in results){
-      String temp = row['taskProgress'].toStringAsFixed(2);
-      double progress = double.parse(temp);
-      tasksProgress.add(progress);
-      sum += progress;
-    }    
-    projectProgress = sum/tasksProgress.length;
-    await _sqldatabaseHelper.connection.query( 
-        'UPDATE projects SET projectProgress = ? WHERE projectName = ? and ownerID = ?;',
-            [projectProgress, pName, pOwnerID]);
-    print('PROJECT PROGRESS UPDATED');
+  // Connect to DB
+  late SQLDatabaseHelper _sqldatabaseHelper;
+  Future<void> _connectToDatabase() async {
+    await _sqldatabaseHelper.connectToDatabase();
   }
 
   // Method to query projects a user is involved in and populate project list
@@ -156,20 +134,29 @@ class _HomePageWidgetState extends State<HomePageWidget> {
       }    
       projects.insert(0, Project(tempName, tempOwnerID, tempDescription, tempProgress, tempDueDate, members));
     }
-    _sqldatabaseHelper.closeConnection();
+    //_sqldatabaseHelper.closeConnection();
     return projects;
   }
 
+  // Get number of Invitations
   Future<String> _numInvitations() async {
     final results = await _sqldatabaseHelper.connection.query('SELECT * FROM Inbox WHERE userID = ?', [currentUserDisplayName]);
     print('GOT THE INVITATIONS FOR THE CURRENT USER');
     return results.length.toString();
   }
 
+  // Insert the members that were there when the project was finished into the finalProjectMembers table 
+  _insertFinalMembers(String pName, String pOwnerID) async{
+    await _sqldatabaseHelper.connection.query('DELETE FROM finalProjectMembers WHERE projectName = ? and ownerID = ?;', [pName, pOwnerID]);
+    await _sqldatabaseHelper.connection.query('INSERT INTO finalProjectMembers (userId, projectName, ownerId) SELECT userId, projectName, ownerId FROM projectMembers WHERE projectName = ? AND ownerID = ?;',
+                                              [pName, pOwnerID]);      
+    print('PROJECT MEMBERS INSERTED INTO FINAL PROJECT MEMBERS TABLE');  
+  }
+  
   // Widget to create project container
   Widget projectContainer(BuildContext context, String pName, String pOwnerID, String pDescription, String pDue, Color c, double pProgress, List<Member> pMembers){ 
     String temp = pProgress.toStringAsFixed(4);
-    pProgress = double.parse(temp);
+    pProgress = double.parse(temp); 
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(
           15.0, 0.0, 15.0, 0.0),
@@ -179,15 +166,16 @@ class _HomePageWidgetState extends State<HomePageWidget> {
         hoverColor: Colors.transparent,
         highlightColor: Colors.transparent,
         onTap: () async {
-          if(pProgress < 1.0){   // query the the progress of all the tasks. If all != 1.0 the go to ProjectPage
+          if(pProgress < 1.0){  // query the the progress of all the tasks. If all != 1.0 the go to ProjectPage
             context.pushNamed('ProjectPage', queryParameters: {
             'projectOwnerID': pOwnerID,
             'projectName': pName,
             'projectDescription': pDescription,
             });
           }
-          else{
-             context.pushNamed('RatingPage', queryParameters: {
+          else{  // project is done
+            _insertFinalMembers(pName, pOwnerID);
+            context.pushNamed('RatingPage', queryParameters: {
             'projectOwnerID': pOwnerID,
             'projectName': pName,
             'projectDescription': pDescription,
@@ -636,7 +624,6 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   Widget build(BuildContext context) {
     List<Color> list_colors = [Colors.red, Colors.blue, Colors.green, Colors.orange, Colors.purple,
                                 Colors.yellow, Colors.pink, Colors.deepPurple, Colors.brown, Colors.grey];
-
     return GestureDetector(
       onTap: () => _model.unfocusNode.canRequestFocus
           ? FocusScope.of(context).requestFocus(_model.unfocusNode)
@@ -903,7 +890,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                           Container(
                             height: 610.0,
                             decoration: const BoxDecoration(),
-                            child: FutureBuilder(
+                            child: FutureBuilder(  
                               future: _getProjects(), 
                               builder: (BuildContext context, AsyncSnapshot snapshot){
                                 if(snapshot.data == null){
