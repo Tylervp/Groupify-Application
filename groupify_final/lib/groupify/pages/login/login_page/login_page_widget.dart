@@ -1509,7 +1509,7 @@ class _LoginPageWidgetState extends State<LoginPageWidget>
                                                                       ));
 
                                                                   context.goNamedAuth(
-                                                                      'HomePage',
+                                                                      'AddClassesPage',
                                                                       context
                                                                           .mounted);
                                                                 },

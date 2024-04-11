@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '/auth/base_auth_user_provider.dart';
 import '/groupify/pages/home/home_page/home_page_widget.dart';
 import '/groupify/pages/home/inside_project/project_page/project_page_widget.dart';
+import 'package:groupify_final/groupify/pages/home/inside_project/add_classes/add_classes_widget.dart';
 
 import '/index.dart';
 import '/main.dart';
@@ -223,6 +224,11 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               name: 'BrowsePage',
               path: 'browsePage',
               builder: (context, params) => const BrowsePageWidget(),
+            ),
+             FFRoute(
+              name: 'AddClassesPage',
+              path: 'AddClassesPage',
+              builder: (context, params) => const AddClassesWidget(),
             ),
             FFRoute(
               name: 'ChangeProfilePhoto',

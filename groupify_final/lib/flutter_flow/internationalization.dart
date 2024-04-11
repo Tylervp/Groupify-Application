@@ -568,6 +568,48 @@ final kTranslationsMap = <Map<String, Map<String, String>>>[
       'ta': '',
       'ur': '',
     },
+    '0q8ftfgb': {
+      'en': 'Change Classes',
+      'hi': '',
+      'ta': '',
+      'ur': '',
+    },
+    'tm0ifnnr': {
+      'en': 'Search',
+      'hi': '',
+      'ta': '',
+      'ur': '',
+    },
+    't3x01gda': {
+      'en': 'Please select...',
+      'hi': '',
+      'ta': '',
+      'ur': '',
+    },
+    '1rx2zdpm': {
+      'en': 'COSC 1436',
+      'hi': '',
+      'ta': '',
+      'ur': '',
+    },
+    'qgr7w5yu': {
+      'en': 'COSC 1437',
+      'hi': '',
+      'ta': '',
+      'ur': '',
+    },
+    'exmt6w40': {
+      'en': 'COSC 2327',
+      'hi': '',
+      'ta': '',
+      'ur': '',
+    },
+     'yxfv1aqx': {
+      'en': 'Search for an item...',
+      'hi': '',
+      'ta': '',
+      'ur': '',
+    },
   },
   // InvitationsPage
   {
