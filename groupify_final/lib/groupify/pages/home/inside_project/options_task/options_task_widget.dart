@@ -16,7 +16,8 @@ class OptionsTaskWidget extends StatefulWidget {
   final double? tDifficulty;
   final String? tAssigned;
   final String? tDue;
-  const OptionsTaskWidget({super.key, this.projectName, this.pOwnerId, this.pDescription, this.tName, this.tDescription, this.tProgress, this.tDifficulty, this.tAssigned, this.tDue});
+  final bool? subtaskflag;
+  const OptionsTaskWidget({super.key, this.projectName, this.pOwnerId, this.pDescription, this.tName, this.tDescription, this.tProgress, this.tDifficulty, this.tAssigned, this.tDue, this.subtaskflag});
 
   @override
   State<OptionsTaskWidget> createState() => _OptionsTaskWidgetState();
@@ -137,6 +138,7 @@ class _OptionsTaskWidgetState extends State<OptionsTaskWidget> {
                                   'tDifficulty': widget.tDifficulty.toString(),
                                   'tAssigned': widget.tAssigned,
                                   'tDue': widget.tDue,
+                                  'subtaskflag': widget.subtaskflag.toString(),
                 });
                 },
                 child: Container(

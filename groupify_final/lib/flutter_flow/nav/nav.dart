@@ -175,7 +175,8 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
                 tProgress: params.getParam('tProgress', ParamType.String),
                 tDifficulty: params.getParam('tDifficulty', ParamType.String),
                 tAssigned: params.getParam('tAssigned', ParamType.String),
-                tDue: params.getParam('tDue', ParamType.String),      
+                tDue: params.getParam('tDue', ParamType.String),
+                subtaskflag: params.getParam('subtaskflag', ParamType.String),     
                 ),
             ),
             FFRoute(

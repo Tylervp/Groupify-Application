@@ -6,7 +6,8 @@ import 'task_subtask_description_model.dart';
 export 'task_subtask_description_model.dart';
 
 class TaskSubtaskDescriptionWidget extends StatefulWidget {
-  const TaskSubtaskDescriptionWidget({super.key});
+  final String tDescription;
+  const TaskSubtaskDescriptionWidget({super.key, required this.tDescription});
 
   @override
   State<TaskSubtaskDescriptionWidget> createState() =>
@@ -122,9 +123,9 @@ class _TaskSubtaskDescriptionWidgetState
                           padding: const EdgeInsetsDirectional.fromSTEB(
                               12.0, 0.0, 0.0, 0.0),
                           child: Text(
-                            FFLocalizations.of(context).getText(
-                              'bojmxsff' /* Description... */,
-                            ),
+                              widget.tDescription == '' ////
+                              ? FFLocalizations.of(context).getText('ra7sb24o' /* Description... */) 
+                              : widget.tDescription,
                             style: FlutterFlowTheme.of(context)
                                 .bodyMedium
                                 .override(

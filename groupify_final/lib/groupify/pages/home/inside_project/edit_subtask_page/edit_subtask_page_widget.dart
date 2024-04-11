@@ -79,18 +79,40 @@ Future<List<String>> _getMembers() async {
   return mems;
 }
 
-Future<void> _updateSubTask(String? newstDue) async {
+Future<void> _updateSubTask(double newProgress)async {
+
+final String newstDue;
+  if (_model.datePicked == null){
+    newstDue = widget.stDue.toString();
+  } else {
+    String temp = _model.datePicked.toString();
+    String year = temp.substring(0,4);
+    String month = temp.substring(5,7);
+    String day = temp.substring(8,10);
+
+
+    newstDue = '$month/$day/$year';
+  }
   final String newstName = _model.subtaskNameController.text;
   final String newstDescription = _model.subtaskDescriptionController.text;
-  final double newstProgress = double.parse(widget.stProgress ?? '0.0');
-  final double? newstDifficulty = _model.ratingBarValue;
+
+
+final double? newstDifficulty;
+  if (_model.ratingBarValue == null) {
+    newstDifficulty = double.parse(widget.stDifficulty ?? '0.0');
+} else {
+    newstDifficulty = _model.ratingBarValue;
+}
+
+
   final List<String>? taskAssigned = _model.dropDownValueController?.value;
-  final String newstAssigned = taskAssigned?.join(', ') ?? '';
+  final String newstAssigned = taskAssigned?.join(', ') ?? widget.stAssigned.toString();
+
 
   print('this is the newtDescription ' + newstDescription);
   print('this is the newtDifficulty ' + newstDifficulty.toString());
   print('this is the newtAssigned ' + newstAssigned);
-  print('this is the newtProgress ' + newstProgress.toString());
+  print('this is the newtProgress ' + newProgress.toString());
   print('this is the newtDue ' + newstDue.toString());
   print('this is the projectName ' + widget.projectName.toString());
   print('this is the pOwnerId ' + widget.pOwnerId.toString());
@@ -98,15 +120,15 @@ Future<void> _updateSubTask(String? newstDue) async {
 
   try{
     final results = await _sqldatabaseHelper.connection.query( 
-        'update Tasks set subTaskName = ?, subTaskDescription = ?, subTaskProgress = ?, subTaskDifficulty = ?, subTaskAssigned = ?, subTaskDueDate = ? where projectName = ? and ownerID = ? and taskName = ? and subTaskName = ?;',
-            [newstName, newstDescription, newstProgress, newstDifficulty, newstAssigned, newstDue, widget.projectName, widget.pOwnerId, widget.tName, widget.stName]);
+        'update Subtasks set subTaskName = ?, subTaskDescription = ?, subTaskProgress = ?, subTaskDifficulty = ?, subTaskAssigned = ?, subTaskDueDate = ? where projectName = ? and ownerID = ? and taskName = ? and subTaskName = ?;',
+            [newstName, newstDescription, newProgress, newstDifficulty, newstAssigned, newstDue, widget.projectName, widget.pOwnerId, widget.tName, widget.stName]);
    
     print('TASK UPDATED  ${results.insertId}');
   } catch (e) {print('this is the error ' + e.toString());}
     _sqldatabaseHelper.closeConnection();
   }
 
-  String? nstDue = '';
+  double currentValue = 0;
   @override
   Widget build(BuildContext context) {
 
@@ -693,54 +715,30 @@ Future<void> _updateSubTask(String? newstDue) async {
                               mainAxisSize: MainAxisSize.max,
                               children: [
                                 Align(
-                                  alignment: const AlignmentDirectional(-1.0, 0.0),
+                                  alignment: const AlignmentDirectional(0.0, 0.0),
                                   child: Padding(
                                     padding: const EdgeInsetsDirectional.fromSTEB(
                                         25.0, 0.0, 0.0, 3.0),
                                     child: Text(
-                                      FFLocalizations.of(context).getText(
-                                        '27hchqvw' /* Progress:  */,
-                                      ),
+                                      'Progress: ' + (currentValue * 100).toString().split('.')[0] + '%',
                                       style: FlutterFlowTheme.of(context)
                                           .bodyMedium,
                                     ),
                                   ),
                                 ),
-                                Align(
-                                  alignment: const AlignmentDirectional(0.0, 0.0),
-                                  child: Padding(
-                                    padding: const EdgeInsetsDirectional.fromSTEB(
-                                        5.0, 5.0, 0.0, 2.0),
-                                    child: LinearPercentIndicator(
-                                      percent: double.parse(widget.stProgress ?? '0.0'),
-                                      width: 280.0,
-                                      lineHeight: 18.0,
-                                      animation: true,
-                                      animateFromLastPercent: true,
-                                      progressColor:
-                                          FlutterFlowTheme.of(context).tertiary,
-                                      backgroundColor:
-                                          FlutterFlowTheme.of(context).accent3,
-                                      center: Text(
-                                        '${double.parse(widget.stProgress ?? '0.0') * 100 % 1 == 0 ? (double.parse(widget.stProgress ?? '0.0') * 100).toInt() : (double.parse(widget.stProgress ?? '0.0') * 100).toStringAsFixed(2)}%',
-                                        textAlign: TextAlign.start,
-                                        style: FlutterFlowTheme.of(context)
-                                            .headlineSmall
-                                            .override(
-                                              fontFamily: 'Oswald',
-                                              color: Colors.black,
-                                              fontSize: 13.0,
-                                              fontWeight: FontWeight.w600,
-                                              useGoogleFonts:
-                                                  GoogleFonts.asMap()
-                                                      .containsKey('Oswald'),
-                                            ),
-                                      ),
-                                      barRadius: const Radius.circular(20.0),
-                                      padding: EdgeInsets.zero,
-                                    ),
-                                  ),
-                                ),
+                                Slider(value: currentValue,
+                                  min: 0.0,
+                                  max: 1.0,
+                                  divisions: 100,
+                                  label: (currentValue*100).toString().split('.')[0],
+                                  activeColor: FlutterFlowTheme.of(context).tertiary,
+                                  inactiveColor: FlutterFlowTheme.of(context).tertiary,
+                                  thumbColor: FlutterFlowTheme.of(context).tertiary,
+                                  onChanged: (value) {
+                                  setState(() {
+                                    currentValue = value;
+                                  });
+                                },)
                               ],
                             ),
                           ],
@@ -749,7 +747,7 @@ Future<void> _updateSubTask(String? newstDue) async {
                           alignment: const AlignmentDirectional(0.0, 0.0),
                           child: FFButtonWidget(
                             onPressed: () async {
-                              _updateSubTask(nstDue);
+                              _updateSubTask(currentValue);
                               context.pushNamed('ProjectPage', queryParameters: {
                                                       'projectOwnerID': widget.pOwnerId,
                                                       'projectName': widget.projectName,

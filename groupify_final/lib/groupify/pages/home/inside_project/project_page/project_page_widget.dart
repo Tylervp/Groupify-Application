@@ -24,14 +24,16 @@ class Task {
   double taskDifficulty = 0.0;
   String taskAssigned = '';
   String taskDueDate = '';
+  bool subtaskflag = false;
 
-  Task(String taskName, String taskDescription, double taskProgress, double taskDifficulty, String taskAssigned, String taskDueDate){
+  Task(String taskName, String taskDescription, double taskProgress, double taskDifficulty, String taskAssigned, String taskDueDate, bool subtaskflag){
     this.taskName = taskName;
     this.taskDescription = taskDescription;
     this.taskProgress = taskProgress;
     this.taskDifficulty = taskDifficulty;
     this.taskAssigned = taskAssigned;
     this.taskDueDate = taskDueDate;
+    this.subtaskflag = subtaskflag;
   }
 }
 
@@ -146,9 +148,37 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
       double temptaskDifficulty = row['taskDifficulty'] as double;
       String temptaskAssigned = row['taskAssigned'] as String;
       String temptaskDueDate = row['taskDueDate'] as String;
-      
-      print(temptaskName + '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>');
-      tasks.insert(0, Task(temptaskName, temptaskDescription, temptaskProgress, temptaskDifficulty, temptaskAssigned, temptaskDueDate));
+
+      final results2 = await _sqldatabaseHelper.connection.query('select subTaskName from Subtasks where projectName = ? and ownerId = ? and taskName =?',
+                                                            [widget.projectName, widget.projectOwnerID, temptaskName]);
+      List<String> subtasksfortask = [];
+      for (final row in results2){
+        String tempsubtaskintask = row['subTaskName'] as String;
+        subtasksfortask.insert(0, tempsubtaskintask);
+      }
+      if(subtasksfortask.isEmpty){
+        bool tempsubtaskflag = false;
+        double finalProgress = temptaskProgress;
+        tasks.insert(0, Task(temptaskName, temptaskDescription, finalProgress, temptaskDifficulty, temptaskAssigned, temptaskDueDate, tempsubtaskflag));
+      }
+      else {
+        double sum = 0;
+        bool tempsubtaskflag = true;
+        List<double> subtaskprogressfortask = [];
+        double averagedtaskProgress;
+        final results3 = await _sqldatabaseHelper.connection.query('select subTaskProgress from Subtasks where projectName = ? and ownerId = ? and taskName =?',
+                                                            [widget.projectName, widget.projectOwnerID, temptaskName]);
+        for (final row in results3){
+        double tempsubtaskprogressintask = row['subTaskProgress'] as double;
+        sum += tempsubtaskprogressintask;
+        subtaskprogressfortask.add(tempsubtaskprogressintask);
+        }
+        averagedtaskProgress = sum/subtaskprogressfortask.length;
+        await _sqldatabaseHelper.connection.query( 
+          'UPDATE Tasks SET taskProgress = ? WHERE projectName = ? and ownerID = ? and taskName = ?;',
+              [averagedtaskProgress, widget.projectName, widget.projectOwnerID, temptaskName]);
+        tasks.insert(0, Task(temptaskName, temptaskDescription, averagedtaskProgress, temptaskDifficulty, temptaskAssigned, temptaskDueDate, tempsubtaskflag));
+      }
     }
     //_sqldatabaseHelper.closeConnection();
     return tasks;
@@ -177,7 +207,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
   }
 
   // Widget to create project container
-  Widget taskContainer(BuildContext context, String tName, String tDescription, double tProgress, double tDifficulty, String tAssigned, String tDue){ 
+  Widget taskContainer(BuildContext context, String tName, String tDescription, double tProgress, double tDifficulty, String tAssigned, String tDue, bool subtaskflag){ 
     print('this is the tAssigned ' + tAssigned);
     return Padding(
   padding: EdgeInsetsDirectional.fromSTEB(15, 0, 15, 0),
@@ -201,7 +231,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
               padding: MediaQuery.viewInsetsOf(context),
               child: Container(
                 height: 350,
-                child: TaskSubtaskDescriptionWidget(),
+                child: TaskSubtaskDescriptionWidget(tDescription: tDescription),
               ),
             ),
           );
@@ -336,7 +366,8 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                           tProgress: tProgress, 
                                           tDifficulty: tDifficulty,
                                           tAssigned: tAssigned,
-                                          tDue: tDue),
+                                          tDue: tDue,
+                                          subtaskflag: subtaskflag),
                                     ),
                                   ),
                                 );
@@ -557,7 +588,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                       padding: MediaQuery.viewInsetsOf(context),
                       child: Container(
                         height: 350,
-                        child: TaskSubtaskDescriptionWidget(),
+                        child: TaskSubtaskDescriptionWidget(tDescription: stDescription),
                       ),
                     ),
                   );
@@ -1309,6 +1340,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                               snapshot.data[index].taskDifficulty,
                                               snapshot.data[index].taskAssigned,
                                               snapshot.data[index].taskDueDate,
+                                              snapshot.data[index].subtaskflag,
                                             ),
                                             FutureBuilder(
                                               future: _getSubTasks(snapshot.data[index].taskName),
