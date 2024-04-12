@@ -16,7 +16,6 @@ import 'project_page_model.dart';
 export 'project_page_model.dart';
 import 'package:groupify_final/sql_database_connection.dart';
 
-
 class Task {
   String taskName = '';
   String taskDescription = '';
@@ -25,8 +24,10 @@ class Task {
   String taskAssigned = '';
   String taskDueDate = '';
   bool subtaskflag = false;
+  List<Member> tAssign = [];
+  
 
-  Task(String taskName, String taskDescription, double taskProgress, double taskDifficulty, String taskAssigned, String taskDueDate, bool subtaskflag){
+  Task(String taskName, String taskDescription, double taskProgress, double taskDifficulty, String taskAssigned, String taskDueDate, bool subtaskflag,  List<Member> tAssign){
     this.taskName = taskName;
     this.taskDescription = taskDescription;
     this.taskProgress = taskProgress;
@@ -34,6 +35,7 @@ class Task {
     this.taskAssigned = taskAssigned;
     this.taskDueDate = taskDueDate;
     this.subtaskflag = subtaskflag;
+     this.tAssign = tAssign;
   }
 }
 
@@ -45,8 +47,9 @@ class SubTask {
   double subTaskDifficulty = 0.0;
   String subTaskAssigned = '';
   String subTaskDueDate = '';
+  List<Member> subtAssign = [];
 
-  SubTask(String taskName, String subTaskName, String subTaskDescription, double subTaskProgress, double subTaskDifficulty, String subTaskAssigned, String subTaskDueDate){
+  SubTask(String taskName, String subTaskName, String subTaskDescription, double subTaskProgress, double subTaskDifficulty, String subTaskAssigned, String subTaskDueDate, List<Member> subtAssign){
     this.taskName = taskName;
     this.subTaskName = subTaskName;
     this.subTaskDescription = subTaskDescription;
@@ -54,6 +57,7 @@ class SubTask {
     this.subTaskDifficulty = subTaskDifficulty;
     this.subTaskAssigned = subTaskAssigned;
     this.subTaskDueDate = subTaskDueDate;
+    this.subtAssign = subtAssign;
   }
 }
 
@@ -149,6 +153,23 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
       String temptaskAssigned = row['taskAssigned'] as String;
       String temptaskDueDate = row['taskDueDate'] as String;
 
+      List<Member> tempAssign = []; //////////////////////
+      double rating;
+      double s;
+      var temp = temptaskAssigned.split(',');
+      for(var t in temp){
+        rating = 0;
+        s = 0;
+        t = t.trim();
+        final assigned = await _sqldatabaseHelper.connection.query('SELECT rating FROM userRating WHERE userID = ?;',
+                                                            [t.toString()]); 
+        for(final row in assigned){
+          s = row['rating'] as double;
+        }
+        rating = s/assigned.length;
+        tempAssign.add(Member(t.toString(), '', rating)); ///////////////////////////
+      }
+
       final results2 = await _sqldatabaseHelper.connection.query('select subTaskName from Subtasks where projectName = ? and ownerId = ? and taskName =?',
                                                             [widget.projectName, widget.projectOwnerID, temptaskName]);
       List<String> subtasksfortask = [];
@@ -159,7 +180,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
       if(subtasksfortask.isEmpty){
         bool tempsubtaskflag = false;
         double finalProgress = temptaskProgress;
-        tasks.insert(0, Task(temptaskName, temptaskDescription, finalProgress, temptaskDifficulty, temptaskAssigned, temptaskDueDate, tempsubtaskflag));
+        tasks.insert(0, Task(temptaskName, temptaskDescription, finalProgress, temptaskDifficulty, temptaskAssigned, temptaskDueDate, tempsubtaskflag, tempAssign));
       }
       else {
         double sum = 0;
@@ -177,7 +198,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
         await _sqldatabaseHelper.connection.query( 
           'UPDATE Tasks SET taskProgress = ? WHERE projectName = ? and ownerID = ? and taskName = ?;',
               [averagedtaskProgress, widget.projectName, widget.projectOwnerID, temptaskName]);
-        tasks.insert(0, Task(temptaskName, temptaskDescription, averagedtaskProgress, temptaskDifficulty, temptaskAssigned, temptaskDueDate, tempsubtaskflag));
+        tasks.insert(0, Task(temptaskName, temptaskDescription, averagedtaskProgress, temptaskDifficulty, temptaskAssigned, temptaskDueDate, tempsubtaskflag, tempAssign));
       }
     }
     //_sqldatabaseHelper.closeConnection();
@@ -199,7 +220,23 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
       String tempsubTaskAssigned = row['subTaskAssigned'] as String;
       String tempsubTaskDueDate = row['subTaskDueDate'] as String;
 
-      subtasks.insert(0, SubTask(temptaskName, tempsubTaskName, tempsubTaskDescription, tempsubTaskProgress, tempsubTaskDifficulty, tempsubTaskAssigned, tempsubTaskDueDate));
+      List<Member> tempAssign = [];
+      double rating;
+      double sum;
+      var temp = tempsubTaskAssigned.split(',');
+      for(var t in temp){
+        rating = 0;
+        sum = 0;
+        t = t.trim();
+        final results2 = await _sqldatabaseHelper.connection.query('SELECT rating FROM userRating WHERE userID = ?;',
+                                                            [t.toString()]); 
+        for(final row in results2){
+          sum = row['rating'] as double;
+        }
+        rating = sum/results2.length;
+        tempAssign.add(Member(t.toString(), '', rating));
+      }
+      subtasks.insert(0, SubTask(temptaskName, tempsubTaskName, tempsubTaskDescription, tempsubTaskProgress, tempsubTaskDifficulty, tempsubTaskAssigned, tempsubTaskDueDate, tempAssign));
     }} catch (e)
     { print('Error fetching subtasks: $e');};
     //_sqldatabaseHelper.closeConnection();
@@ -207,7 +244,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
   }
 
   // Widget to create project container
-  Widget taskContainer(BuildContext context, String tName, String tDescription, double tProgress, double tDifficulty, String tAssigned, String tDue, bool subtaskflag){ 
+  Widget taskContainer(BuildContext context, String tName, String tDescription, double tProgress, double tDifficulty, String tAssigned, String tDue, bool subtaskflag, List<Member> tAssign){ 
     print('this is the tAssigned ' + tAssigned);
     return Padding(
   padding: EdgeInsetsDirectional.fromSTEB(15, 0, 15, 0),
@@ -440,25 +477,68 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                           width: 60,
                           height: 25,
                           decoration: BoxDecoration(),
-                          child: ListView(
+                          child : ListView.separated(   ///////////////////////////////////////////////////////////////
                             padding: EdgeInsets.zero,
                             primary: false,
                             scrollDirection: Axis.horizontal,
-                            children: [
-                              Container(
-                                width: 25,
-                                height: 25,
-                                clipBehavior: Clip.antiAlias,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
+                            itemCount: tAssign.length,
+                            separatorBuilder: (BuildContext context, int index) => SizedBox(width: 2.0),
+                            itemBuilder: (BuildContext context, int index){
+                              return InkWell(
+                                splashColor: Colors.transparent,
+                                focusColor: Colors.transparent,
+                                hoverColor: Colors.transparent,
+                                highlightColor: Colors.transparent,
+                                onTap: () async {
+                                  await showModalBottomSheet(    
+                                    isScrollControlled: true,
+                                    backgroundColor:Colors.transparent,
+                                    enableDrag: false,
+                                    context: context,
+                                    builder: (context) {
+                                      return GestureDetector(
+                                        onTap: () => _model
+                                                .unfocusNode
+                                                .canRequestFocus
+                                            ? FocusScope.of(context)
+                                                .requestFocus(_model
+                                                    .unfocusNode)
+                                            : FocusScope.of(context)
+                                                .unfocus(),
+                                        child: Padding(
+                                          padding: MediaQuery.viewInsetsOf(context),
+                                          child: SizedBox(
+                                            height: 150.0,
+                                            child:
+                                                ShowcaseProfileWidget(
+                                                  username: tAssign[index].username,
+                                                  rating: tAssign[index].rating, 
+                                                  profilePicture : tAssign[index].profilePicture,                                                 
+                                                ), 
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ).then((value) =>
+                                      safeSetState(() {}));
+                                },
+                                child: Container(
+                                  width: 25.0,
+                                  height: 25.0,
+                                  clipBehavior: Clip.antiAlias,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Image.network(
+                                    valueOrDefault(
+                                    tAssign[index].profilePicture,
+                                    'https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg',
+                                    ),
+                                  ),
                                 ),
-                                child: Image.network(
-                                  'https://picsum.photos/seed/939/600',
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ].divide(SizedBox(width: 2)),
-                          ),
+                              );
+                            }
+                          )    /////////////////////////////////////////////////////
                         ),
                       ],
                     ),
@@ -550,7 +630,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
 
   }
 
-  Widget subTaskContainer(BuildContext context, String tName, String stName, String stDescription, double stProgress, double stDifficulty, String stAssigned, String stDue){ 
+  Widget subTaskContainer(BuildContext context, String tName, String stName, String stDescription, double stProgress, double stDifficulty, String stAssigned, String stDue, List<Member> stAssign){ 
     return Padding(
   padding: EdgeInsetsDirectional.fromSTEB(15, 5, 0, 0),
   child: Row(
@@ -622,6 +702,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                   EdgeInsetsDirectional.fromSTEB(0, 3, 0, 0),
                               child: Text(
                                 stName,
+                                overflow: TextOverflow.ellipsis,
                                 style: FlutterFlowTheme.of(context)
                                     .bodyMedium
                                     .override(
@@ -762,25 +843,68 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                 width: 45,
                                 height: 25,
                                 decoration: BoxDecoration(),
-                                child: ListView(
+                                child : ListView.separated(   ///////////////////////////////////////////////////////////////
                                   padding: EdgeInsets.zero,
                                   primary: false,
                                   scrollDirection: Axis.horizontal,
-                                  children: [
-                                    Container(
-                                      width: 25,
-                                      height: 25,
-                                      clipBehavior: Clip.antiAlias,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
+                                  itemCount: stAssign.length,
+                                  separatorBuilder: (BuildContext context, int index) => SizedBox(width: 2.0),
+                                  itemBuilder: (BuildContext context, int index){
+                                    return InkWell(
+                                      splashColor: Colors.transparent,
+                                      focusColor: Colors.transparent,
+                                      hoverColor: Colors.transparent,
+                                      highlightColor: Colors.transparent,
+                                      onTap: () async {
+                                        await showModalBottomSheet(    
+                                          isScrollControlled: true,
+                                          backgroundColor:Colors.transparent,
+                                          enableDrag: false,
+                                          context: context,
+                                          builder: (context) {
+                                            return GestureDetector(
+                                              onTap: () => _model
+                                                      .unfocusNode
+                                                      .canRequestFocus
+                                                  ? FocusScope.of(context)
+                                                      .requestFocus(_model
+                                                          .unfocusNode)
+                                                  : FocusScope.of(context)
+                                                      .unfocus(),
+                                              child: Padding(
+                                                padding: MediaQuery.viewInsetsOf(context),
+                                                child: SizedBox(
+                                                  height: 150.0,
+                                                  child:
+                                                      ShowcaseProfileWidget(
+                                                        username: stAssign[index].username,
+                                                        rating: stAssign[index].rating,
+                                                        profilePicture: stAssign[index].profilePicture,
+                                                      ), 
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ).then((value) =>
+                                            safeSetState(() {}));
+                                      },
+                                      child: Container(
+                                        width: 25.0,
+                                        height: 25.0,
+                                        clipBehavior: Clip.antiAlias,
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Image.network(
+                                          valueOrDefault(
+                                          stAssign[index].profilePicture,
+                                          'https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg',
+                                          ),
+                                        ),
                                       ),
-                                      child: Image.network(
-                                        'https://picsum.photos/seed/409/600',
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ].divide(SizedBox(width: 2)),
-                                ),
+                                    );
+                                  }
+                                )               //////////////////////////////////////////////////////
                               ),
                             ],
                           ),
@@ -881,14 +1005,9 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
   String? taskName2 = 'issueissue';
   @override
   Widget build(BuildContext context) {
-    // Check if info from homepage is correct (CAN DELETE v)
     final projectName = widget.projectName;
     final projectOwnerID = widget.projectOwnerID;
     final projectDescription = widget.projectDescription;
-    print(widget.projectName + ' oooooooooooooooooooooooooooooooooooooooooo');
-    print(widget.projectOwnerID + ' oooooooooooooooooooooooooooooooooooooooooo');
-    print(widget.projectDescription + ' oooooooooooooooooooooooooooooooooooooooooo');
-    //_updateProgress(projectName, projectOwnerID);
     return GestureDetector(
       onTap: () => _model.unfocusNode.canRequestFocus
           ? FocusScope.of(context).requestFocus(_model.unfocusNode)
@@ -1042,69 +1161,11 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                 ),
                                 Padding(
                                   padding: const EdgeInsetsDirectional.fromSTEB(
-                                      0.0, 0.0, 15.0, 0.0),
+                                      0.0, 0.0, 11.0, 0.0),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.max,
                                     mainAxisAlignment: MainAxisAlignment.end,
                                     children: [
-                                      badges.Badge(
-                                        badgeContent: Text(
-                                          FFLocalizations.of(context).getText(
-                                            'hos8rg9o' /* 1 */,
-                                          ),
-                                          style: FlutterFlowTheme.of(context)
-                                              .titleSmall
-                                              .override(
-                                                fontFamily:
-                                                    FlutterFlowTheme.of(context)
-                                                        .titleSmallFamily,
-                                                color: Colors.white,
-                                                useGoogleFonts: GoogleFonts
-                                                        .asMap()
-                                                    .containsKey(
-                                                        FlutterFlowTheme.of(
-                                                                context)
-                                                            .titleSmallFamily),
-                                              ),
-                                        ),
-                                        showBadge: true,
-                                        shape: badges.BadgeShape.circle,
-                                        badgeColor: FlutterFlowTheme.of(context)
-                                            .primary,
-                                        elevation: 4.0,
-                                        padding: const EdgeInsetsDirectional.fromSTEB(
-                                            8.0, 8.0, 8.0, 8.0),
-                                        position: badges.BadgePosition.topEnd(),
-                                        animationType:
-                                            badges.BadgeAnimationType.scale,
-                                        toAnimate: true,
-                                        child: Padding(
-                                          padding:
-                                              const EdgeInsetsDirectional.fromSTEB(
-                                                  0.0, 0.0, 0.0, 5.0),
-                                          child: InkWell(
-                                            splashColor: Colors.transparent,
-                                            focusColor: Colors.transparent,
-                                            hoverColor: Colors.transparent,
-                                            highlightColor: Colors.transparent,
-                                            onTap: () async {
-                                              context
-                                                  .pushNamed('RatingPage', queryParameters: {
-                                                    'projectOwnerID': widget.projectOwnerID,
-                                                    'projectName': widget.projectName,
-                                                    'projectDescription': widget.projectDescription,
-                                                  });
-                                            },
-                                            child: Icon(
-                                              Icons.message_rounded,
-                                              color:
-                                                  FlutterFlowTheme.of(context)
-                                                      .primaryText,
-                                              size: 35.0,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
                                       InkWell(
                                         splashColor: Colors.transparent,
                                         focusColor: Colors.transparent,
@@ -1242,6 +1303,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                                                     ShowcaseProfileWidget(
                                                                       username: snapshot.data[index].username,
                                                                       rating: snapshot.data[index].rating,
+                                                                      profilePicture: snapshot.data[index].profilePicture,
                                                                     ), 
                                                               ),
                                                             ),
@@ -1341,6 +1403,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                               snapshot.data[index].taskAssigned,
                                               snapshot.data[index].taskDueDate,
                                               snapshot.data[index].subtaskflag,
+                                              snapshot.data[index].tAssign,
                                             ),
                                             FutureBuilder(
                                               future: _getSubTasks(snapshot.data[index].taskName),
@@ -1374,6 +1437,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                                               subtasksnapshot.data[index].subTaskDifficulty,
                                                               subtasksnapshot.data[index].subTaskAssigned,
                                                               subtasksnapshot.data[index].subTaskDueDate,
+                                                              subtasksnapshot.data[index].subtAssign
                                                             )
                                                           ]
                                                         );

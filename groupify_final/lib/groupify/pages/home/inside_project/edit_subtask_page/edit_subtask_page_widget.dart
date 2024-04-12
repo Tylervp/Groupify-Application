@@ -65,19 +65,31 @@ class _EditSubtaskPageWidgetState extends State<EditSubtaskPageWidget> {
   }
 
 
-Future<List<String>> _getMembers() async {
-  List<String> mems = [];
-  final results = await _sqldatabaseHelper.connection.query(
-    'select userID from ProjectMembers where ownerID = ? and projectName = ?;',
-    [widget.pOwnerId, widget.projectName],
-  );
-  for (final row in results) {
-    String tempmem = row['userID'] as String;
-    mems.add(tempmem);
+  Future<List<String>> _getMembers() async {
+    List<String> mems = [];
+    final results = await _sqldatabaseHelper.connection.query(
+      'select userID from ProjectMembers where ownerID = ? and projectName = ?;',
+      [widget.pOwnerId, widget.projectName],
+    );
+    for (final row in results) {
+      String tempmem = row['userID'] as String;
+      mems.add(tempmem);
+    }
+
+    // GRAB FROM PEOPLE WHO ARE ONLY ASSIGNED TO TASK
+    /*final results = await _sqldatabaseHelper.connection.query(
+      'select taskAssigned from tasks where ownerID = ? and projectName = ? and taskName = ?;',
+      [widget.pOwnerId, widget.projectName, widget.tName],);
+    var temp = results.first['taskAssigned'] as String;
+    var members = temp.split(',');
+    for(var m in members){
+      m = m.toString().trim();
+      mems.add(m);
+    }*/
+
+    //_sqldatabaseHelper.closeConnection();
+    return mems;
   }
-  //_sqldatabaseHelper.closeConnection();
-  return mems;
-}
 
 Future<void> _updateSubTask(double newProgress)async {
 

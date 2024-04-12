@@ -21,8 +21,6 @@ class Project {
   String projectDueDate = '';
   List<Member> projectMembers = [];
 
-  //uh8f8huwf8hu
-
   Project(String projectName, String ownerID, String projectDescription, double projectProgress, String projectDue, List<Member> projectMembers, /*List<double> tasksProgress*/){
     this.projectName = projectName;
     this.ownerID = ownerID;
@@ -103,18 +101,19 @@ class _HomePageWidgetState extends State<HomePageWidget> {
       tempProgress = row['projectProgress'] as double;
       tempDueDate = row['projectDueDate'] as String;
       
-      if(tempProgress != 0){  // If project has a progress of 0 (ex. just created), it has no tasks. Skip project progression update
-        // Update project's progression based on the progression of its tasks and fetch it
-        sum = 0;
-        tasksProgress = [];
-        final results2 = await _sqldatabaseHelper.connection.query('SELECT taskProgress FROM tasks WHERE projectName = ? and ownerID = ?;',
-                                                                [tempName, tempOwnerID]);                                                
-        for(final row in results2){
-          temp = row['taskProgress'].toStringAsFixed(2);
-          progress = double.parse(temp);
-          tasksProgress.add(progress);
-          sum += progress;
-        }    
+      // Update project's progression based on the progression of its tasks and fetch it
+      sum = 0;
+      tasksProgress = [];
+      final results2 = await _sqldatabaseHelper.connection.query('SELECT taskProgress FROM tasks WHERE projectName = ? and ownerID = ?;',
+                                                              [tempName, tempOwnerID]);                                                
+      for(final row in results2){
+        temp = row['taskProgress'].toStringAsFixed(2);
+        progress = double.parse(temp);
+        tasksProgress.add(progress);
+        sum += progress;
+      }
+
+      if(sum != 0){  
         projectProgress = sum/tasksProgress.length;
         await _sqldatabaseHelper.connection.query( 
           'UPDATE projects SET projectProgress = ? WHERE projectName = ? and ownerID = ?;',
