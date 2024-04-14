@@ -32,17 +32,16 @@ class _OptionsProjectWidgetState extends State<OptionsProjectWidget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => OptionsProjectModel());
-
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
 
   @override
   void dispose() {
     _model.maybeDispose();
-
     super.dispose();
   }
 
+  // Show the option of being able to edit or delete a project if current user is the owner of the project
   Widget isOwner(BuildContext context){
     return Column(
       children: [
@@ -224,6 +223,7 @@ class _OptionsProjectWidgetState extends State<OptionsProjectWidget> {
     );
   }
 
+  // Show the option of only being able to leave a project if the current user is not the owner of the project
   Widget notOwner(BuildContext context){
     return Column(
       children: [

@@ -56,7 +56,6 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => HomePageModel());
-    
     _sqldatabaseHelper = SQLDatabaseHelper();
     _connectToDatabase();
     WidgetsBinding.instance.addPostFrameCallback((_) => setState((){}));
@@ -113,7 +112,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
         sum += progress;
       }
 
-      if(sum != 0){  
+      if(tasksProgress.length != 0){  
         projectProgress = sum/tasksProgress.length;
         await _sqldatabaseHelper.connection.query( 
           'UPDATE projects SET projectProgress = ? WHERE projectName = ? and ownerID = ?;',
@@ -455,7 +454,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                 ),
                                 child: Image.network( 
                                   valueOrDefault<String>(
-                                    currentUserPhoto,    ////////// CHANGE TO OWNER PROFILE PICTURE
+                                    currentUserPhoto,    // Change to Owner profile picture
                                     'https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg',
                                   ),
                                   fit: BoxFit.cover,
@@ -911,7 +910,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                     ),
                                     shrinkWrap: true,
                                     scrollDirection: Axis.vertical,
-                                    //-----ITERATE THROUGH PROJECT LIST----
+                                    // ----- Iterate through list returned by _getProjects() ----
                                     itemCount: snapshot.data.length,
                                     separatorBuilder: (BuildContext context, int index) => SizedBox(height: 15),
                                     itemBuilder: (BuildContext context, int index) {

@@ -51,50 +51,75 @@ class _AreYouSureProjectWidgetState extends State<AreYouSureProjectWidget> {
     super.dispose();
   }
 
+  // Delete from project Members table
   Future<void> _deleteProjectMembers(String? pOwnerID, String? pName, String? pDescription, String? pDue) async {
     await _sqldatabaseHelper.connection.query( 
       'DELETE FROM projectMembers WHERE projectName = ? and ownerID = ?;', [pName, currentUserDisplayName]);
   }
 
+  // Delete all subtask and tasks associated with the project and delete project from projects table at the end
   Future<void> _deleteProject(String? pOwnerID, String? pName, String? pDescription, String? pDue) async {
-   /*await _sqldatabaseHelper.connection.query( 
-      'DELETE FROM TaskComments WHERE projectName = ? and ownerID = ?;', [pName, currentUserDisplayName]);*/
+    await _sqldatabaseHelper.connection.query( 'DELETE FROM inbox WHERE projectName = ? and ownerID = ?;', [pName, pOwnerID]);
+    
+    await _sqldatabaseHelper.connection.query( 
+      'UPDATE Subtasks SET subTaskAssigned = ? WHERE projectName = ? and ownerID = ?;',['', pName, currentUserDisplayName]);
 
-    /*await _sqldatabaseHelper.connection.query( 
-      'DELETE FROM SubTaskComments WHERE projectName = ? and ownerID = ?;', [pName, currentUserDisplayName]);*/
+    await _sqldatabaseHelper.connection.query( 
+      'UPDATE Tasks SET taskAssigned = ? WHERE projectName = ? and ownerID = ?;',['', pName, currentUserDisplayName]);
+
+    await _sqldatabaseHelper.connection.query( 
+      'DELETE FROM Subtasks WHERE projectName = ? and ownerID = ?;', [pName, currentUserDisplayName]);
 
     await _sqldatabaseHelper.connection.query( 
       'DELETE FROM Tasks WHERE projectName = ? and ownerID = ?;', [pName, currentUserDisplayName]);
 
-     await _sqldatabaseHelper.connection.query( 
-      'DELETE FROM Subtasks WHERE projectName = ? and ownerID = ?;', [pName, currentUserDisplayName]);
+    await _sqldatabaseHelper.connection.query( 
+      'DELETE FROM finalProjectMembers WHERE projectName = ? and ownerID = ?;', [pName, currentUserDisplayName]);
 
     await _sqldatabaseHelper.connection.query( 
       'DELETE FROM projects WHERE projectName = ? and ownerId = ?;', [pName, currentUserDisplayName]);
-
     _sqldatabaseHelper.closeConnection();
   }
 
+  // If not an owner, leave project member table 
   Future<void> _leaveProjectMembers(String? pOwnerID, String? pName, String? pDescription, String? pDue) async {  
     await _sqldatabaseHelper.connection.query( 
       'DELETE FROM projectMembers WHERE userID = ? and projectName = ? and ownerID = ?;', 
       [currentUserDisplayName, pName, pOwnerID]);
   }
 
-  Future<void> _unassign(String? pOwnerID, String? pName, String? pDescription, String? pDue) async {  
-    print(pOwnerID.toString() + '------------------------------------================');
-
-    await _sqldatabaseHelper.connection.query( 
-      'UPDATE Tasks SET taskAssigned = ? WHERE projectName = ? and ownerID = ? and taskAssigned = ?;', 
-      ['', pName, pOwnerID, currentUserDisplayName]);
-
-    await _sqldatabaseHelper.connection.query( 
-      'UPDATE Subtasks SET subTaskAssigned = ? WHERE projectName = ? and ownerID = ?;', 
-      ['', pName, pOwnerID]);
+  // If not an owner, unassign current user from any tasks/subtasks the were assigned to within a project
+  Future<void> _unassign(String? pOwnerID, String? pName, String? pDescription, String? pDue) async {
+    await _sqldatabaseHelper.connection.query(
+      '''UPDATE Subtasks
+      SET subtaskassigned = 
+        REPLACE(
+          REPLACE(
+            REPLACE(
+              REPLACE(subtaskassigned, ', $currentUserDisplayName,', ','),
+            ', $currentUserDisplayName', ''),
+          '$currentUserDisplayName, ', ''),
+        '$currentUserDisplayName', '')
+      WHERE projectName = ? and ownerID = ?;''',
+      [pName, pOwnerID]);    
+    
+      await _sqldatabaseHelper.connection.query(
+      '''UPDATE tasks
+      SET taskassigned = 
+        REPLACE(
+            REPLACE(
+                REPLACE(
+                    REPLACE(taskassigned, ', $currentUserDisplayName,', ','),
+                ', $currentUserDisplayName', ''),
+            '$currentUserDisplayName, ', ''),
+        '$currentUserDisplayName', '')
+      WHERE projectname = ? and ownerID = ?;''',
+      [pName, pOwnerID]);
 
     _sqldatabaseHelper.closeConnection();
   }
 
+  // Show different text when current user is the owner of the project
   Widget isOwner(BuildContext context){
     return Column(
       children: [
@@ -197,6 +222,7 @@ class _AreYouSureProjectWidgetState extends State<AreYouSureProjectWidget> {
     );
   }
 
+  // Show different text when current user is not the owner of the project
   Widget notOwner(BuildContext context){
     return Column(
       children: [

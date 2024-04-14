@@ -76,19 +76,47 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
      // last member in project so need to delete the whole project
     if(results.length == 1){
       await _sqldatabaseHelper.connection.query( 'DELETE FROM finalProjectMembers WHERE projectName = ? and ownerID = ?;', [pName, pOwnerID]);
+      await _sqldatabaseHelper.connection.query( 'DELETE FROM inbox WHERE projectName = ? and ownerID = ?;', [pName, pOwnerID]);
       await _sqldatabaseHelper.connection.query( 'DELETE FROM projectMembers WHERE projectName = ? and ownerID = ?;', [pName, pOwnerID]);
       await _sqldatabaseHelper.connection.query( 'DELETE FROM Subtasks WHERE projectName = ? and ownerID = ?;', [pName, pOwnerID]);
       await _sqldatabaseHelper.connection.query( 'DELETE FROM Tasks WHERE projectName = ? and ownerID = ?;', [pName, pOwnerID]);
       await _sqldatabaseHelper.connection.query( 'DELETE FROM projects WHERE projectName = ? and ownerId = ?;', [pName, pOwnerID]);
     }
-    else{ // just leave the project becasue there is still members in it
+    else{ // just leave the project becasue there is still members in it and remove from assigned tasks/subtasks
       await _sqldatabaseHelper.connection.query( 'DELETE FROM projectMembers WHERE projectName = ? and ownerID = ? and userID = ?;', [pName, pOwnerID, currentUserDisplayName]);
-      await _sqldatabaseHelper.connection.query( 
+    
+      await _sqldatabaseHelper.connection.query(
+      '''UPDATE Subtasks
+      SET subtaskassigned = 
+        REPLACE(
+          REPLACE(
+            REPLACE(
+              REPLACE(subtaskassigned, ', $currentUserDisplayName,', ','),
+            ', $currentUserDisplayName', ''),
+          '$currentUserDisplayName, ', ''),
+        '$currentUserDisplayName', '')
+      WHERE projectName = ? and ownerID = ?;''',
+      [pName, pOwnerID]);    
+    
+      await _sqldatabaseHelper.connection.query(
+      '''UPDATE tasks
+      SET taskassigned = 
+        REPLACE(
+            REPLACE(
+                REPLACE(
+                    REPLACE(taskassigned, ', $currentUserDisplayName,', ','),
+                ', $currentUserDisplayName', ''),
+            '$currentUserDisplayName, ', ''),
+        '$currentUserDisplayName', '')
+      WHERE projectname = ? and ownerID = ?;''',
+      [pName, pOwnerID]);
+
+      /*await _sqldatabaseHelper.connection.query( 
         'UPDATE Subtasks SET subTaskAssigned = ? WHERE projectName = ? and ownerID = ?;', 
         ['', pName, pOwnerID]);
       await _sqldatabaseHelper.connection.query( 
         'UPDATE Tasks SET taskAssigned = ? WHERE projectName = ? and ownerID = ? and taskAssigned = ?;', 
-        ['', pName, pOwnerID, currentUserDisplayName]);
+        ['', pName, pOwnerID, currentUserDisplayName]);*/
     }
   }
 
@@ -239,6 +267,7 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
     );
   }
 
+  // Insert ratings for user in rating table
   Future<void> _insertRatings() async {
      for (var member in memberRatings.entries) {
       await _sqldatabaseHelper.connection.query('Insert userRating (userID, rating) Values (?, ?);',

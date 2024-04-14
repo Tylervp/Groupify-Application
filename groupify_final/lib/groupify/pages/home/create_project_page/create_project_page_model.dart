@@ -6,14 +6,15 @@ class CreateProjectPageModel extends FlutterFlowModel<CreateProjectPageWidget> {
   ///  State fields for stateful widgets in this page.
 
   final unfocusNode = FocusNode();
-  // State field(s) for emailAddress widget.
-  FocusNode? emailAddressFocusNode1;
-  TextEditingController? emailAddressController1;
-  String? Function(BuildContext, String?)? emailAddressController1Validator;
-  // State field(s) for emailAddress widget.
-  FocusNode? emailAddressFocusNode2;
-  TextEditingController? emailAddressController2;
-  String? Function(BuildContext, String?)? emailAddressController2Validator;
+  // State field(s) for projectName widget.
+  FocusNode? projectNameFocusNode;
+  TextEditingController? projectNameController; // cont1
+  String? Function(BuildContext, String?)? projectNameControllerValidator;
+
+  // State field(s) for projectDescription widget.
+  FocusNode? projectDescriptionFocusNode;
+  TextEditingController? projectDescriptionController;
+  String? Function(BuildContext, String?)? projectDescriptionControllerValidator;
   DateTime? datePicked;
 
   /// Initialization and disposal methods.
@@ -24,11 +25,11 @@ class CreateProjectPageModel extends FlutterFlowModel<CreateProjectPageWidget> {
   @override
   void dispose() {
     unfocusNode.dispose();
-    emailAddressFocusNode1?.dispose();
-    emailAddressController1?.dispose();
+    projectNameFocusNode?.dispose();
+    projectNameController?.dispose();
 
-    emailAddressFocusNode2?.dispose();
-    emailAddressController2?.dispose();
+    projectDescriptionFocusNode?.dispose();
+    projectDescriptionController?.dispose();
   }
 
   /// Action blocks are added here.

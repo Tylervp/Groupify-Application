@@ -145,7 +145,6 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                                             [widget.projectName, widget.projectOwnerID]);
     print('GOT THE TASKS');
     for(final row in results){
-      
       String temptaskName = row['taskName'] as String;
       String temptaskDescription = row['taskDescription'] as String;
       double temptaskProgress = row['taskProgress'] as double;
@@ -153,21 +152,24 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
       String temptaskAssigned = row['taskAssigned'] as String;
       String temptaskDueDate = row['taskDueDate'] as String;
 
-      List<Member> tempAssign = []; //////////////////////
+      // Get rating for each member that is assigned to the task
+      List<Member> tempAssign = [];
       double rating;
-      double s;
-      var temp = temptaskAssigned.split(',');
-      for(var t in temp){
+      double addition;
+      double temp = 0;
+      var splitted = temptaskAssigned.split(',');
+      for(var split in splitted){
         rating = 0;
-        s = 0;
-        t = t.trim();
+        addition = 0;
+        split = split.trim();
         final assigned = await _sqldatabaseHelper.connection.query('SELECT rating FROM userRating WHERE userID = ?;',
-                                                            [t.toString()]); 
+                                                            [split.toString()]); 
         for(final row in assigned){
-          s = row['rating'] as double;
+          temp = row['rating'] as double;
+          addition += temp;
         }
-        rating = s/assigned.length;
-        tempAssign.add(Member(t.toString(), '', rating)); ///////////////////////////
+        rating = addition/assigned.length;
+        tempAssign.add(Member(split.toString(), '', rating));
       }
 
       final results2 = await _sqldatabaseHelper.connection.query('select subTaskName from Subtasks where projectName = ? and ownerId = ? and taskName =?',
@@ -220,21 +222,24 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
       String tempsubTaskAssigned = row['subTaskAssigned'] as String;
       String tempsubTaskDueDate = row['subTaskDueDate'] as String;
 
+      // Get rating for each member that is assigned to a subtask
       List<Member> tempAssign = [];
       double rating;
       double sum;
-      var temp = tempsubTaskAssigned.split(',');
-      for(var t in temp){
+      double temp;
+      var splitted = tempsubTaskAssigned.split(',');
+      for(var split in splitted){
         rating = 0;
         sum = 0;
-        t = t.trim();
+        split = split.trim();
         final results2 = await _sqldatabaseHelper.connection.query('SELECT rating FROM userRating WHERE userID = ?;',
-                                                            [t.toString()]); 
+                                                            [split.toString()]); 
         for(final row in results2){
-          sum = row['rating'] as double;
+          temp = row['rating'] as double;
+          sum += temp;
         }
         rating = sum/results2.length;
-        tempAssign.add(Member(t.toString(), '', rating));
+        tempAssign.add(Member(split.toString(), '', rating));
       }
       subtasks.insert(0, SubTask(temptaskName, tempsubTaskName, tempsubTaskDescription, tempsubTaskProgress, tempsubTaskDifficulty, tempsubTaskAssigned, tempsubTaskDueDate, tempAssign));
     }} catch (e)
@@ -344,7 +349,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                           ),
                         ),
                         Container(
-                          width: 87,
+                          width: 92, 
                           decoration: BoxDecoration(),
                           child: Padding(
                             padding:
@@ -397,7 +402,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                       child: OptionsTaskWidget(
                                           projectName: widget.projectName,
                                           pOwnerId: widget.projectOwnerID,
-                                          pDescription: widget.projectDescription,    //////////////
+                                          pDescription: widget.projectDescription, 
                                           tName: tName, 
                                           tDescription: tDescription,
                                           tProgress: tProgress, 
@@ -477,7 +482,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                           width: 60,
                           height: 25,
                           decoration: BoxDecoration(),
-                          child : ListView.separated(   ///////////////////////////////////////////////////////////////
+                          child : ListView.separated( 
                             padding: EdgeInsets.zero,
                             primary: false,
                             scrollDirection: Axis.horizontal,
@@ -538,7 +543,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                 ),
                               );
                             }
-                          )    /////////////////////////////////////////////////////
+                          )
                         ),
                       ],
                     ),
@@ -742,7 +747,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                   ),
                                 ),
                                 Container(
-                                  width: 87,
+                                  width: 92,
                                   decoration: BoxDecoration(),
                                   child: Padding(
                                     padding: EdgeInsetsDirectional.fromSTEB(
@@ -793,7 +798,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                           projectName: widget.projectName,
                                           pOwnerId: widget.projectOwnerID,
                                           pDescription: widget.projectDescription,
-                                          tName: tName,    //////////////
+                                          tName: tName, 
                                           stName: stName, 
                                           stDescription: stDescription,
                                           stProgress: stProgress, 
@@ -843,7 +848,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                 width: 45,
                                 height: 25,
                                 decoration: BoxDecoration(),
-                                child : ListView.separated(   ///////////////////////////////////////////////////////////////
+                                child : ListView.separated(
                                   padding: EdgeInsets.zero,
                                   primary: false,
                                   scrollDirection: Axis.horizontal,
@@ -904,7 +909,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                       ),
                                     );
                                   }
-                                )               //////////////////////////////////////////////////////
+                                )
                               ),
                             ],
                           ),

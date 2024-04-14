@@ -35,10 +35,10 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
     super.initState();
     _model = createModel(context, () => EdtiProjectPageModel());
 
-    _model.emailAddressController1 ??= TextEditingController(text: widget.pName);
-    _model.emailAddressFocusNode1 ??= FocusNode();
-    _model.emailAddressController2 ??= TextEditingController(text: widget.pDescription);
-    _model.emailAddressFocusNode2 ??= FocusNode();
+    _model.projectNameController ??= TextEditingController(text: widget.pName);
+    _model.projectNameFocusNode ??= FocusNode();
+    _model.projectDescriptionController ??= TextEditingController(text: widget.pDescription);
+    _model.projectDescriptionFocusNode ??= FocusNode();
 
     _sqldatabaseHelper = SQLDatabaseHelper();
     _connectToDatabase();
@@ -53,6 +53,7 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
     super.dispose();
   }
 
+  // Update project in projects table with new information
   Future<void> _updateProject(String? pName, String? nDescription, String? nDue) async {
     await _sqldatabaseHelper.connection.query( 
         'UPDATE Projects SET projectDescription = ?, projectDueDate = ? WHERE projectName = ? and ownerID = ?;',
@@ -282,8 +283,8 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
                               padding: const EdgeInsetsDirectional.fromSTEB(
                                   24.0, 0.0, 24.0, 20.0),
                               child: TextFormField(
-                                controller: _model.emailAddressController2,
-                                focusNode: _model.emailAddressFocusNode2,
+                                controller: _model.projectDescriptionController,
+                                focusNode: _model.projectDescriptionFocusNode,
                                 obscureText: false,
                                 onChanged: (value){
                                   newDescription = value;
@@ -336,7 +337,7 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
                                 style: FlutterFlowTheme.of(context).bodyMedium,
                                 maxLines: 10,
                                 validator: _model
-                                    .emailAddressController2Validator
+                                    .projectDescriptionControllerValidator
                                     .asValidator(context),
                               ),
                             ),
@@ -434,8 +435,6 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
                                                 .languageCode,
                                           ),
                                           (widget.pDue == null)  ? 'Select a date' : widget.pDue.toString(),
-                                          //'Select a date',
-                                          //widget.pDue.toString(),
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
