@@ -52,28 +52,28 @@ class HomePageWidget extends StatefulWidget {
 
 class _HomePageWidgetState extends State<HomePageWidget> {
   late HomePageModel _model;
+  late SQLDatabaseHelper _sqldatabaseHelper;
   final scaffoldKey = GlobalKey<ScaffoldState>();
+  Future<List<Project>>? projectsFuture;
 
   @override
   void initState() {
     super.initState();
     _model = createModel(context, () => HomePageModel());
-    
     _sqldatabaseHelper = SQLDatabaseHelper();
-    _connectToDatabase();
-    WidgetsBinding.instance.addPostFrameCallback((_) => setState((){}));
+    _initializeDatabaseAndFetchProjects();
+  }
+
+  void _initializeDatabaseAndFetchProjects() async {
+    await _sqldatabaseHelper.connectToDatabase(); // Ensure the database is connected
+    projectsFuture = _getProjects(); // Fetch projects after connection
+    setState(() {}); // Trigger a rebuild with the projects fetched
   }
 
   @override
   void dispose() {
     _model.dispose();
     super.dispose();
-  }
-
-  // Connect to DB
-  late SQLDatabaseHelper _sqldatabaseHelper;
-  Future<void> _connectToDatabase() async {
-    await _sqldatabaseHelper.connectToDatabase();
   }
 
   // Method to query projects a user is involved in and populate project list
@@ -159,7 +159,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     pProgress = double.parse(temp); 
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(
-          15.0, 0.0, 15.0, 0.0),
+          15.0, 0.0, 15.0, 20),
       child: InkWell(
         splashColor: Colors.transparent,
         focusColor: Colors.transparent,
@@ -513,7 +513,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                 scrollDirection:
                                     Axis.horizontal,
                                 itemCount: pMembers.length,
-                                separatorBuilder: (BuildContext context, int index) => SizedBox(width: 2.0),
+                                separatorBuilder: (BuildContext context, int index) => SizedBox(height: 2.0),
                                 itemBuilder: (BuildContext context, int index){
                                   return Container(
                                     width: 25.0,
@@ -886,43 +886,44 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                         ),
                       ),
                       Stack(
-                        children: [
-                          Container(
-                            height: 610.0,
-                            decoration: const BoxDecoration(),
-                            child: FutureBuilder(  
-                              future: _getProjects(), 
-                              builder: (BuildContext context, AsyncSnapshot snapshot){
-                                if(snapshot.data == null){
-                                  return const Center(
-                                    child: CircularProgressIndicator(
-                                      color: Color.fromARGB(100, 57, 210, 192),
-                                      backgroundColor: Color.fromARGB(30, 57, 210, 192),
-                                      strokeWidth: 4,
-                                    ),
-                                  );
-                                }
-                                else{
-                                  return ListView.separated(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      0,
-                                      5.0,
-                                      0,
-                                      0,
-                                    ),
-                                    shrinkWrap: true,
-                                    scrollDirection: Axis.vertical,
-                                    //-----ITERATE THROUGH PROJECT LIST----
-                                    itemCount: snapshot.data.length,
-                                    separatorBuilder: (BuildContext context, int index) => SizedBox(height: 15),
-                                    itemBuilder: (BuildContext context, int index) {
-                                      int colorIndex = index % list_colors.length;
-                                      return projectContainer(context, snapshot.data[index].projectName,
-                                              snapshot.data[index].ownerID, snapshot.data[index].projectDescription,
-                                              snapshot.data[index].projectDueDate, list_colors[colorIndex], 
-                                              snapshot.data[index].projectProgress, 
-                                              snapshot.data[index].projectMembers);
-                                    },
+                          children: [
+                            Container(
+                              height: 610.0,
+                              decoration: const BoxDecoration(),
+                              child: FutureBuilder(
+                                future: projectsFuture, // Use the initialized projectsFuture
+                                builder: (BuildContext context, AsyncSnapshot<List<Project>> snapshot) {
+                                  if (snapshot.connectionState == ConnectionState.waiting) {
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        color: Color.fromARGB(100, 57, 210, 192),
+                                        backgroundColor: Color.fromARGB(30, 57, 210, 192),
+                                        strokeWidth: 4,
+                                      ),
+                                    );
+                                  } else if (snapshot.hasError) {
+                                    return Text('Error: ${snapshot.error}');
+                                  } else if (snapshot.hasData) {
+                                    return ListView.builder(
+                                      itemCount: snapshot.data!.length,
+                                      itemBuilder: (context, index) {
+                                        Project project = snapshot.data![index];
+                                        return projectContainer(
+                                          context,
+                                          project.projectName,
+                                          project.ownerID,
+                                          project.projectDescription,
+                                          project.projectDueDate,
+                                          Colors.blue, // Example color, adjust as needed
+                                          project.projectProgress,
+                                          project.projectMembers,
+                                        );
+                                      },
+                                    );
+                                  } else {
+                                    // Add this else block to handle cases where no data is available
+                                    return Center(
+                                      child: Text('No projects found or data is not ready'),
                                   ); 
                                 }
                               }

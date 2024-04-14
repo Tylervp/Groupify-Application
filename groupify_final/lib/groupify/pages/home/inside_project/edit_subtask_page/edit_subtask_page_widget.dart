@@ -31,30 +31,24 @@ class EditSubtaskPageWidget extends StatefulWidget {
 
 class _EditSubtaskPageWidgetState extends State<EditSubtaskPageWidget> {
   late EditSubtaskPageModel _model;
-
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
   late SQLDatabaseHelper _sqldatabaseHelper;
-  Future<void> _connectToDatabase() async {
-    await _sqldatabaseHelper.connectToDatabase();
-  }
-
+  List<String> members = [];  // Local state list for member names
 
   @override
   void initState() {
     super.initState();
     _model = createModel(context, () => EditSubtaskPageModel());
-
-    _model.subtaskNameController ??= TextEditingController(text: widget.stName);
-    _model.subtaskNameFocusNode ??= FocusNode();
-
-    _model.subtaskDescriptionController ??= TextEditingController(text: widget.stDescription);
-    _model.subtaskDescriptionFocusNode ??= FocusNode();
-
     _sqldatabaseHelper = SQLDatabaseHelper();
-    _connectToDatabase();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
+    _connectAndInitializeData();
+  }
+
+  Future<void> _connectAndInitializeData() async {
+    await _sqldatabaseHelper.connectToDatabase();
+    members = await _getMembers();
+    setState(() {});
   }
 
   @override
@@ -631,40 +625,30 @@ final double? newstDifficulty;
     } else {
       final List<String> options = snapshot.data ?? []; // Provide a default empty list if data is null
       return
-                                  FlutterFlowDropDown<String>(
-                                    multiSelectController: _model
-                                            .dropDownValueController ??=
-                                        FormFieldController<List<String>>(null),
-                                    options: options,
-                                    width: 300.0,
-                                    height: 50.0,
-                                    textStyle:
-                                        FlutterFlowTheme.of(context).bodyMedium,
-                                    hintText:
-                                        FFLocalizations.of(context).getText(
-                                      '8g5l1hm9' /* Please select... */,
-                                    ),
-                                    icon: Icon(
-                                      Icons.keyboard_arrow_down_rounded,
-                                      color: FlutterFlowTheme.of(context)
-                                          .secondaryText,
-                                      size: 24.0,
-                                    ),
-                                    fillColor:
-                                        FlutterFlowTheme.of(context).overlay,
-                                    elevation: 2.0,
-                                    borderColor: Colors.transparent,
-                                    borderWidth: 2.0,
-                                    borderRadius: 8.0,
-                                    margin: const EdgeInsetsDirectional.fromSTEB(
-                                        16.0, 4.0, 16.0, 4.0),
-                                    hidesUnderline: true,
-                                    isOverButton: true,
-                                    isSearchable: false,
-                                    isMultiSelect: true,
-                                    onMultiSelectChanged: (val) => setState(
-                                        () => _model.dropDownValue = val),
-                                  );
+  FlutterFlowDropDown<String>(
+  multiSelectController: _model.dropDownValueController ??= FormFieldController<List<String>>(null),
+  options: members,  // Use the local state list here
+  width: 300.0,
+  height: 50.0,
+  textStyle: FlutterFlowTheme.of(context).bodyMedium,
+  hintText: FFLocalizations.of(context).getText('8g5l1hm9' /* Please select... */),
+  icon: Icon(
+    Icons.keyboard_arrow_down_rounded,
+    color: FlutterFlowTheme.of(context).secondaryText,
+    size: 24.0,
+  ),
+  fillColor: FlutterFlowTheme.of(context).overlay,
+  elevation: 2.0,
+  borderColor: Colors.transparent,
+  borderWidth: 2.0,
+  borderRadius: 8.0,
+  margin: const EdgeInsetsDirectional.fromSTEB(16.0, 4.0, 16.0, 4.0),
+  hidesUnderline: true,
+  isOverButton: true,
+  isSearchable: false,
+  isMultiSelect: true,
+  onMultiSelectChanged: (val) => setState(() => _model.dropDownValue = val),
+);
     }
   },
 ),

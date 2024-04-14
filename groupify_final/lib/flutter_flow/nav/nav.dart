@@ -221,10 +221,13 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               builder: (context, params) => const PasswordResetPageWidget(),
             ),
             FFRoute(
-              name: 'BrowsePage',
-              path: 'browsePage',
-              builder: (context, params) => const BrowsePageWidget(),
-            ),
+            name: 'BrowsePage',
+            path: 'browsePage',
+            builder: (context, params) => BrowsePageWidget(
+              projectOwnerID: params.getParam('projectOwnerID', ParamType.String),
+              projectName: params.getParam('projectName', ParamType.String),
+                ),
+              ),
              FFRoute(
               name: 'AddClassesPage',
               path: 'AddClassesPage',
