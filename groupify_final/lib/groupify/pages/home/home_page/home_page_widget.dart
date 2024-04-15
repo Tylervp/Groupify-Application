@@ -50,27 +50,28 @@ class HomePageWidget extends StatefulWidget {
 
 class _HomePageWidgetState extends State<HomePageWidget> {
   late HomePageModel _model;
+  late SQLDatabaseHelper _sqldatabaseHelper;
   final scaffoldKey = GlobalKey<ScaffoldState>();
+  Future<List<Project>>? projectsFuture;
 
   @override
   void initState() {
     super.initState();
     _model = createModel(context, () => HomePageModel());
     _sqldatabaseHelper = SQLDatabaseHelper();
-    _connectToDatabase();
-    WidgetsBinding.instance.addPostFrameCallback((_) => setState((){}));
+    _initializeDatabaseAndFetchProjects();
+  }
+
+  void _initializeDatabaseAndFetchProjects() async {
+    await _sqldatabaseHelper.connectToDatabase(); // Ensure the database is connected
+    projectsFuture = _getProjects(); // Fetch projects after connection
+    setState(() {}); // Trigger a rebuild with the projects fetched
   }
 
   @override
   void dispose() {
     _model.dispose();
     super.dispose();
-  }
-
-  // Connect to DB
-  late SQLDatabaseHelper _sqldatabaseHelper;
-  Future<void> _connectToDatabase() async {
-    await _sqldatabaseHelper.connectToDatabase();
   }
 
   // Method to query projects a user is involved in and populate project list
@@ -157,7 +158,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     pProgress = double.parse(temp); 
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(
-          15.0, 0.0, 15.0, 0.0),
+          15.0, 0.0, 15.0, 20),
       child: InkWell(
         splashColor: Colors.transparent,
         focusColor: Colors.transparent,
@@ -511,7 +512,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                 scrollDirection:
                                     Axis.horizontal,
                                 itemCount: pMembers.length,
-                                separatorBuilder: (BuildContext context, int index) => SizedBox(width: 2.0),
+                                separatorBuilder: (BuildContext context, int index) => SizedBox(height: 2.0),
                                 itemBuilder: (BuildContext context, int index){
                                   return Container(
                                     width: 25.0,
@@ -910,7 +911,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                     ),
                                     shrinkWrap: true,
                                     scrollDirection: Axis.vertical,
-                                    // ----- Iterate through list returned by _getProjects() ----
+                                    //-----ITERATE THROUGH PROJECT LIST----
                                     itemCount: snapshot.data.length,
                                     separatorBuilder: (BuildContext context, int index) => SizedBox(height: 15),
                                     itemBuilder: (BuildContext context, int index) {

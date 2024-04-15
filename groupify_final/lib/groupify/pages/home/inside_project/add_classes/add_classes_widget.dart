@@ -172,108 +172,92 @@ class _AddClassesWidgetState extends State<AddClassesWidget> {
                 ),
               ),
             ClipRRect(
-              borderRadius: BorderRadius.circular(0.0),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(
-                  sigmaX: 40.0,
-                  sigmaY: 40.0,
-                ),
-                child: Container(
-                  width: 558.0,
-                  height: 1037.0,
-                  decoration: BoxDecoration(
-                    color: FlutterFlowTheme.of(context).overlay,
-                  ),
-                  child: Padding(
-                    padding:
-                        const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 50.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        Column(
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            Container(
-                              width: 399.0,
-                              height: 129.0,
-                              decoration: const BoxDecoration(
-                                color: Colors.transparent,
-                              ),
-                              alignment: const AlignmentDirectional(0.0, 1.0),
-                              child: Align(
-                                alignment: const AlignmentDirectional(0.0, 1.0),
-                                child: Padding(
-                                  padding: const EdgeInsetsDirectional.fromSTEB(
-                                      0.0, 0.0, 0.0, 13.0),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.max,
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsetsDirectional.fromSTEB(
-                                            15.0, 0.0, 0.0, 0.0),
-                                        child: Text(
-                                          FFLocalizations.of(context).getText(
-                                            '5nu9iyk1' /* Add Classes */,
-                                          ),
-                                          style: FlutterFlowTheme.of(context)
-                                              .displayMedium
-                                              .override(
-                                                fontFamily:
-                                                    FlutterFlowTheme.of(context)
-                                                        .displayMediumFamily,
-                                                fontSize: 40.0,
-                                                letterSpacing: 0.0,
-                                                useGoogleFonts: GoogleFonts
-                                                        .asMap()
-                                                    .containsKey(FlutterFlowTheme
-                                                            .of(context)
-                                                        .displayMediumFamily),
-                                              ),
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsetsDirectional.fromSTEB(
-                                            0.0, 0.0, 15.0, 0.0),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.max,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.end,
-                                          children: [
-                                            Padding(
-                                              padding: const EdgeInsetsDirectional
-                                                  .fromSTEB(0.0, 0.0, 0.0, 5.0),
-                                              child: InkWell(
-                                                splashColor: Colors.transparent,
-                                                focusColor: Colors.transparent,
-                                                hoverColor: Colors.transparent,
-                                                highlightColor:
-                                                    Colors.transparent,
-                                                onTap: () async {
-                                                  context
-                                                      .pushNamed('Settings');
-                                                },
-                                                child: Icon(
-                                                  Icons.close_rounded,
-                                                  color: FlutterFlowTheme.of(
-                                                          context)
-                                                      .primaryText,
-                                                  size: 35.0,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+  borderRadius: BorderRadius.circular(0.0),
+  child: BackdropFilter(
+    filter: ImageFilter.blur(
+      sigmaX: 40.0,
+      sigmaY: 40.0,
+    ),
+    child: Container(
+      width: 558.0,
+      height: 1037.0,
+      decoration: BoxDecoration(
+        color: FlutterFlowTheme.of(context).overlay,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 399.0,
+            height: 129.0,
+            decoration: const BoxDecoration(
+              color: Color.fromARGB(0, 255, 255, 255),
+            ),
+            alignment: const AlignmentDirectional(0.0, 1.0),
+            child: Align(
+              alignment: const AlignmentDirectional(0.0, 1.0),
+              child: Padding(
+                padding: const EdgeInsetsDirectional.fromSTEB(
+                    0.0, 0.0, 0.0, 13.0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsetsDirectional.fromSTEB(
+                          15.0, 0.0, 0.0, 0.0),
+                      child: Text(
+                        'Change Classes',
+                        style: FlutterFlowTheme.of(context)
+                            .displayMedium
+                            .override(
+                              fontFamily: FlutterFlowTheme.of(context)
+                                  .displayMediumFamily,
+                              fontSize: 40.0,
+                              useGoogleFonts: GoogleFonts
+                                      .asMap()
+                                  .containsKey(
+                                      FlutterFlowTheme.of(context)
+                                          .displayMediumFamily),
+                            ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsetsDirectional.fromSTEB(
+                          0.0, 0.0, 15.0, 0.0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.max,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsetsDirectional.fromSTEB(
+                                0.0, 0.0, 0.0, 5.0),
+                            child: InkWell(
+                              splashColor: Colors.transparent,
+                              focusColor: Colors.transparent,
+                              hoverColor: Colors.transparent,
+                              highlightColor: Colors.transparent,
+                              onTap: () async {
+                                context.pushNamed('Settings');
+                              },
+                              child: Icon(
+                                Icons.settings_rounded,
+                                color: FlutterFlowTheme.of(context)
+                                    .primaryText,
+                                size: 35.0,
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
                         Expanded(
                           child: Container(
                             height: 600.0,
@@ -359,8 +343,7 @@ class _AddClassesWidgetState extends State<AddClassesWidget> {
                                         .secondaryText,
                                     size: 24.0,
                                   ),
-                                  fillColor: FlutterFlowTheme.of(context)
-                                      .secondaryBackground,
+                                  fillColor: Color.fromARGB(149, 0, 0, 0),
                                   elevation: 2.0,
                                   borderColor:
                                       FlutterFlowTheme.of(context).alternate,
@@ -392,7 +375,7 @@ class _AddClassesWidgetState extends State<AddClassesWidget> {
                                     ),
                                     elevation: 3,
                                     borderSide: BorderSide(
-                                      color: Colors.transparent,
+                                      color: Color.fromARGB(0, 0, 0, 0),
                                       width: 1,
                                     ),
                                     borderRadius: BorderRadius.circular(8),
@@ -407,7 +390,6 @@ class _AddClassesWidgetState extends State<AddClassesWidget> {
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),

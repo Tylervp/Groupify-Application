@@ -33,11 +33,18 @@ class RatingPageWidget extends StatefulWidget {
 class _RatingPageWidgetState extends State<RatingPageWidget> {
   late RatingPageModel _model;
   final scaffoldKey = GlobalKey<ScaffoldState>();
+  Future<List<Member>>? membersFuture;
 
   // Connect to DB
   late SQLDatabaseHelper _sqldatabaseHelper;
   Future<void> _connectToDatabase() async {
     await _sqldatabaseHelper.connectToDatabase();
+  }
+
+   void _initializeData() async {
+    await _sqldatabaseHelper.connectToDatabase();
+    membersFuture = _getMembers();
+    setState(() {}); // Trigger rebuild once data is being fetched
   }
 
   @override
@@ -46,7 +53,8 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
     _model = createModel(context, () => RatingPageModel());
     _sqldatabaseHelper = SQLDatabaseHelper();
     _connectToDatabase();
-    WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
+    _initializeData();
+    setState(() {});
   }
 
   @override
@@ -110,13 +118,6 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
         '$currentUserDisplayName', '')
       WHERE projectname = ? and ownerID = ?;''',
       [pName, pOwnerID]);
-
-      /*await _sqldatabaseHelper.connection.query( 
-        'UPDATE Subtasks SET subTaskAssigned = ? WHERE projectName = ? and ownerID = ?;', 
-        ['', pName, pOwnerID]);
-      await _sqldatabaseHelper.connection.query( 
-        'UPDATE Tasks SET taskAssigned = ? WHERE projectName = ? and ownerID = ? and taskAssigned = ?;', 
-        ['', pName, pOwnerID, currentUserDisplayName]);*/
     }
   }
 
@@ -526,10 +527,10 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
                             Container(
                               height: 530.0,
                               decoration: const BoxDecoration(),
-                              child: FutureBuilder(
+                              child: FutureBuilder<List<Member>>(
                                     future: _getMembers(), 
                                     builder: (BuildContext context, AsyncSnapshot snapshot){
-                                      if(snapshot.data == null){
+                                      if(snapshot.connectionState == ConnectionState.waiting){
                                         return const Center(
                                           child: CircularProgressIndicator(
                                             color: Color.fromARGB(100, 57, 210, 192),
@@ -537,8 +538,11 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
                                             strokeWidth: 4,
                                           ),
                                         );
-                                      }
-                                      else {
+                                      }else if (snapshot.hasError) {
+                                        return Center(
+                                                child: Text('Error: ${snapshot.error.toString()}'),
+                                        );
+                                      }else if (snapshot.hasData && snapshot.data!.isNotEmpty){
                                         return ListView.separated(
                                           padding: const EdgeInsets.fromLTRB(
                                             0,
@@ -559,8 +563,10 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
                                             }
                                           }
                                         );
-                                      }
-                                    }
+                                      } else{
+                                        return Center(child: Text('You are the only member in this project.'));
+                                      }          
+                                  }
                               ),
                             )
                           ],

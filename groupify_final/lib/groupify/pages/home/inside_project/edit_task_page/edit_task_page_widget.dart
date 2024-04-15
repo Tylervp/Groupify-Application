@@ -31,41 +31,41 @@ class EditTaskPageWidget extends StatefulWidget {
 
 class _EditTaskPageWidgetState extends State<EditTaskPageWidget> {
   late EditTaskPageModel _model;
-
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
   late SQLDatabaseHelper _sqldatabaseHelper;
-  Future<void> _connectToDatabase() async {
-    await _sqldatabaseHelper.connectToDatabase();
-  }
+  List<String> members = []; // Use a local list to store members
 
   @override
   void initState() {
     super.initState();
     _model = createModel(context, () => EditTaskPageModel());
-
     _model.taskDescriptionController ??= TextEditingController(text: widget.tDescription);
     _model.taskDescriptionFocusNode ??= FocusNode();
-
     _sqldatabaseHelper = SQLDatabaseHelper();
-    _connectToDatabase();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
+    initializeDatabaseAndData();
   }
 
-Future<List<String>> _getMembers() async {
-  List<String> mems = [];
-  final results = await _sqldatabaseHelper.connection.query(
-    'select userID from ProjectMembers where ownerID = ? and projectName = ?;',
-    [widget.pOwnerId, widget.projectName],
-  );
-  for (final row in results) {
-    String tempmem = row['userID'] as String;
-    mems.add(tempmem);
+  void initializeDatabaseAndData() async {
+    await _sqldatabaseHelper.connectToDatabase();
+    members = await _getMembers();  // Fetch members after confirming database connection
+    setState(() {}); // Call setState to update the UI once members are fetched
   }
-  //_sqldatabaseHelper.closeConnection();
-  return mems;
-}
+
+  Future<List<String>> _getMembers() async {
+    List<String> mems = [];
+    final results = await _sqldatabaseHelper.connection.query(
+      'SELECT userID FROM ProjectMembers WHERE ownerID = ? AND projectName = ?;',
+      [widget.pOwnerId, widget.projectName],
+    );
+    for (final row in results) {
+      String tempmem = row['userID'] as String;
+      mems.add(tempmem);
+    }
+    return mems;
+  }
+
 
 Future<void> _updateTask(double newtProgress) async {
   String? newtDue;
@@ -496,37 +496,28 @@ final String newtDescription = _model.taskDescriptionController.text;
                                     final List<String> options = snapshot.data ?? []; // Provide a default empty list if data is null
                                     return
                                 FlutterFlowDropDown<String>(
-                                  multiSelectController: _model
-                                          .dropDownValueController ??=
-                                      FormFieldController<List<String>>(selectedValue),
-                                  options: options,
+                                  multiSelectController: _model.dropDownValueController ??= FormFieldController<List<String>>(selectedValue),
+                                  options: members, // Directly use the local state list here
                                   width: 300.0,
                                   height: 50.0,
-                                  textStyle:
-                                      FlutterFlowTheme.of(context).bodyMedium,
-                                  hintText: FFLocalizations.of(context).getText(
-                                    'l1zshjhu' /* Please select... */,
-                                  ),
+                                  textStyle: FlutterFlowTheme.of(context).bodyMedium,
+                                  hintText: FFLocalizations.of(context).getText('l1zshjhu' /* Please select... */),
                                   icon: Icon(
                                     Icons.keyboard_arrow_down_rounded,
-                                    color: FlutterFlowTheme.of(context)
-                                        .secondaryText,
+                                    color: FlutterFlowTheme.of(context).secondaryText,
                                     size: 24.0,
                                   ),
-                                  fillColor:
-                                      FlutterFlowTheme.of(context).overlay,
+                                  fillColor: FlutterFlowTheme.of(context).overlay,
                                   elevation: 2.0,
                                   borderColor: Colors.transparent,
                                   borderWidth: 2.0,
                                   borderRadius: 8.0,
-                                  margin: const EdgeInsetsDirectional.fromSTEB(
-                                      16.0, 4.0, 16.0, 4.0),
+                                  margin: const EdgeInsetsDirectional.fromSTEB(16.0, 4.0, 16.0, 4.0),
                                   hidesUnderline: true,
                                   isOverButton: true,
                                   isSearchable: false,
                                   isMultiSelect: true,
-                                  onMultiSelectChanged: (val) => setState(
-                                      () => _model.dropDownValue = val),
+                                  onMultiSelectChanged: (val) => setState(() => _model.dropDownValue = val),
                                 );
                                     }
                                   },
