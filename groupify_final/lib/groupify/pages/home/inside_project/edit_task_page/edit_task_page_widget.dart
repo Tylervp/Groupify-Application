@@ -40,6 +40,8 @@ class _EditTaskPageWidgetState extends State<EditTaskPageWidget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => EditTaskPageModel());
+    _model.taskDescriptionController ??= TextEditingController(text: widget.tDescription);
+    _model.taskDescriptionFocusNode ??= FocusNode();
     _sqldatabaseHelper = SQLDatabaseHelper();
 
     initializeDatabaseAndData();

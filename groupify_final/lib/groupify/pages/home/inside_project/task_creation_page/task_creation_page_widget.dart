@@ -18,9 +18,6 @@ class TaskCreationPageWidget extends StatefulWidget {
   final String? projectOwnerID;
   final String? projectName;
   final String? projectDescription;
-  
- 
-
 
   const TaskCreationPageWidget({super.key, required this.projectOwnerID,required this.projectName, required this.projectDescription});
 
@@ -38,6 +35,11 @@ class _TaskCreationPageWidgetState extends State<TaskCreationPageWidget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => TaskCreationPageModel());
+    _model.taskNameController ??= TextEditingController();
+    _model.taskNameFocusNode ??= FocusNode();
+
+    _model.taskDescriptionController ??= TextEditingController();
+    _model.taskDescriptionFocusNode ??= FocusNode();
     _sqldatabaseHelper = SQLDatabaseHelper();
 
     _initializePage();

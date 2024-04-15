@@ -37,6 +37,11 @@ class _SubtaskCreationPageWidgetState extends State<SubtaskCreationPageWidget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => SubtaskCreationPageModel());
+    _model.subtaskNameController ??= TextEditingController();
+    _model.subtaskNameFocusNode ??= FocusNode();
+
+    _model.subtaskDescriptionController ??= TextEditingController();
+    _model.subtaskDescriptionFocusNode ??= FocusNode();
     _sqldatabaseHelper = SQLDatabaseHelper();
 
     _initializePage();
@@ -48,23 +53,33 @@ class _SubtaskCreationPageWidgetState extends State<SubtaskCreationPageWidget> {
     setState(() {}); // Refresh the UI after members are loaded
   }
 
-Future<void> _connectToDatabase() async {
-    await _sqldatabaseHelper.connectToDatabase();
+  Future<void> _connectToDatabase() async {
+      await _sqldatabaseHelper.connectToDatabase();
   }
 
   Future<List<String>> _getMembers() async {
-  List<String> mems = [];
-  final results = await _sqldatabaseHelper.connection.query(
-    'select userID from ProjectMembers where ownerID = ? and projectName = ?;',
-    [widget.projectOwnerID, widget.projectName],
-  );
-  for (final row in results) {
-    String tempmem = row['userID'] as String;
-    mems.add(tempmem);
+    List<String> mems = [];
+    final results = await _sqldatabaseHelper.connection.query(
+      'select userID from ProjectMembers where ownerID = ? and projectName = ?;',
+      [widget.projectOwnerID, widget.projectName],
+    );
+    for (final row in results) {
+      String tempmem = row['userID'] as String;
+      mems.add(tempmem);
+    }
+    // GRAB FROM PEOPLE WHO ARE ONLY ASSIGNED TO TASK
+    /*final results = await _sqldatabaseHelper.connection.query(
+      'select taskAssigned from tasks where ownerID = ? and projectName = ? and taskName = ?;',
+      [widget.projectOwnerID, widget.projectName, widget.taskName],);
+    var temp = results.first['taskAssigned'] as String;
+    var members = temp.split(',');
+    for(final m in members){
+      mems.add(m.toString());
+    }*/
+
+    //_sqldatabaseHelper.closeConnection();
+    return mems;
   }
-  //_sqldatabaseHelper.closeConnection();
-  return mems;
-}
 
   Future<void> _insertSubtask(String? taskDueDate) async {
     final String tName = widget.taskName;

@@ -9,7 +9,8 @@ export 'showcase_profile_model.dart';
 class ShowcaseProfileWidget extends StatefulWidget {
   final String username;
   final double? rating;
-  const ShowcaseProfileWidget({super.key, required this.username, this.rating});
+  final String? profilePicture;
+  const ShowcaseProfileWidget({super.key, required this.username, this.rating, this.profilePicture});
 
   @override
   State<ShowcaseProfileWidget> createState() => _ShowcaseProfileWidgetState();
@@ -86,7 +87,9 @@ class _ShowcaseProfileWidgetState extends State<ShowcaseProfileWidget> {
                         shape: BoxShape.circle,
                       ),
                       child: Image.network(
-                        'https://picsum.photos/seed/513/600',
+                        valueOrDefault(widget.profilePicture,
+                        'https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg',
+                        ),
                         fit: BoxFit.cover,
                       ),
                     ),

@@ -8,6 +8,7 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'profile_page_model.dart';
 export 'profile_page_model.dart';
+import 'package:groupify_final/sql_database_connection.dart';
 
 class ProfilePageWidget extends StatefulWidget {
   const ProfilePageWidget({super.key});
@@ -18,7 +19,7 @@ class ProfilePageWidget extends StatefulWidget {
 
 class _ProfilePageWidgetState extends State<ProfilePageWidget> {
   late ProfilePageModel _model;
-
+  late SQLDatabaseHelper _sqldatabaseHelper;
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
@@ -27,6 +28,8 @@ class _ProfilePageWidgetState extends State<ProfilePageWidget> {
     _model = createModel(context, () => ProfilePageModel());
 
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
+    _sqldatabaseHelper = SQLDatabaseHelper();
+    _initializeData();
   }
 
   @override
@@ -35,6 +38,26 @@ class _ProfilePageWidgetState extends State<ProfilePageWidget> {
 
     super.dispose();
   }
+
+void _initializeData() async {
+    await _sqldatabaseHelper.connectToDatabase();
+    _getRating();
+    setState(() {}); // Trigger rebuild once data is being fetched
+  }
+
+Future<double> _getRating() async {
+      double rating = 0;
+      double addition = 0;
+      double temp = 0;
+        final ratings = await _sqldatabaseHelper.connection.query('SELECT rating FROM userRating WHERE userID = ?;',
+                                                            [currentUserDisplayName]); 
+        for(final row in ratings){
+          temp = row['rating'] as double;
+          addition += temp;
+        }
+        rating = addition/ratings.length;
+        return rating;
+      }
 
   @override
   Widget build(BuildContext context) {
@@ -277,6 +300,16 @@ class _ProfilePageWidgetState extends State<ProfilePageWidget> {
                                   .addToStart(const SizedBox(height: 20.0)),
                             ),
                           ),
+
+
+                          FutureBuilder(future: _getRating(), builder: (BuildContext context, AsyncSnapshot snapshot){
+                            if(snapshot.data == null){
+                              return SizedBox();
+                            }
+                            else{
+                              
+                              double rating = snapshot.data;
+                              return 
                           Flexible(
                             child: RatingBar.builder(
                               onRatingUpdate: (newValue) => setState(
@@ -286,7 +319,7 @@ class _ProfilePageWidgetState extends State<ProfilePageWidget> {
                                 color: FlutterFlowTheme.of(context).tertiary,
                               ),
                               direction: Axis.horizontal,
-                              initialRating: _model.ratingBarValue ??= 3.0,
+                              initialRating: rating ??= 3.0,
                               unratedColor:
                                   FlutterFlowTheme.of(context).accent3,
                               itemCount: 5,
@@ -294,7 +327,10 @@ class _ProfilePageWidgetState extends State<ProfilePageWidget> {
                               ignoreGestures: true,
                               glowColor: FlutterFlowTheme.of(context).tertiary,
                             ),
-                          ),
+                          );
+                        }}
+                        ),
+
                         ],
                       ),
                       Align(

@@ -27,11 +27,11 @@ class _CreateProjectPageWidgetState extends State<CreateProjectPageWidget> {
     super.initState();
     _model = createModel(context, () => CreateProjectPageModel());
 
-    _model.emailAddressController1 ??= TextEditingController();
-    _model.emailAddressFocusNode1 ??= FocusNode();
+    _model.projectNameController ??= TextEditingController();
+    _model.projectNameFocusNode ??= FocusNode();
 
-    _model.emailAddressController2 ??= TextEditingController();
-    _model.emailAddressFocusNode2 ??= FocusNode();
+    _model.projectDescriptionController ??= TextEditingController();
+    _model.projectDescriptionFocusNode ??= FocusNode();
 
     _sqldatabaseHelper = SQLDatabaseHelper();
     _connectToDatabase();
@@ -39,24 +39,26 @@ class _CreateProjectPageWidgetState extends State<CreateProjectPageWidget> {
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
 
-Future<void> _connectToDatabase() async {
+  // Connect to DB
+  Future<void> _connectToDatabase() async {
     await _sqldatabaseHelper.connectToDatabase();
   }
 
+  // Make project and insert into projects table
   Future<void> _insertProject(String? projectDueDate) async {
-    final String projectName = _model.emailAddressController1.text;
-    final String? projectDescription = _model.emailAddressController2.text;
+    final String projectName = _model.projectNameController.text;
+    final String? projectDescription = _model.projectDescriptionController.text;
     final String userName = currentUserDisplayName;
 
     final results = await _sqldatabaseHelper.connection.query(
         'INSERT INTO Projects (projectName, ownerID, projectDescription, projectProgress, projectDueDate) VALUES (?, ?, ?, 0, ?)',
-        //'INSERT INTO Projects (projectName, ownerID, projectDescription, projectProgress) VALUES (?, ?, ?, 0)',
         [projectName, userName, projectDescription, projectDueDate]);
     print('Inserted project with ID ${results.insertId}');
   }
 
-Future<void> _insertProjectMember() async {
-    final String projectName = _model.emailAddressController1.text;
+  // Make project and insert current user into projectMembers table
+  Future<void> _insertProjectMember() async {
+    final String projectName = _model.projectNameController.text;
     final String userName = currentUserDisplayName;
 
     final results = await _sqldatabaseHelper.connection.query(
@@ -68,7 +70,6 @@ Future<void> _insertProjectMember() async {
   @override
   void dispose() {
     _model.dispose();
-
     super.dispose();
   }
 
@@ -290,8 +291,8 @@ Future<void> _insertProjectMember() async {
                               padding: const EdgeInsetsDirectional.fromSTEB(
                                   24.0, 0.0, 24.0, 20.0),
                               child: TextFormField(
-                                controller: _model.emailAddressController1,
-                                focusNode: _model.emailAddressFocusNode1,
+                                controller: _model.projectNameController,
+                                focusNode: _model.projectNameFocusNode,
                                 obscureText: false,
                                 decoration: InputDecoration(
                                   labelStyle:
@@ -341,7 +342,7 @@ Future<void> _insertProjectMember() async {
                                 style: FlutterFlowTheme.of(context).bodyMedium,
                                 maxLines: null,
                                 validator: _model
-                                    .emailAddressController1Validator
+                                    .projectNameControllerValidator
                                     .asValidator(context),
                               ),
                             ),
@@ -363,8 +364,8 @@ Future<void> _insertProjectMember() async {
                               padding: const EdgeInsetsDirectional.fromSTEB(
                                   24.0, 0.0, 24.0, 20.0),
                               child: TextFormField(
-                                controller: _model.emailAddressController2,
-                                focusNode: _model.emailAddressFocusNode2,
+                                controller: _model.projectDescriptionController,
+                                focusNode: _model.projectDescriptionFocusNode,
                                 obscureText: false,
                                 decoration: InputDecoration(
                                   labelStyle:
@@ -414,7 +415,7 @@ Future<void> _insertProjectMember() async {
                                 style: FlutterFlowTheme.of(context).bodyMedium,
                                 maxLines: 10,
                                 validator: _model
-                                    .emailAddressController2Validator
+                                    .projectDescriptionControllerValidator
                                     .asValidator(context),
                               ),
                             ),

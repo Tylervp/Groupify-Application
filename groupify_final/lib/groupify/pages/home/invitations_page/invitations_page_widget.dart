@@ -15,7 +15,6 @@ class Invitation {
   String ownerID = '';
   String userID = '';
 
-
   Invitation(String projectName, String ownerID, String userID){
     this.projectName = projectName;
     this.ownerID = ownerID;
@@ -26,7 +25,6 @@ class Invitation {
 
 class InvitationsPageWidget extends StatefulWidget {
   const InvitationsPageWidget({super.key});
-
 
   @override
   State<InvitationsPageWidget> createState() => _InvitationsPageWidgetState();
@@ -44,8 +42,6 @@ class _InvitationsPageWidgetState extends State<InvitationsPageWidget> {
     _model = createModel(context, () => InvitationsPageModel());
     _sqldatabaseHelper = SQLDatabaseHelper();
     _connectToDatabase();
-
-
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
 
@@ -53,18 +49,16 @@ class _InvitationsPageWidgetState extends State<InvitationsPageWidget> {
   @override
   void dispose() {
     _model.dispose();
-
-
     super.dispose();
   }
 
-
+  // Connect to DB
   late SQLDatabaseHelper _sqldatabaseHelper;
   Future<void> _connectToDatabase() async {
     await _sqldatabaseHelper.connectToDatabase();
   }
 
-
+  // Get the number of invitations that correspond to the current user
   Future<List<Invitation>> _getInvitations(BuildContext context) async {
     List<Invitation> invitations = [];
     final results = await _sqldatabaseHelper.connection.query('SELECT * FROM Inbox WHERE userID = ?', [currentUserDisplayName]);
@@ -78,14 +72,14 @@ class _InvitationsPageWidgetState extends State<InvitationsPageWidget> {
     return invitations;
   }
 
-
+  // If the user accepts the invite, add them to the project
   Future<void> _insertProjectMembers(BuildContext context, String pName, String oID) async {
     await _sqldatabaseHelper.connection.query('INSERT ProjectMembers (userID, projectName, ownerID) VALUES (?,?,?)',
                                   [currentUserDisplayName, pName, oID]);
     print('CURRENT USER JOINED THE PROJECT');
   }
 
-
+  // Delete invitatiosn from inbox table after accepting or declining an invitation
   Future<void> _deleteInvitation(BuildContext context, String pName, String oID) async {
     await _sqldatabaseHelper.connection.query('DELETE FROM Inbox WHERE userID = ? and projectName = ? and ownerID = ?',
                                   [currentUserDisplayName, pName, oID]);
@@ -94,7 +88,7 @@ class _InvitationsPageWidgetState extends State<InvitationsPageWidget> {
     _sqldatabaseHelper.closeConnection();
   }
 
-
+  // Costum widget to build container for each invite with corresponding information
   Widget invitationContainer(BuildContext context, String pName, String oID, String uID){
     return  Padding(  
       padding: const EdgeInsetsDirectional.fromSTEB(
@@ -125,7 +119,10 @@ class _InvitationsPageWidgetState extends State<InvitationsPageWidget> {
                   shape: BoxShape.circle,
                 ),
                 child: Image.network(
-                  'https://picsum.photos/seed/513/600',
+                  valueOrDefault(
+                  currentUserPhoto, 
+                  'https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg'
+                  ),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -222,8 +219,8 @@ class _InvitationsPageWidgetState extends State<InvitationsPageWidget> {
                                         0.0,
                                         0.0),
                             child: Text(
-                              pName,  /////////////////////////////
-                              overflow: TextOverflow.ellipsis,  ////////////////////////////
+                              pName,
+                              overflow: TextOverflow.ellipsis,
                               style: FlutterFlowTheme
                                       .of(context)
                                   .bodyMedium
@@ -629,7 +626,7 @@ class _InvitationsPageWidgetState extends State<InvitationsPageWidget> {
                                     ),
                                     shrinkWrap: true,
                                     scrollDirection: Axis.vertical,
-                                    //-----ITERATE THROUGH PROJECT LIST----
+                                    //----- Iterate through list of invitations returned by _getInvitations ----
                                     itemCount: snapshot.data.length,
                                     separatorBuilder: (BuildContext context, int index) => SizedBox(height: 15),
                                     itemBuilder: (BuildContext context, int index) {

@@ -21,8 +21,6 @@ class Project {
   String projectDueDate = '';
   List<Member> projectMembers = [];
 
-  //uh8f8huwf8hu
-
   Project(String projectName, String ownerID, String projectDescription, double projectProgress, String projectDue, List<Member> projectMembers, /*List<double> tasksProgress*/){
     this.projectName = projectName;
     this.ownerID = ownerID;
@@ -103,18 +101,19 @@ class _HomePageWidgetState extends State<HomePageWidget> {
       tempProgress = row['projectProgress'] as double;
       tempDueDate = row['projectDueDate'] as String;
       
-      if(tempProgress != 0){  // If project has a progress of 0 (ex. just created), it has no tasks. Skip project progression update
-        // Update project's progression based on the progression of its tasks and fetch it
-        sum = 0;
-        tasksProgress = [];
-        final results2 = await _sqldatabaseHelper.connection.query('SELECT taskProgress FROM tasks WHERE projectName = ? and ownerID = ?;',
-                                                                [tempName, tempOwnerID]);                                                
-        for(final row in results2){
-          temp = row['taskProgress'].toStringAsFixed(2);
-          progress = double.parse(temp);
-          tasksProgress.add(progress);
-          sum += progress;
-        }    
+      // Update project's progression based on the progression of its tasks and fetch it
+      sum = 0;
+      tasksProgress = [];
+      final results2 = await _sqldatabaseHelper.connection.query('SELECT taskProgress FROM tasks WHERE projectName = ? and ownerID = ?;',
+                                                              [tempName, tempOwnerID]);                                                
+      for(final row in results2){
+        temp = row['taskProgress'].toStringAsFixed(2);
+        progress = double.parse(temp);
+        tasksProgress.add(progress);
+        sum += progress;
+      }
+
+      if(tasksProgress.length != 0){  
         projectProgress = sum/tasksProgress.length;
         await _sqldatabaseHelper.connection.query( 
           'UPDATE projects SET projectProgress = ? WHERE projectName = ? and ownerID = ?;',
@@ -456,7 +455,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                 ),
                                 child: Image.network( 
                                   valueOrDefault<String>(
-                                    currentUserPhoto,    ////////// CHANGE TO OWNER PROFILE PICTURE
+                                    currentUserPhoto,    // Change to Owner profile picture
                                     'https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg',
                                   ),
                                   fit: BoxFit.cover,
@@ -886,44 +885,43 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                         ),
                       ),
                       Stack(
-                          children: [
-                            Container(
-                              height: 610.0,
-                              decoration: const BoxDecoration(),
-                              child: FutureBuilder(
-                                future: projectsFuture, // Use the initialized projectsFuture
-                                builder: (BuildContext context, AsyncSnapshot<List<Project>> snapshot) {
-                                  if (snapshot.connectionState == ConnectionState.waiting) {
-                                    return Center(
-                                      child: CircularProgressIndicator(
-                                        color: Color.fromARGB(100, 57, 210, 192),
-                                        backgroundColor: Color.fromARGB(30, 57, 210, 192),
-                                        strokeWidth: 4,
-                                      ),
-                                    );
-                                  } else if (snapshot.hasError) {
-                                    return Text('Error: ${snapshot.error}');
-                                  } else if (snapshot.hasData) {
-                                    return ListView.builder(
-                                      itemCount: snapshot.data!.length,
-                                      itemBuilder: (context, index) {
-                                        Project project = snapshot.data![index];
-                                        return projectContainer(
-                                          context,
-                                          project.projectName,
-                                          project.ownerID,
-                                          project.projectDescription,
-                                          project.projectDueDate,
-                                          Colors.blue, // Example color, adjust as needed
-                                          project.projectProgress,
-                                          project.projectMembers,
-                                        );
-                                      },
-                                    );
-                                  } else {
-                                    // Add this else block to handle cases where no data is available
-                                    return Center(
-                                      child: Text('No projects found or data is not ready'),
+                        children: [
+                          Container(
+                            height: 610.0,
+                            decoration: const BoxDecoration(),
+                            child: FutureBuilder(  
+                              future: _getProjects(), 
+                              builder: (BuildContext context, AsyncSnapshot snapshot){
+                                if(snapshot.data == null){
+                                  return const Center(
+                                    child: CircularProgressIndicator(
+                                      color: Color.fromARGB(100, 57, 210, 192),
+                                      backgroundColor: Color.fromARGB(30, 57, 210, 192),
+                                      strokeWidth: 4,
+                                    ),
+                                  );
+                                }
+                                else{
+                                  return ListView.separated(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      0,
+                                      5.0,
+                                      0,
+                                      0,
+                                    ),
+                                    shrinkWrap: true,
+                                    scrollDirection: Axis.vertical,
+                                    //-----ITERATE THROUGH PROJECT LIST----
+                                    itemCount: snapshot.data.length,
+                                    separatorBuilder: (BuildContext context, int index) => SizedBox(height: 15),
+                                    itemBuilder: (BuildContext context, int index) {
+                                      int colorIndex = index % list_colors.length;
+                                      return projectContainer(context, snapshot.data[index].projectName,
+                                              snapshot.data[index].ownerID, snapshot.data[index].projectDescription,
+                                              snapshot.data[index].projectDueDate, list_colors[colorIndex], 
+                                              snapshot.data[index].projectProgress, 
+                                              snapshot.data[index].projectMembers);
+                                    },
                                   ); 
                                 }
                               }

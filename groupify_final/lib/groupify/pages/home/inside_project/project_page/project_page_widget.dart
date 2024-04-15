@@ -16,7 +16,6 @@ import 'project_page_model.dart';
 export 'project_page_model.dart';
 import 'package:groupify_final/sql_database_connection.dart';
 
-
 class Task {
   String taskName = '';
   String taskDescription = '';
@@ -25,8 +24,10 @@ class Task {
   String taskAssigned = '';
   String taskDueDate = '';
   bool subtaskflag = false;
+  List<Member> tAssign = [];
+  
 
-  Task(String taskName, String taskDescription, double taskProgress, double taskDifficulty, String taskAssigned, String taskDueDate, bool subtaskflag){
+  Task(String taskName, String taskDescription, double taskProgress, double taskDifficulty, String taskAssigned, String taskDueDate, bool subtaskflag,  List<Member> tAssign){
     this.taskName = taskName;
     this.taskDescription = taskDescription;
     this.taskProgress = taskProgress;
@@ -34,6 +35,7 @@ class Task {
     this.taskAssigned = taskAssigned;
     this.taskDueDate = taskDueDate;
     this.subtaskflag = subtaskflag;
+     this.tAssign = tAssign;
   }
 }
 
@@ -45,8 +47,9 @@ class SubTask {
   double subTaskDifficulty = 0.0;
   String subTaskAssigned = '';
   String subTaskDueDate = '';
+  List<Member> subtAssign = [];
 
-  SubTask(String taskName, String subTaskName, String subTaskDescription, double subTaskProgress, double subTaskDifficulty, String subTaskAssigned, String subTaskDueDate){
+  SubTask(String taskName, String subTaskName, String subTaskDescription, double subTaskProgress, double subTaskDifficulty, String subTaskAssigned, String subTaskDueDate, List<Member> subtAssign){
     this.taskName = taskName;
     this.subTaskName = subTaskName;
     this.subTaskDescription = subTaskDescription;
@@ -54,6 +57,7 @@ class SubTask {
     this.subTaskDifficulty = subTaskDifficulty;
     this.subTaskAssigned = subTaskAssigned;
     this.subTaskDueDate = subTaskDueDate;
+    this.subtAssign = subtAssign;
   }
 }
 
@@ -87,7 +91,6 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
   Future<List<Member>>? membersFuture;
   Future<List<Task>>? tasksFuture;
 
-
   @override
   void initState() {
     super.initState();
@@ -96,7 +99,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
     _initializeData();
   }
 
-void _initializeData() async {
+  void _initializeData() async {
     await _sqldatabaseHelper.connectToDatabase();
     membersFuture = _getMembers(); // Fetch members
     tasksFuture = _getTasks(); // Fetch tasks
@@ -143,13 +146,32 @@ void _initializeData() async {
                                                             [widget.projectName, widget.projectOwnerID]);
     print('GOT THE TASKS');
     for(final row in results){
-      
       String temptaskName = row['taskName'] as String;
       String temptaskDescription = row['taskDescription'] as String;
       double temptaskProgress = row['taskProgress'] as double;
       double temptaskDifficulty = row['taskDifficulty'] as double;
       String temptaskAssigned = row['taskAssigned'] as String;
       String temptaskDueDate = row['taskDueDate'] as String;
+
+      // Get rating for each member that is assigned to the task
+      List<Member> tempAssign = [];
+      double rating;
+      double addition;
+      double temp = 0;
+      var splitted = temptaskAssigned.split(',');
+      for(var split in splitted){
+        rating = 0;
+        addition = 0;
+        split = split.trim();
+        final assigned = await _sqldatabaseHelper.connection.query('SELECT rating FROM userRating WHERE userID = ?;',
+                                                            [split.toString()]); 
+        for(final row in assigned){
+          temp = row['rating'] as double;
+          addition += temp;
+        }
+        rating = addition/assigned.length;
+        tempAssign.add(Member(split.toString(), '', rating));
+      }
 
       final results2 = await _sqldatabaseHelper.connection.query('select subTaskName from Subtasks where projectName = ? and ownerId = ? and taskName =?',
                                                             [widget.projectName, widget.projectOwnerID, temptaskName]);
@@ -161,7 +183,7 @@ void _initializeData() async {
       if(subtasksfortask.isEmpty){
         bool tempsubtaskflag = false;
         double finalProgress = temptaskProgress;
-        tasks.insert(0, Task(temptaskName, temptaskDescription, finalProgress, temptaskDifficulty, temptaskAssigned, temptaskDueDate, tempsubtaskflag));
+        tasks.insert(0, Task(temptaskName, temptaskDescription, finalProgress, temptaskDifficulty, temptaskAssigned, temptaskDueDate, tempsubtaskflag, tempAssign));
       }
       else {
         double sum = 0;
@@ -179,7 +201,7 @@ void _initializeData() async {
         await _sqldatabaseHelper.connection.query( 
           'UPDATE Tasks SET taskProgress = ? WHERE projectName = ? and ownerID = ? and taskName = ?;',
               [averagedtaskProgress, widget.projectName, widget.projectOwnerID, temptaskName]);
-        tasks.insert(0, Task(temptaskName, temptaskDescription, averagedtaskProgress, temptaskDifficulty, temptaskAssigned, temptaskDueDate, tempsubtaskflag));
+        tasks.insert(0, Task(temptaskName, temptaskDescription, averagedtaskProgress, temptaskDifficulty, temptaskAssigned, temptaskDueDate, tempsubtaskflag, tempAssign));
       }
     }
     //_sqldatabaseHelper.closeConnection();
@@ -201,7 +223,26 @@ void _initializeData() async {
       String tempsubTaskAssigned = row['subTaskAssigned'] as String;
       String tempsubTaskDueDate = row['subTaskDueDate'] as String;
 
-      subtasks.insert(0, SubTask(temptaskName, tempsubTaskName, tempsubTaskDescription, tempsubTaskProgress, tempsubTaskDifficulty, tempsubTaskAssigned, tempsubTaskDueDate));
+      // Get rating for each member that is assigned to a subtask
+      List<Member> tempAssign = [];
+      double rating;
+      double sum;
+      double temp;
+      var splitted = tempsubTaskAssigned.split(',');
+      for(var split in splitted){
+        rating = 0;
+        sum = 0;
+        split = split.trim();
+        final results2 = await _sqldatabaseHelper.connection.query('SELECT rating FROM userRating WHERE userID = ?;',
+                                                            [split.toString()]); 
+        for(final row in results2){
+          temp = row['rating'] as double;
+          sum += temp;
+        }
+        rating = sum/results2.length;
+        tempAssign.add(Member(split.toString(), '', rating));
+      }
+      subtasks.insert(0, SubTask(temptaskName, tempsubTaskName, tempsubTaskDescription, tempsubTaskProgress, tempsubTaskDifficulty, tempsubTaskAssigned, tempsubTaskDueDate, tempAssign));
     }} catch (e)
     { print('Error fetching subtasks: $e');};
     //_sqldatabaseHelper.closeConnection();
@@ -209,7 +250,7 @@ void _initializeData() async {
   }
 
   // Widget to create project container
-  Widget taskContainer(BuildContext context, String tName, String tDescription, double tProgress, double tDifficulty, String tAssigned, String tDue, bool subtaskflag){ 
+  Widget taskContainer(BuildContext context, String tName, String tDescription, double tProgress, double tDifficulty, String tAssigned, String tDue, bool subtaskflag, List<Member> tAssign){ 
     print('this is the tAssigned ' + tAssigned);
     return Padding(
   padding: EdgeInsetsDirectional.fromSTEB(15, 0, 15, 0),
@@ -309,7 +350,7 @@ void _initializeData() async {
                           ),
                         ),
                         Container(
-                          width: 87,
+                          width: 92, 
                           decoration: BoxDecoration(),
                           child: Padding(
                             padding:
@@ -362,7 +403,7 @@ void _initializeData() async {
                                       child: OptionsTaskWidget(
                                           projectName: widget.projectName,
                                           pOwnerId: widget.projectOwnerID,
-                                          pDescription: widget.projectDescription,    //////////////
+                                          pDescription: widget.projectDescription, 
                                           tName: tName, 
                                           tDescription: tDescription,
                                           tProgress: tProgress, 
@@ -442,25 +483,68 @@ void _initializeData() async {
                           width: 60,
                           height: 25,
                           decoration: BoxDecoration(),
-                          child: ListView(
+                          child : ListView.separated( 
                             padding: EdgeInsets.zero,
                             primary: false,
                             scrollDirection: Axis.horizontal,
-                            children: [
-                              Container(
-                                width: 25,
-                                height: 25,
-                                clipBehavior: Clip.antiAlias,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
+                            itemCount: tAssign.length,
+                            separatorBuilder: (BuildContext context, int index) => SizedBox(width: 2.0),
+                            itemBuilder: (BuildContext context, int index){
+                              return InkWell(
+                                splashColor: Colors.transparent,
+                                focusColor: Colors.transparent,
+                                hoverColor: Colors.transparent,
+                                highlightColor: Colors.transparent,
+                                onTap: () async {
+                                  await showModalBottomSheet(    
+                                    isScrollControlled: true,
+                                    backgroundColor:Colors.transparent,
+                                    enableDrag: false,
+                                    context: context,
+                                    builder: (context) {
+                                      return GestureDetector(
+                                        onTap: () => _model
+                                                .unfocusNode
+                                                .canRequestFocus
+                                            ? FocusScope.of(context)
+                                                .requestFocus(_model
+                                                    .unfocusNode)
+                                            : FocusScope.of(context)
+                                                .unfocus(),
+                                        child: Padding(
+                                          padding: MediaQuery.viewInsetsOf(context),
+                                          child: SizedBox(
+                                            height: 150.0,
+                                            child:
+                                                ShowcaseProfileWidget(
+                                                  username: tAssign[index].username,
+                                                  rating: tAssign[index].rating, 
+                                                  profilePicture : tAssign[index].profilePicture,                                                 
+                                                ), 
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ).then((value) =>
+                                      safeSetState(() {}));
+                                },
+                                child: Container(
+                                  width: 25.0,
+                                  height: 25.0,
+                                  clipBehavior: Clip.antiAlias,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Image.network(
+                                    valueOrDefault(
+                                    tAssign[index].profilePicture,
+                                    'https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg',
+                                    ),
+                                  ),
                                 ),
-                                child: Image.network(
-                                  'https://picsum.photos/seed/939/600',
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ].divide(SizedBox(width: 2)),
-                          ),
+                              );
+                            }
+                          )
                         ),
                       ],
                     ),
@@ -552,7 +636,7 @@ void _initializeData() async {
 
   }
 
-  Widget subTaskContainer(BuildContext context, String tName, String stName, String stDescription, double stProgress, double stDifficulty, String stAssigned, String stDue){ 
+  Widget subTaskContainer(BuildContext context, String tName, String stName, String stDescription, double stProgress, double stDifficulty, String stAssigned, String stDue, List<Member> stAssign){ 
     return Padding(
   padding: EdgeInsetsDirectional.fromSTEB(15, 5, 0, 0),
   child: Row(
@@ -624,6 +708,7 @@ void _initializeData() async {
                                   EdgeInsetsDirectional.fromSTEB(0, 3, 0, 0),
                               child: Text(
                                 stName,
+                                overflow: TextOverflow.ellipsis,
                                 style: FlutterFlowTheme.of(context)
                                     .bodyMedium
                                     .override(
@@ -663,7 +748,7 @@ void _initializeData() async {
                                   ),
                                 ),
                                 Container(
-                                  width: 87,
+                                  width: 92,
                                   decoration: BoxDecoration(),
                                   child: Padding(
                                     padding: EdgeInsetsDirectional.fromSTEB(
@@ -714,7 +799,7 @@ void _initializeData() async {
                                           projectName: widget.projectName,
                                           pOwnerId: widget.projectOwnerID,
                                           pDescription: widget.projectDescription,
-                                          tName: tName,    //////////////
+                                          tName: tName, 
                                           stName: stName, 
                                           stDescription: stDescription,
                                           stProgress: stProgress, 
@@ -764,25 +849,68 @@ void _initializeData() async {
                                 width: 45,
                                 height: 25,
                                 decoration: BoxDecoration(),
-                                child: ListView(
+                                child : ListView.separated(
                                   padding: EdgeInsets.zero,
                                   primary: false,
                                   scrollDirection: Axis.horizontal,
-                                  children: [
-                                    Container(
-                                      width: 25,
-                                      height: 25,
-                                      clipBehavior: Clip.antiAlias,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
+                                  itemCount: stAssign.length,
+                                  separatorBuilder: (BuildContext context, int index) => SizedBox(width: 2.0),
+                                  itemBuilder: (BuildContext context, int index){
+                                    return InkWell(
+                                      splashColor: Colors.transparent,
+                                      focusColor: Colors.transparent,
+                                      hoverColor: Colors.transparent,
+                                      highlightColor: Colors.transparent,
+                                      onTap: () async {
+                                        await showModalBottomSheet(    
+                                          isScrollControlled: true,
+                                          backgroundColor:Colors.transparent,
+                                          enableDrag: false,
+                                          context: context,
+                                          builder: (context) {
+                                            return GestureDetector(
+                                              onTap: () => _model
+                                                      .unfocusNode
+                                                      .canRequestFocus
+                                                  ? FocusScope.of(context)
+                                                      .requestFocus(_model
+                                                          .unfocusNode)
+                                                  : FocusScope.of(context)
+                                                      .unfocus(),
+                                              child: Padding(
+                                                padding: MediaQuery.viewInsetsOf(context),
+                                                child: SizedBox(
+                                                  height: 150.0,
+                                                  child:
+                                                      ShowcaseProfileWidget(
+                                                        username: stAssign[index].username,
+                                                        rating: stAssign[index].rating,
+                                                        profilePicture: stAssign[index].profilePicture,
+                                                      ), 
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ).then((value) =>
+                                            safeSetState(() {}));
+                                      },
+                                      child: Container(
+                                        width: 25.0,
+                                        height: 25.0,
+                                        clipBehavior: Clip.antiAlias,
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Image.network(
+                                          valueOrDefault(
+                                          stAssign[index].profilePicture,
+                                          'https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg',
+                                          ),
+                                        ),
                                       ),
-                                      child: Image.network(
-                                        'https://picsum.photos/seed/409/600',
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ].divide(SizedBox(width: 2)),
-                                ),
+                                    );
+                                  }
+                                )
                               ),
                             ],
                           ),
@@ -883,14 +1011,9 @@ void _initializeData() async {
   String? taskName2 = 'issueissue';
   @override
   Widget build(BuildContext context) {
-    // Check if info from homepage is correct (CAN DELETE v)
     final projectName = widget.projectName;
     final projectOwnerID = widget.projectOwnerID;
     final projectDescription = widget.projectDescription;
-    print(widget.projectName + ' oooooooooooooooooooooooooooooooooooooooooo');
-    print(widget.projectOwnerID + ' oooooooooooooooooooooooooooooooooooooooooo');
-    print(widget.projectDescription + ' oooooooooooooooooooooooooooooooooooooooooo');
-    //_updateProgress(projectName, projectOwnerID);
     return GestureDetector(
       onTap: () => _model.unfocusNode.canRequestFocus
           ? FocusScope.of(context).requestFocus(_model.unfocusNode)
@@ -1044,69 +1167,11 @@ void _initializeData() async {
                                 ),
                                 Padding(
                                   padding: const EdgeInsetsDirectional.fromSTEB(
-                                      0.0, 0.0, 15.0, 0.0),
+                                      0.0, 0.0, 11.0, 0.0),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.max,
                                     mainAxisAlignment: MainAxisAlignment.end,
                                     children: [
-                                      badges.Badge(
-                                        badgeContent: Text(
-                                          FFLocalizations.of(context).getText(
-                                            'hos8rg9o' /* 1 */,
-                                          ),
-                                          style: FlutterFlowTheme.of(context)
-                                              .titleSmall
-                                              .override(
-                                                fontFamily:
-                                                    FlutterFlowTheme.of(context)
-                                                        .titleSmallFamily,
-                                                color: Colors.white,
-                                                useGoogleFonts: GoogleFonts
-                                                        .asMap()
-                                                    .containsKey(
-                                                        FlutterFlowTheme.of(
-                                                                context)
-                                                            .titleSmallFamily),
-                                              ),
-                                        ),
-                                        showBadge: true,
-                                        shape: badges.BadgeShape.circle,
-                                        badgeColor: FlutterFlowTheme.of(context)
-                                            .primary,
-                                        elevation: 4.0,
-                                        padding: const EdgeInsetsDirectional.fromSTEB(
-                                            8.0, 8.0, 8.0, 8.0),
-                                        position: badges.BadgePosition.topEnd(),
-                                        animationType:
-                                            badges.BadgeAnimationType.scale,
-                                        toAnimate: true,
-                                        child: Padding(
-                                          padding:
-                                              const EdgeInsetsDirectional.fromSTEB(
-                                                  0.0, 0.0, 0.0, 5.0),
-                                          child: InkWell(
-                                            splashColor: Colors.transparent,
-                                            focusColor: Colors.transparent,
-                                            hoverColor: Colors.transparent,
-                                            highlightColor: Colors.transparent,
-                                            onTap: () async {
-                                              context
-                                                  .pushNamed('RatingPage', queryParameters: {
-                                                    'projectOwnerID': widget.projectOwnerID,
-                                                    'projectName': widget.projectName,
-                                                    'projectDescription': widget.projectDescription,
-                                                  });
-                                            },
-                                            child: Icon(
-                                              Icons.message_rounded,
-                                              color:
-                                                  FlutterFlowTheme.of(context)
-                                                      .primaryText,
-                                              size: 35.0,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
                                       InkWell(
                                         splashColor: Colors.transparent,
                                         focusColor: Colors.transparent,
@@ -1244,6 +1309,7 @@ void _initializeData() async {
                                                                     ShowcaseProfileWidget(
                                                                       username: snapshot.data[index].username,
                                                                       rating: snapshot.data[index].rating,
+                                                                      profilePicture: snapshot.data[index].profilePicture,
                                                                     ), 
                                                               ),
                                                             ),
@@ -1307,6 +1373,9 @@ void _initializeData() async {
                           ),
                         ),
                       ),
+
+
+
                       Stack(
                         children: [
                           Container(
@@ -1323,32 +1392,36 @@ void _initializeData() async {
                                       strokeWidth: 4,
                                     ),
                                   );
-                                } else if (snapshot.hasError) {
+                                }
+                                else if (snapshot.hasError) {
                                   return Center(
                                     child: Text('Error: ${snapshot.error.toString()}'),
-                                  );
-                                } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                                  return ListView.separated(
-                                    padding: const EdgeInsets.fromLTRB(0, 5.0, 0, 0),
-                                    shrinkWrap: true,
-                                    scrollDirection: Axis.vertical,
-                                    itemCount: snapshot.data!.length,
-                                    separatorBuilder: (context, index) => SizedBox(height: 15),
-                                    itemBuilder: (context, index) {
-                                      Task task = snapshot.data![index];
-                                      return Column(
-                                        children: [
-                                          taskContainer(
-                                            context,
-                                            task.taskName,
-                                            task.taskDescription,
-                                            task.taskProgress,
-                                            task.taskDifficulty,
-                                            task.taskAssigned,
-                                            task.taskDueDate,
-                                            task.subtaskflag,
-                                          ),
-                                          FutureBuilder<List<SubTask>>(
+                                  );} 
+                                else if (snapshot.hasData && snapshot.data!.isNotEmpty){
+                                    return ListView.separated(
+                                      padding: const EdgeInsets.fromLTRB(0, 5.0, 0, 0),
+                                      shrinkWrap: true,
+                                      scrollDirection: Axis.vertical,
+                                      itemCount: snapshot.data!.length,
+                                      separatorBuilder: (BuildContext context, int index) => SizedBox(height: 15),
+                                      itemBuilder: (BuildContext context, int index) {
+                                        Task task = snapshot.data![index];
+                                        return Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            // Task widget
+                                            taskContainer(
+                                              context,
+                                              task.taskName,
+                                              task.taskDescription,
+                                              task.taskProgress,
+                                              task.taskDifficulty,
+                                              task.taskAssigned,
+                                              task.taskDueDate,
+                                              task.subtaskflag,
+                                              task.tAssign,
+                                            ),
+FutureBuilder<List<SubTask>>(
                                             future: _getSubTasks(task.taskName),
                                             builder: (context, subTaskSnapshot) {
                                               if (subTaskSnapshot.connectionState == ConnectionState.waiting) {
@@ -1371,11 +1444,12 @@ void _initializeData() async {
                                                       subTask.subTaskDifficulty,
                                                       subTask.subTaskAssigned,
                                                       subTask.subTaskDueDate,
+                                                      subTask.subtAssign
                                                     );
                                                   },
                                                 );
                                               } else {
-                                                return Text('No sub-tasks found');
+                                                return Text('');
                                               }
                                             },
                                           ),

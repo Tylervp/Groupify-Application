@@ -33,11 +33,18 @@ class RatingPageWidget extends StatefulWidget {
 class _RatingPageWidgetState extends State<RatingPageWidget> {
   late RatingPageModel _model;
   final scaffoldKey = GlobalKey<ScaffoldState>();
+  Future<List<Member>>? membersFuture;
 
   // Connect to DB
   late SQLDatabaseHelper _sqldatabaseHelper;
   Future<void> _connectToDatabase() async {
     await _sqldatabaseHelper.connectToDatabase();
+  }
+
+   void _initializeData() async {
+    await _sqldatabaseHelper.connectToDatabase();
+    membersFuture = _getMembers();
+    setState(() {}); // Trigger rebuild once data is being fetched
   }
 
   @override
@@ -46,7 +53,8 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
     _model = createModel(context, () => RatingPageModel());
     _sqldatabaseHelper = SQLDatabaseHelper();
     _connectToDatabase();
-    WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
+    _initializeData();
+    setState(() {});
   }
 
   @override
@@ -76,19 +84,40 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
      // last member in project so need to delete the whole project
     if(results.length == 1){
       await _sqldatabaseHelper.connection.query( 'DELETE FROM finalProjectMembers WHERE projectName = ? and ownerID = ?;', [pName, pOwnerID]);
+      await _sqldatabaseHelper.connection.query( 'DELETE FROM inbox WHERE projectName = ? and ownerID = ?;', [pName, pOwnerID]);
       await _sqldatabaseHelper.connection.query( 'DELETE FROM projectMembers WHERE projectName = ? and ownerID = ?;', [pName, pOwnerID]);
       await _sqldatabaseHelper.connection.query( 'DELETE FROM Subtasks WHERE projectName = ? and ownerID = ?;', [pName, pOwnerID]);
       await _sqldatabaseHelper.connection.query( 'DELETE FROM Tasks WHERE projectName = ? and ownerID = ?;', [pName, pOwnerID]);
       await _sqldatabaseHelper.connection.query( 'DELETE FROM projects WHERE projectName = ? and ownerId = ?;', [pName, pOwnerID]);
     }
-    else{ // just leave the project becasue there is still members in it
+    else{ // just leave the project becasue there is still members in it and remove from assigned tasks/subtasks
       await _sqldatabaseHelper.connection.query( 'DELETE FROM projectMembers WHERE projectName = ? and ownerID = ? and userID = ?;', [pName, pOwnerID, currentUserDisplayName]);
-      await _sqldatabaseHelper.connection.query( 
-        'UPDATE Subtasks SET subTaskAssigned = ? WHERE projectName = ? and ownerID = ?;', 
-        ['', pName, pOwnerID]);
-      await _sqldatabaseHelper.connection.query( 
-        'UPDATE Tasks SET taskAssigned = ? WHERE projectName = ? and ownerID = ? and taskAssigned = ?;', 
-        ['', pName, pOwnerID, currentUserDisplayName]);
+    
+      await _sqldatabaseHelper.connection.query(
+      '''UPDATE Subtasks
+      SET subtaskassigned = 
+        REPLACE(
+          REPLACE(
+            REPLACE(
+              REPLACE(subtaskassigned, ', $currentUserDisplayName,', ','),
+            ', $currentUserDisplayName', ''),
+          '$currentUserDisplayName, ', ''),
+        '$currentUserDisplayName', '')
+      WHERE projectName = ? and ownerID = ?;''',
+      [pName, pOwnerID]);    
+    
+      await _sqldatabaseHelper.connection.query(
+      '''UPDATE tasks
+      SET taskassigned = 
+        REPLACE(
+            REPLACE(
+                REPLACE(
+                    REPLACE(taskassigned, ', $currentUserDisplayName,', ','),
+                ', $currentUserDisplayName', ''),
+            '$currentUserDisplayName, ', ''),
+        '$currentUserDisplayName', '')
+      WHERE projectname = ? and ownerID = ?;''',
+      [pName, pOwnerID]);
     }
   }
 
@@ -239,6 +268,7 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
     );
   }
 
+  // Insert ratings for user in rating table
   Future<void> _insertRatings() async {
      for (var member in memberRatings.entries) {
       await _sqldatabaseHelper.connection.query('Insert userRating (userID, rating) Values (?, ?);',
@@ -497,10 +527,10 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
                             Container(
                               height: 530.0,
                               decoration: const BoxDecoration(),
-                              child: FutureBuilder(
+                              child: FutureBuilder<List<Member>>(
                                     future: _getMembers(), 
                                     builder: (BuildContext context, AsyncSnapshot snapshot){
-                                      if(snapshot.data == null){
+                                      if(snapshot.connectionState == ConnectionState.waiting){
                                         return const Center(
                                           child: CircularProgressIndicator(
                                             color: Color.fromARGB(100, 57, 210, 192),
@@ -508,8 +538,11 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
                                             strokeWidth: 4,
                                           ),
                                         );
-                                      }
-                                      else {
+                                      }else if (snapshot.hasError) {
+                                        return Center(
+                                                child: Text('Error: ${snapshot.error.toString()}'),
+                                        );
+                                      }else if (snapshot.hasData && snapshot.data!.isNotEmpty){
                                         return ListView.separated(
                                           padding: const EdgeInsets.fromLTRB(
                                             0,
@@ -530,8 +563,10 @@ class _RatingPageWidgetState extends State<RatingPageWidget> {
                                             }
                                           }
                                         );
-                                      }
-                                    }
+                                      } else{
+                                        return Center(child: Text('You are the only member in this project.'));
+                                      }          
+                                  }
                               ),
                             )
                           ],
