@@ -81,24 +81,26 @@ class ProjectPageWidget extends StatefulWidget {
 }
 
 class _ProjectPageWidgetState extends State<ProjectPageWidget> {
+  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();  // Define the scaffoldKey
   late ProjectPageModel _model;
-  final scaffoldKey = GlobalKey<ScaffoldState>();
-
-  // Connect to DB
   late SQLDatabaseHelper _sqldatabaseHelper;
-  Future<void> _connectToDatabase() async {
-    await _sqldatabaseHelper.connectToDatabase();
-  }
+  Future<List<Member>>? membersFuture;
+  Future<List<Task>>? tasksFuture;
+
 
   @override
   void initState() {
     super.initState();
-
     _model = createModel(context, () => ProjectPageModel());
-
     _sqldatabaseHelper = SQLDatabaseHelper();
-    _connectToDatabase();
-    WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
+    _initializeData();
+  }
+
+void _initializeData() async {
+    await _sqldatabaseHelper.connectToDatabase();
+    membersFuture = _getMembers(); // Fetch members
+    tasksFuture = _getTasks(); // Fetch tasks
+    setState(() {}); // Trigger rebuild once data is being fetched
   }
 
   @override
@@ -1286,7 +1288,10 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                       hoverColor: Colors.transparent,
                                       highlightColor: Colors.transparent,
                                       onTap: () async {
-                                        context.pushNamed('BrowsePage');
+                                      context.pushNamed('BrowsePage', queryParameters: {
+                                        'projectOwnerID': widget.projectOwnerID,
+                                        'projectName': widget.projectName
+                                      });
                                       },
                                       child: Icon(
                                         Icons.person_add_alt_1,
@@ -1307,11 +1312,10 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                           Container(
                             height: 565.0,
                             decoration: const BoxDecoration(),
-                            child: 
-                            FutureBuilder(
+                            child: FutureBuilder<List<Task>>(
                               future: _getTasks(),
-                              builder: (BuildContext context, AsyncSnapshot snapshot) {
-                                if (snapshot.data == null) {
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState == ConnectionState.waiting) {
                                   return Center(
                                     child: CircularProgressIndicator(
                                       color: Color.fromARGB(99, 120, 227, 215),
@@ -1319,84 +1323,80 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                       strokeWidth: 4,
                                     ),
                                   );
-                                } 
-                                else {
-                                    return ListView.separated(
-                                      padding: const EdgeInsets.fromLTRB(0, 5.0, 0, 0),
-                                      shrinkWrap: true,
-                                      scrollDirection: Axis.vertical,
-                                      itemCount: snapshot.data.length,
-                                      separatorBuilder: (BuildContext context, int index) => SizedBox(height: 15),
-                                      itemBuilder: (BuildContext context, int index) {
-                                        return Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            // Task widget
-                                            taskContainer(
-                                              context,
-                                              snapshot.data[index].taskName,
-                                              snapshot.data[index].taskDescription,
-                                              snapshot.data[index].taskProgress,
-                                              snapshot.data[index].taskDifficulty,
-                                              snapshot.data[index].taskAssigned,
-                                              snapshot.data[index].taskDueDate,
-                                              snapshot.data[index].subtaskflag,
-                                            ),
-                                            FutureBuilder(
-                                              future: _getSubTasks(snapshot.data[index].taskName),
-                                              builder: (BuildContext context, AsyncSnapshot subtasksnapshot) {
-                                                if (subtasksnapshot.data == null) {
-                                                  return const Center(
-                                                    child: CircularProgressIndicator(
-                                                      color: Color.fromARGB(99, 120, 227, 215),
-                                                      backgroundColor: Color.fromARGB(30, 57, 210, 192),
-                                                      strokeWidth: 4,
-                                                    ),
-                                                  );
-                                                } else {
-                                                    return ListView.separated(
-                                                      padding: const EdgeInsets.fromLTRB(0, 5.0, 0, 0),
-                                                      shrinkWrap: true,
-                                                      scrollDirection: Axis.vertical,
-                                                      itemCount: subtasksnapshot.data.length,
-                                                      separatorBuilder: (BuildContext context, int index) => SizedBox(height: 15),
-                                                      itemBuilder: (BuildContext context, int index) {
-                                                        return Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            // Task widget
-                                                            subTaskContainer(
-                                                              context,
-                                                              subtasksnapshot.data[index].taskName,
-                                                              subtasksnapshot.data[index].subTaskName,
-                                                              subtasksnapshot.data[index].subTaskDescription,
-                                                              subtasksnapshot.data[index].subTaskProgress,
-                                                              subtasksnapshot.data[index].subTaskDifficulty,
-                                                              subtasksnapshot.data[index].subTaskAssigned,
-                                                              subtasksnapshot.data[index].subTaskDueDate,
-                                                            )
-                                                          ]
-                                                        );
-                                                      });
-                                                      }})],
-                                        );
-                                      },
-                                    );
-                                  }
+                                } else if (snapshot.hasError) {
+                                  return Center(
+                                    child: Text('Error: ${snapshot.error.toString()}'),
+                                  );
+                                } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                                  return ListView.separated(
+                                    padding: const EdgeInsets.fromLTRB(0, 5.0, 0, 0),
+                                    shrinkWrap: true,
+                                    scrollDirection: Axis.vertical,
+                                    itemCount: snapshot.data!.length,
+                                    separatorBuilder: (context, index) => SizedBox(height: 15),
+                                    itemBuilder: (context, index) {
+                                      Task task = snapshot.data![index];
+                                      return Column(
+                                        children: [
+                                          taskContainer(
+                                            context,
+                                            task.taskName,
+                                            task.taskDescription,
+                                            task.taskProgress,
+                                            task.taskDifficulty,
+                                            task.taskAssigned,
+                                            task.taskDueDate,
+                                            task.subtaskflag,
+                                          ),
+                                          FutureBuilder<List<SubTask>>(
+                                            future: _getSubTasks(task.taskName),
+                                            builder: (context, subTaskSnapshot) {
+                                              if (subTaskSnapshot.connectionState == ConnectionState.waiting) {
+                                                return Center(child: CircularProgressIndicator());
+                                              } else if (subTaskSnapshot.hasError) {
+                                                return Text('Error: ${subTaskSnapshot.error}');
+                                              } else if (subTaskSnapshot.hasData && subTaskSnapshot.data!.isNotEmpty) {
+                                                return ListView.builder(
+                                                  shrinkWrap: true,
+                                                  physics: NeverScrollableScrollPhysics(), // To avoid nested scrolling issues
+                                                  itemCount: subTaskSnapshot.data!.length,
+                                                  itemBuilder: (context, subIndex) {
+                                                    SubTask subTask = subTaskSnapshot.data![subIndex];
+                                                    return subTaskContainer(
+                                                      context,
+                                                      subTask.taskName,
+                                                      subTask.subTaskName,
+                                                      subTask.subTaskDescription,
+                                                      subTask.subTaskProgress,
+                                                      subTask.subTaskDifficulty,
+                                                      subTask.subTaskAssigned,
+                                                      subTask.subTaskDueDate,
+                                                    );
+                                                  },
+                                                );
+                                              } else {
+                                                return Text('No sub-tasks found');
+                                              }
+                                            },
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                } else {
+                                  return Center(child: Text('No tasks found'));
                                 }
+                              },
                             ),
                           ),
-
                           Padding(
-                            padding: const EdgeInsetsDirectional.fromSTEB(
-                                312.0, 435.0, 0.0, 0.0),
+                            padding: const EdgeInsetsDirectional.fromSTEB(312.0, 435.0, 0.0, 0.0),
                             child: FlutterFlowIconButton(
                               borderColor: Colors.transparent,
                               borderRadius: 30.0,
                               borderWidth: 1.0,
                               buttonSize: 50.0,
-                              fillColor: FlutterFlowTheme.of(context)
-                                  .primaryBackground,
+                              fillColor: FlutterFlowTheme.of(context).primaryBackground,
                               icon: Icon(
                                 Icons.add,
                                 color: FlutterFlowTheme.of(context).primaryText,
@@ -1408,21 +1408,13 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                   'projectName': widget.projectName,
                                   'projectDescription': widget.projectDescription,
                                   });
-                                
-                              },
+                                },
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                          
-                        ],
-                ),
-                    
-            ),
-                ),
-        ),
-      
-          ]))
-    );
-}
-}
+                          ],
+                        )
+                      ])
+                ))
+              )]
+            )
+        ));}}
