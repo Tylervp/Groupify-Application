@@ -8,64 +8,47 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'profile_page_model.dart';
 export 'profile_page_model.dart';
-import 'package:groupify_final/sql_database_connection.dart';
+import 'package:groupify_final/sql_files/members_DAO_BO/members_BO.dart';
 
-class ProfilePageWidget extends StatefulWidget {
+class ProfilePageWidget extends StatefulWidget { // Class to represent the widget and calls its widgetState
   const ProfilePageWidget({super.key});
-
   @override
   State<ProfilePageWidget> createState() => _ProfilePageWidgetState();
 }
 
-class _ProfilePageWidgetState extends State<ProfilePageWidget> {
-  late ProfilePageModel _model;
-  late SQLDatabaseHelper _sqldatabaseHelper;
+class _ProfilePageWidgetState extends State<ProfilePageWidget> { // Class to manage the state of the widget
+  late ProfilePageModel _model; // build instance of its model
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
-  @override
-  void initState() {
-    super.initState();
-    _model = createModel(context, () => ProfilePageModel());
+  final Members_BO _membersBO = Members_BO(); // Instance of Members_BO to get access to member queries
+  Future<double>? ratingFuture; // Future variable that will the rating when the query is initialized 
 
+  @override
+  void initState() { // Build the widget and model when initialized
+    super.initState();
+    _model = createModel(context, () => ProfilePageModel()); 
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
-    _sqldatabaseHelper = SQLDatabaseHelper();
-    _initializeData();
+    _initializeData(); // Initialize userRating query
   }
 
   @override
-  void dispose() {
+  void dispose() { // Cleans up widget when not being used
     _model.dispose();
-
     super.dispose();
   }
 
-void _initializeData() async {
-    await _sqldatabaseHelper.connectToDatabase();
-    _getRating();
+  void _initializeData() async {
+    ratingFuture = _membersBO.getUserRating(currentUserDisplayName); // Query the rating of the user when initialized
     setState(() {}); // Trigger rebuild once data is being fetched
   }
 
-Future<double> _getRating() async {
-      double rating = 0;
-      double addition = 0;
-      double temp = 0;
-        final ratings = await _sqldatabaseHelper.connection.query('SELECT rating FROM userRating WHERE userID = ?;',
-                                                            [currentUserDisplayName]); 
-        for(final row in ratings){
-          temp = row['rating'] as double;
-          addition += temp;
-        }
-        rating = addition/ratings.length;
-        return rating;
-      }
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) { // Main widget that displays the page
     return GestureDetector(
       onTap: () => _model.unfocusNode.canRequestFocus
           ? FocusScope.of(context).requestFocus(_model.unfocusNode)
           : FocusScope.of(context).unfocus(),
-      child: Scaffold(
+      child: Scaffold( // Build and align background of the page
         key: scaffoldKey,
         backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
         body: Stack(
@@ -164,7 +147,7 @@ Future<double> _getRating() async {
                   sigmaX: 40.0,
                   sigmaY: 40.0,
                 ),
-                child: Container(
+                child: Container( // Build app bar
                   width: 558.0,
                   height: 1037.0,
                   decoration: BoxDecoration(
@@ -185,17 +168,14 @@ Future<double> _getRating() async {
                             child: Align(
                               alignment: const AlignmentDirectional(0.0, 1.0),
                               child: Padding(
-                                padding: const EdgeInsetsDirectional.fromSTEB(
-                                    0.0, 0.0, 0.0, 13.0),
+                                padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 13.0),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.max,
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Padding(
-                                      padding: const EdgeInsetsDirectional.fromSTEB(
-                                          15.0, 0.0, 0.0, 0.0),
+                                    Padding( // title of the app bar
+                                      padding: const EdgeInsetsDirectional.fromSTEB(15.0, 0.0, 0.0, 0.0),
                                       child: Text(
                                         FFLocalizations.of(context).getText(
                                           'cqmqqa8t' /* My Account */,
@@ -203,45 +183,32 @@ Future<double> _getRating() async {
                                         style: FlutterFlowTheme.of(context)
                                             .displayMedium
                                             .override(
-                                              fontFamily:
-                                                  FlutterFlowTheme.of(context)
-                                                      .displayMediumFamily,
+                                              fontFamily: FlutterFlowTheme.of(context).displayMediumFamily,
                                               fontSize: 40.0,
-                                              useGoogleFonts: GoogleFonts
-                                                      .asMap()
-                                                  .containsKey(
-                                                      FlutterFlowTheme.of(
-                                                              context)
-                                                          .displayMediumFamily),
+                                              useGoogleFonts: GoogleFonts.asMap()
+                                                  .containsKey(FlutterFlowTheme.of(context).displayMediumFamily),
                                             ),
                                       ),
                                     ),
-                                    Padding(
-                                      padding: const EdgeInsetsDirectional.fromSTEB(
-                                          0.0, 0.0, 15.0, 0.0),
+                                    Padding( // Settings icon
+                                      padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 15.0, 0.0),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.max,
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.end,
+                                        mainAxisAlignment: MainAxisAlignment.end,
                                         children: [
                                           Padding(
-                                            padding:
-                                                const EdgeInsetsDirectional.fromSTEB(
-                                                    0.0, 0.0, 0.0, 5.0),
+                                            padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 5.0),
                                             child: InkWell(
                                               splashColor: Colors.transparent,
                                               focusColor: Colors.transparent,
                                               hoverColor: Colors.transparent,
-                                              highlightColor:
-                                                  Colors.transparent,
-                                              onTap: () async {
+                                              highlightColor: Colors.transparent,
+                                              onTap: () async { // Navigate to settings page when pressed
                                                 context.pushNamed('Settings');
                                               },
                                               child: Icon(
                                                 Icons.settings_rounded,
-                                                color:
-                                                    FlutterFlowTheme.of(context)
-                                                        .primaryText,
+                                                color: FlutterFlowTheme.of(context).primaryText,
                                                 size: 35.0,
                                               ),
                                             ),
@@ -260,7 +227,7 @@ Future<double> _getRating() async {
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                AuthUserStreamWidget(
+                                AuthUserStreamWidget( // Show the profile picture of the current user
                                   builder: (context) => Container(
                                     width: 200.0,
                                     height: 200.0,
@@ -277,92 +244,79 @@ Future<double> _getRating() async {
                                     ),
                                   ),
                                 ),
-                                AuthUserStreamWidget(
+                                AuthUserStreamWidget( // Show the username/ID of the current user
                                   builder: (context) => Text(
                                     currentUserDisplayName,
-                                    style: FlutterFlowTheme.of(context)
-                                        .bodyMedium
+                                    style: FlutterFlowTheme.of(context).bodyMedium
                                         .override(
                                           fontFamily: 'Urbanist',
                                           fontSize: 35.0,
-                                          useGoogleFonts: GoogleFonts.asMap()
-                                              .containsKey('Urbanist'),
+                                          useGoogleFonts: GoogleFonts.asMap().containsKey('Urbanist'),
                                         ),
                                   ),
                                 ),
-                                Text(
-                                  currentUserEmail,
-                                  style:
-                                      FlutterFlowTheme.of(context).bodyMedium,
+                                Text( // Show the email of the current user
+                                  currentUserEmail, 
+                                  style: FlutterFlowTheme.of(context).bodyMedium,
                                 ),
                               ]
-                                  .divide(const SizedBox(height: 10.0))
-                                  .addToStart(const SizedBox(height: 20.0)),
+                              .divide(const SizedBox(height: 10.0))
+                              .addToStart(const SizedBox(height: 20.0)),
                             ),
                           ),
-
-
-                          FutureBuilder(future: _getRating(), builder: (BuildContext context, AsyncSnapshot snapshot){
-                            if(snapshot.data == null){
-                              return SizedBox();
+                          FutureBuilder(
+                            future: ratingFuture, // Get the rating for the user
+                            builder: (BuildContext context, AsyncSnapshot snapshot){
+                              if(snapshot.data == null){
+                                return const SizedBox();
+                              }
+                              else{
+                                double rating = snapshot.data; // Assign the queried rating to rating variable
+                                return Flexible(
+                                  child: RatingBar.builder(
+                                    onRatingUpdate: (newValue) => setState(
+                                        () => _model.ratingBarValue = newValue),
+                                    itemBuilder: (context, index) => Icon(
+                                      Icons.star_rounded,
+                                      color: FlutterFlowTheme.of(context).tertiary,
+                                    ),
+                                    direction: Axis.horizontal,
+                                    initialRating: rating.truncate().toDouble(), // Display the user's rating
+                                    unratedColor: FlutterFlowTheme.of(context).accent3,
+                                    itemCount: 5,
+                                    itemSize: 60.0,
+                                    ignoreGestures: true,
+                                    glowColor: FlutterFlowTheme.of(context).tertiary,
+                                  ),
+                                );
+                              }
                             }
-                            else{
-                              
-                              double rating = snapshot.data;
-                              return 
-                          Flexible(
-                            child: RatingBar.builder(
-                              onRatingUpdate: (newValue) => setState(
-                                  () => _model.ratingBarValue = newValue),
-                              itemBuilder: (context, index) => Icon(
-                                Icons.star_rounded,
-                                color: FlutterFlowTheme.of(context).tertiary,
-                              ),
-                              direction: Axis.horizontal,
-                              initialRating: rating ??= 3.0,
-                              unratedColor:
-                                  FlutterFlowTheme.of(context).accent3,
-                              itemCount: 5,
-                              itemSize: 60.0,
-                              ignoreGestures: true,
-                              glowColor: FlutterFlowTheme.of(context).tertiary,
-                            ),
-                          );
-                        }}
-                        ),
-
+                          ),
                         ],
                       ),
-                      Align(
+                      Align( // Logout button
                         alignment: const AlignmentDirectional(0.0, 0.28),
                         child: FFButtonWidget(
-                          onPressed: () async {
+                          onPressed: () async { // When pressed, navigate back to the login page and sign out of account
                             GoRouter.of(context).prepareAuthEvent();
                             await authManager.signOut();
                             GoRouter.of(context).clearRedirectLocation();
-
                             context.pushNamedAuth('LoginPage', context.mounted);
                           },
                           text: FFLocalizations.of(context).getText(
                             'oq9f1id0' /* Logout */,
                           ),
-                          options: FFButtonOptions(
+                          options: FFButtonOptions( // Button features
                             width: 130.0,
                             height: 50.0,
-                            padding: const EdgeInsetsDirectional.fromSTEB(
-                                24.0, 0.0, 24.0, 0.0),
-                            iconPadding: const EdgeInsetsDirectional.fromSTEB(
-                                0.0, 0.0, 0.0, 0.0),
+                            padding: const EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 0.0),
+                            iconPadding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
                             color: FlutterFlowTheme.of(context).primary,
-                            textStyle: FlutterFlowTheme.of(context)
-                                .titleSmall
+                            textStyle: FlutterFlowTheme.of(context).titleSmall
                                 .override(
-                                  fontFamily: FlutterFlowTheme.of(context)
-                                      .titleSmallFamily,
+                                  fontFamily: FlutterFlowTheme.of(context).titleSmallFamily,
                                   color: Colors.white,
-                                  useGoogleFonts: GoogleFonts.asMap()
-                                      .containsKey(FlutterFlowTheme.of(context)
-                                          .titleSmallFamily),
+                                  useGoogleFonts: GoogleFonts.asMap().containsKey(FlutterFlowTheme.of(context).titleSmallFamily),
                                 ),
                             elevation: 3.0,
                             borderSide: const BorderSide(

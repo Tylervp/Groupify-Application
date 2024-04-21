@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'are_you_sure_project_model.dart';
 export 'are_you_sure_project_model.dart';
-import 'package:groupify_final/sql_database_connection.dart';
 import '/auth/firebase_auth/auth_util.dart';
+import 'package:groupify_final/sql_files/projects_DAO_BO/projects_BO.dart';
 
-class AreYouSureProjectWidget extends StatefulWidget {
+class AreYouSureProjectWidget extends StatefulWidget { // Class to represent the widget and calls its widgetState
+// Values passed in to 'are you sure' project bottomsheet
   final String? pOwnerId;
   final String? pName;
   final String? pDescription;
@@ -20,8 +21,9 @@ class AreYouSureProjectWidget extends StatefulWidget {
       _AreYouSureProjectWidgetState();
 }
 
-class _AreYouSureProjectWidgetState extends State<AreYouSureProjectWidget> {
-  late AreYouSureProjectModel _model;
+class _AreYouSureProjectWidgetState extends State<AreYouSureProjectWidget> { // Class to manage the state of the widget
+  late AreYouSureProjectModel _model; // Build instance of its model
+  final Projects_BO _projectsBO = Projects_BO(); // Project BO to gain access to project db and queries
 
   @override
   void setState(VoidCallback callback) {
@@ -29,97 +31,20 @@ class _AreYouSureProjectWidgetState extends State<AreYouSureProjectWidget> {
     _model.onUpdate();
   }
 
-  // Connect to DB
-  late SQLDatabaseHelper _sqldatabaseHelper;
-  Future<void> _connectToDatabase() async {
-    await _sqldatabaseHelper.connectToDatabase();
-  }
-
   @override
-  void initState() {
+  void initState() { // Build the widget and model when initialized
     super.initState();
     _model = createModel(context, () => AreYouSureProjectModel());
-    _sqldatabaseHelper = SQLDatabaseHelper();
-    _connectToDatabase();
-
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
 
   @override
-  void dispose() {
+  void dispose() {  // Cleans up widget when not being used
     _model.maybeDispose();
     super.dispose();
   }
 
-  // Delete from project Members table
-  Future<void> _deleteProjectMembers(String? pOwnerID, String? pName, String? pDescription, String? pDue) async {
-    await _sqldatabaseHelper.connection.query( 
-      'DELETE FROM projectMembers WHERE projectName = ? and ownerID = ?;', [pName, currentUserDisplayName]);
-  }
-
-  // Delete all subtask and tasks associated with the project and delete project from projects table at the end
-  Future<void> _deleteProject(String? pOwnerID, String? pName, String? pDescription, String? pDue) async {
-    await _sqldatabaseHelper.connection.query( 'DELETE FROM inbox WHERE projectName = ? and ownerID = ?;', [pName, pOwnerID]);
-    
-    await _sqldatabaseHelper.connection.query( 
-      'UPDATE Subtasks SET subTaskAssigned = ? WHERE projectName = ? and ownerID = ?;',['', pName, currentUserDisplayName]);
-
-    await _sqldatabaseHelper.connection.query( 
-      'UPDATE Tasks SET taskAssigned = ? WHERE projectName = ? and ownerID = ?;',['', pName, currentUserDisplayName]);
-
-    await _sqldatabaseHelper.connection.query( 
-      'DELETE FROM Subtasks WHERE projectName = ? and ownerID = ?;', [pName, currentUserDisplayName]);
-
-    await _sqldatabaseHelper.connection.query( 
-      'DELETE FROM Tasks WHERE projectName = ? and ownerID = ?;', [pName, currentUserDisplayName]);
-
-    await _sqldatabaseHelper.connection.query( 
-      'DELETE FROM finalProjectMembers WHERE projectName = ? and ownerID = ?;', [pName, currentUserDisplayName]);
-
-    await _sqldatabaseHelper.connection.query( 
-      'DELETE FROM projects WHERE projectName = ? and ownerId = ?;', [pName, currentUserDisplayName]);
-    _sqldatabaseHelper.closeConnection();
-  }
-
-  // If not an owner, leave project member table 
-  Future<void> _leaveProjectMembers(String? pOwnerID, String? pName, String? pDescription, String? pDue) async {  
-    await _sqldatabaseHelper.connection.query( 
-      'DELETE FROM projectMembers WHERE userID = ? and projectName = ? and ownerID = ?;', 
-      [currentUserDisplayName, pName, pOwnerID]);
-  }
-
-  // If not an owner, unassign current user from any tasks/subtasks the were assigned to within a project
-  Future<void> _unassign(String? pOwnerID, String? pName, String? pDescription, String? pDue) async {
-    await _sqldatabaseHelper.connection.query(
-      '''UPDATE Subtasks
-      SET subtaskassigned = 
-        REPLACE(
-          REPLACE(
-            REPLACE(
-              REPLACE(subtaskassigned, ', $currentUserDisplayName,', ','),
-            ', $currentUserDisplayName', ''),
-          '$currentUserDisplayName, ', ''),
-        '$currentUserDisplayName', '')
-      WHERE projectName = ? and ownerID = ?;''',
-      [pName, pOwnerID]);    
-    
-      await _sqldatabaseHelper.connection.query(
-      '''UPDATE tasks
-      SET taskassigned = 
-        REPLACE(
-            REPLACE(
-                REPLACE(
-                    REPLACE(taskassigned, ', $currentUserDisplayName,', ','),
-                ', $currentUserDisplayName', ''),
-            '$currentUserDisplayName, ', ''),
-        '$currentUserDisplayName', '')
-      WHERE projectname = ? and ownerID = ?;''',
-      [pName, pOwnerID]);
-
-    _sqldatabaseHelper.closeConnection();
-  }
-
-  // Show different text when current user is the owner of the project
+  // Widget that shows different text when current user is the owner of the project and perform delete project queries 
   Widget isOwner(BuildContext context){
     return Column(
       children: [
@@ -138,11 +63,9 @@ class _AreYouSureProjectWidgetState extends State<AreYouSureProjectWidget> {
                 ),
                 textAlign: TextAlign.center,
                 style: FlutterFlowTheme.of(context).bodyMedium.override(
-                      fontFamily:
-                          FlutterFlowTheme.of(context).bodyMediumFamily,
+                      fontFamily: FlutterFlowTheme.of(context).bodyMediumFamily,
                       fontSize: 20.0,
-                      useGoogleFonts: GoogleFonts.asMap().containsKey(
-                          FlutterFlowTheme.of(context).bodyMediumFamily),
+                      useGoogleFonts: GoogleFonts.asMap().containsKey(FlutterFlowTheme.of(context).bodyMediumFamily),
                     ),
               ),
             ),
@@ -153,29 +76,20 @@ class _AreYouSureProjectWidgetState extends State<AreYouSureProjectWidget> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             FFButtonWidget(
-              onPressed: () async {
-                _deleteProjectMembers(widget.pOwnerId, widget.pName, widget.pDescription, widget.pDue);
-                context.pushNamed('HomePage');
-                _deleteProject(widget.pOwnerId, widget.pName, widget.pDescription, widget.pDue);
+              onPressed: () async { // When yes is pressed, peform query to complete remove project and its info 
+                await _projectsBO.removeProject(widget.pOwnerId, widget.pName);
+                context.pushNamed('HomePage'); // Go back to home page
               },
-              text: FFLocalizations.of(context).getText(
-                'aqswhyc8' /* Yes */,
-              ),
+              text: FFLocalizations.of(context).getText('aqswhyc8' /* Yes */,),
               options: FFButtonOptions(
                 height: 40.0,
-                padding:
-                    const EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 0.0),
-                iconPadding:
-                    const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
+                padding: const EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 0.0),
+                iconPadding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
                 color: const Color(0xB2F90101),
-                textStyle: FlutterFlowTheme.of(context)
-                    .titleSmall
-                    .override(
-                      fontFamily:
-                          FlutterFlowTheme.of(context).titleSmallFamily,
+                textStyle: FlutterFlowTheme.of(context).titleSmall.override(
+                      fontFamily: FlutterFlowTheme.of(context).titleSmallFamily,
                       color: Colors.white,
-                      useGoogleFonts: GoogleFonts.asMap().containsKey(
-                          FlutterFlowTheme.of(context).titleSmallFamily),
+                      useGoogleFonts: GoogleFonts.asMap().containsKey(FlutterFlowTheme.of(context).titleSmallFamily),
                     ),
                 elevation: 3.0,
                 borderSide: const BorderSide(
@@ -186,27 +100,21 @@ class _AreYouSureProjectWidgetState extends State<AreYouSureProjectWidget> {
               ),
             ),
             FFButtonWidget(
-              onPressed: () async {
-                context.safePop();
+              onPressed: () async { // If no is pressed, go back to the options bottomsheet
+                context.safePop(); 
               },
               text: FFLocalizations.of(context).getText(
                 'wl40gcpc' /* No */,
               ),
               options: FFButtonOptions(
                 height: 40.0,
-                padding:
-                    const EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 0.0),
-                iconPadding:
-                    const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
+                padding: const EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 0.0),
+                iconPadding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
                 color: FlutterFlowTheme.of(context).secondaryText,
-                textStyle: FlutterFlowTheme.of(context)
-                    .titleSmall
-                    .override(
-                      fontFamily:
-                          FlutterFlowTheme.of(context).titleSmallFamily,
+                textStyle: FlutterFlowTheme.of(context).titleSmall.override(
+                      fontFamily: FlutterFlowTheme.of(context).titleSmallFamily,
                       color: Colors.white,
-                      useGoogleFonts: GoogleFonts.asMap().containsKey(
-                          FlutterFlowTheme.of(context).titleSmallFamily),
+                      useGoogleFonts: GoogleFonts.asMap().containsKey(FlutterFlowTheme.of(context).titleSmallFamily),
                     ),
                 elevation: 3.0,
                 borderSide: const BorderSide(
@@ -222,7 +130,7 @@ class _AreYouSureProjectWidgetState extends State<AreYouSureProjectWidget> {
     );
   }
 
-  // Show different text when current user is not the owner of the project
+  // Widget that shows different text when current user is not the owner of the project and perform leaving project queries
   Widget notOwner(BuildContext context){
     return Column(
       children: [
@@ -235,15 +143,13 @@ class _AreYouSureProjectWidgetState extends State<AreYouSureProjectWidget> {
               height: 77.0,
               decoration: const BoxDecoration(),
               alignment: const AlignmentDirectional(0.0, 0.0),
-              child: Text(
+              child: Text( // Show the text that asks the user if they would want to leave the project rather than delete
                 'Are you sure you wish to leave this project?',
                 textAlign: TextAlign.center,
                 style: FlutterFlowTheme.of(context).bodyMedium.override(
-                      fontFamily:
-                          FlutterFlowTheme.of(context).bodyMediumFamily,
+                      fontFamily: FlutterFlowTheme.of(context).bodyMediumFamily,
                       fontSize: 20.0,
-                      useGoogleFonts: GoogleFonts.asMap().containsKey(
-                          FlutterFlowTheme.of(context).bodyMediumFamily),
+                      useGoogleFonts: GoogleFonts.asMap().containsKey(FlutterFlowTheme.of(context).bodyMediumFamily),
                     ),
               ),
             ),
@@ -254,29 +160,20 @@ class _AreYouSureProjectWidgetState extends State<AreYouSureProjectWidget> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             FFButtonWidget(
-              onPressed: () async {
-                _leaveProjectMembers(widget.pOwnerId, widget.pName, widget.pDescription, widget.pDue);
-                context.pushNamed('HomePage');
-                _unassign(widget.pOwnerId, widget.pName, widget.pDescription, widget.pDue);
+              onPressed: () async { // If yes, perform the queries that will unassign tasks/subtasks theuser is in leave proj.
+                await _projectsBO.leaveProject(widget.pOwnerId, widget.pName); 
+                context.pushNamed('HomePage'); // Go back to homepage
               },
-              text: FFLocalizations.of(context).getText(
-                'aqswhyc8' /* Yes */,
-              ),
+              text: FFLocalizations.of(context).getText('aqswhyc8' /* Yes */,),
               options: FFButtonOptions(
                 height: 40.0,
-                padding:
-                    const EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 0.0),
-                iconPadding:
-                    const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
+                padding: const EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 0.0),
+                iconPadding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
                 color: const Color(0xB2F90101),
-                textStyle: FlutterFlowTheme.of(context)
-                    .titleSmall
-                    .override(
-                      fontFamily:
-                          FlutterFlowTheme.of(context).titleSmallFamily,
+                textStyle: FlutterFlowTheme.of(context).titleSmall.override(
+                      fontFamily:FlutterFlowTheme.of(context).titleSmallFamily,
                       color: Colors.white,
-                      useGoogleFonts: GoogleFonts.asMap().containsKey(
-                          FlutterFlowTheme.of(context).titleSmallFamily),
+                      useGoogleFonts: GoogleFonts.asMap().containsKey(FlutterFlowTheme.of(context).titleSmallFamily),
                     ),
                 elevation: 3.0,
                 borderSide: const BorderSide(
@@ -287,27 +184,19 @@ class _AreYouSureProjectWidgetState extends State<AreYouSureProjectWidget> {
               ),
             ),
             FFButtonWidget(
-              onPressed: () async {
+              onPressed: () async { // If no, go back to options bottomsheet
                 context.safePop();
               },
-              text: FFLocalizations.of(context).getText(
-                'wl40gcpc' /* No */,
-              ),
+              text: FFLocalizations.of(context).getText('wl40gcpc' /* No */,),
               options: FFButtonOptions(
                 height: 40.0,
-                padding:
-                    const EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 0.0),
-                iconPadding:
-                    const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
+                padding: const EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 0.0),
+                iconPadding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
                 color: FlutterFlowTheme.of(context).secondaryText,
-                textStyle: FlutterFlowTheme.of(context)
-                    .titleSmall
-                    .override(
-                      fontFamily:
-                          FlutterFlowTheme.of(context).titleSmallFamily,
+                textStyle: FlutterFlowTheme.of(context).titleSmall.override(
+                      fontFamily: FlutterFlowTheme.of(context).titleSmallFamily,
                       color: Colors.white,
-                      useGoogleFonts: GoogleFonts.asMap().containsKey(
-                          FlutterFlowTheme.of(context).titleSmallFamily),
+                      useGoogleFonts: GoogleFonts.asMap().containsKey(FlutterFlowTheme.of(context).titleSmallFamily),
                     ),
                 elevation: 3.0,
                 borderSide: const BorderSide(
@@ -324,7 +213,7 @@ class _AreYouSureProjectWidgetState extends State<AreYouSureProjectWidget> {
   }
  
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) { // Main widget that displays the page
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Container(
@@ -346,10 +235,10 @@ class _AreYouSureProjectWidgetState extends State<AreYouSureProjectWidget> {
             mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
-            children : [
-              if(widget.pOwnerId == currentUserDisplayName)
+            children : [  /// Determing if the current user is the owner of the project
+              if(widget.pOwnerId == currentUserDisplayName) // If owner, call the widget for the owner
                 isOwner(context)
-              else 
+              else  // If not the owner, call the member widget
                 notOwner(context)
             ],
           ),

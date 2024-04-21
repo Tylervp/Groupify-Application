@@ -6,7 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'showcase_profile_model.dart';
 export 'showcase_profile_model.dart';
 
-class ShowcaseProfileWidget extends StatefulWidget {
+class ShowcaseProfileWidget extends StatefulWidget { // Class to represent the widget and calls its widgetState
+  // Member information that is passed in to showcaseProfile bottomsheet
   final String username;
   final double? rating;
   final String? profilePicture;
@@ -16,7 +17,7 @@ class ShowcaseProfileWidget extends StatefulWidget {
   State<ShowcaseProfileWidget> createState() => _ShowcaseProfileWidgetState();
 }
 
-class _ShowcaseProfileWidgetState extends State<ShowcaseProfileWidget> {
+class _ShowcaseProfileWidgetState extends State<ShowcaseProfileWidget> { // Class to manage the state of the widget
   late ShowcaseProfileModel _model;
 
   @override
@@ -26,21 +27,21 @@ class _ShowcaseProfileWidgetState extends State<ShowcaseProfileWidget> {
   }
 
   @override
-  void initState() {
+  void initState() { // Build the widget and model when initialized
     super.initState();
     _model = createModel(context, () => ShowcaseProfileModel());
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
 
   @override
-  void dispose() {
+  void dispose() { // Cleans up widget when not being used
     _model.maybeDispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    double? tempRating = widget.rating; 
+  Widget build(BuildContext context) { // Main widget that displays the page
+    double? tempRating = widget.rating; // Get the rating that was passed in and assign to tempRating
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(16.0, 16.0, 16.0, 16.0),
       child: Container(
@@ -63,7 +64,7 @@ class _ShowcaseProfileWidgetState extends State<ShowcaseProfileWidget> {
             focusColor: Colors.transparent,
             hoverColor: Colors.transparent,
             highlightColor: Colors.transparent,
-            child: Container(
+            child: Container( // Build container of bottomsheet
               height: 110.0,
               decoration: BoxDecoration(
                 color: FlutterFlowTheme.of(context).primaryBackground,
@@ -87,7 +88,8 @@ class _ShowcaseProfileWidgetState extends State<ShowcaseProfileWidget> {
                         shape: BoxShape.circle,
                       ),
                       child: Image.network(
-                        valueOrDefault(widget.profilePicture,
+                        valueOrDefault(
+                        widget.profilePicture, // Show profile picture that was passed in
                         'https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg',
                         ),
                         fit: BoxFit.cover,
@@ -108,23 +110,17 @@ class _ShowcaseProfileWidgetState extends State<ShowcaseProfileWidget> {
                                 width: 210.0,
                                 decoration: const BoxDecoration(),
                                 child: Padding(
-                                  padding: const EdgeInsetsDirectional.fromSTEB(
-                                      8.0, 3.0, 0.0, 0.0),
+                                  padding: const EdgeInsetsDirectional.fromSTEB(8.0, 3.0, 0.0, 0.0),
                                   child: Text(
-                                    widget.username,
+                                    widget.username, // Show username that was passed in to the bottom sheet
                                     overflow: TextOverflow.ellipsis,
-                                    style: FlutterFlowTheme.of(context)
-                                        .bodyMedium
+                                    style: FlutterFlowTheme.of(context).bodyMedium
                                         .override(
-                                          fontFamily:
-                                              FlutterFlowTheme.of(context)
-                                                  .bodyMediumFamily,
+                                          fontFamily: FlutterFlowTheme.of(context).bodyMediumFamily,
                                           fontSize: 23.0,
                                           fontWeight: FontWeight.w600,
                                           useGoogleFonts: GoogleFonts.asMap()
-                                              .containsKey(
-                                                  FlutterFlowTheme.of(context)
-                                                      .bodyMediumFamily),
+                                              .containsKey(FlutterFlowTheme.of(context).bodyMediumFamily),
                                         ),
                                   ),
                                 ),
@@ -133,8 +129,7 @@ class _ShowcaseProfileWidgetState extends State<ShowcaseProfileWidget> {
                           ),
                         ),
                         Padding(
-                          padding: const EdgeInsetsDirectional.fromSTEB(
-                              5.0, 0.0, 0.0, 0.0),
+                          padding: const EdgeInsetsDirectional.fromSTEB(5.0, 0.0, 0.0, 0.0),
                           child: RatingBar.builder(
                             onRatingUpdate: (newValue) => setState(
                                 () => _model.ratingBarValue = newValue),
@@ -143,7 +138,7 @@ class _ShowcaseProfileWidgetState extends State<ShowcaseProfileWidget> {
                               color: FlutterFlowTheme.of(context).tertiary,
                             ),
                             direction: Axis.horizontal,
-                            initialRating: (tempRating != null && !tempRating.isNaN) ? tempRating : 3.0,  // change(3.0) if the user is new
+                            initialRating: (tempRating != null && !tempRating.isNaN) ? tempRating.truncate().toDouble() : 0,  // Show user rating or 0 if new user
                             unratedColor: FlutterFlowTheme.of(context).accent3,
                             itemCount: 5,
                             itemSize: 30.0,

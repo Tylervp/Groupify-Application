@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'edti_project_page_model.dart';
 export 'edti_project_page_model.dart';
-import 'package:groupify_final/sql_database_connection.dart';
-import '/auth/firebase_auth/auth_util.dart';
+import 'package:groupify_final/sql_files/projects_DAO_BO/projects_BO.dart';
 
-class EdtiProjectPageWidget extends StatefulWidget {
+class EdtiProjectPageWidget extends StatefulWidget { // Class to represent the widget and calls its widgetState
+  // Values passed in to edit page
   final String pName;
   final String? pDescription;
   final String? pDue; 
@@ -19,56 +19,36 @@ class EdtiProjectPageWidget extends StatefulWidget {
   State<EdtiProjectPageWidget> createState() => _EdtiProjectPageWidgetState();
 }
 
-class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
-  late EdtiProjectPageModel _model;
-
+class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> { // Class to manage the state of the widget
+  late EdtiProjectPageModel _model; // Build instance of its model
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Connect to DB 
-  late SQLDatabaseHelper _sqldatabaseHelper;
-  Future<void> _connectToDatabase() async {
-    await _sqldatabaseHelper.connectToDatabase();
-  }
+  // Variables to hold new edited values
+  String? newDue = ''; 
+  String? newDescription = '';
+  final Projects_BO _projectsBO = Projects_BO(); // ProjectBO to have access to project queries
 
   @override
-  void initState() {
+  void initState() { // Build the widget, model, and controllers when initialized
     super.initState();
     _model = createModel(context, () => EdtiProjectPageModel());
 
-    _model.projectNameController ??= TextEditingController(text: widget.pName);
+    // Intialize textControllers from model page in order to get values inside textfields
+    _model.projectNameController ??= TextEditingController(text: widget.pName); // Show the previous proj. name in textfield
     _model.projectNameFocusNode ??= FocusNode();
-    _model.projectDescriptionController ??= TextEditingController(text: widget.pDescription);
+    _model.projectDescriptionController ??= TextEditingController(text: widget.pDescription); // Show previous descr. 
     _model.projectDescriptionFocusNode ??= FocusNode();
-
-    _sqldatabaseHelper = SQLDatabaseHelper();
-    _connectToDatabase();
-
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
 
   @override
-  void dispose() {
+  void dispose() { // Cleans up widget when not being used
     _model.dispose();
-
     super.dispose();
   }
 
-  // Update project in projects table with new information
-  Future<void> _updateProject(String? pName, String? nDescription, String? nDue) async {
-    await _sqldatabaseHelper.connection.query( 
-        'UPDATE Projects SET projectDescription = ?, projectDueDate = ? WHERE projectName = ? and ownerID = ?;',
-            [nDescription, nDue, pName, currentUserDisplayName]);
-
-    print('PROJECT UPDATE');
-    _sqldatabaseHelper.closeConnection();
-  }
-
-  String? newDue = '';
-  String? newDescription = '';
   @override
-  Widget build(BuildContext context) {
-    String? newName = widget.pName;
-    
+  Widget build(BuildContext context) { // Main widget that displays the page
     return GestureDetector(
       onTap: () => _model.unfocusNode.canRequestFocus
           ? FocusScope.of(context).requestFocus(_model.unfocusNode)
@@ -78,7 +58,7 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
         backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
         body: Stack(
           alignment: const AlignmentDirectional(1.0, 1.0),
-          children: [
+          children: [            // Building and aligning of background 
             Align(
               alignment: const AlignmentDirectional(1.0, -1.4),
               child: Container(
@@ -165,7 +145,7 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
                   ),
                 ),
               ),
-            ClipRRect(
+            ClipRRect( // Building of the app bar
               borderRadius: BorderRadius.circular(0.0),
               child: BackdropFilter(
                 filter: ImageFilter.blur(
@@ -179,8 +159,7 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
                     color: FlutterFlowTheme.of(context).overlay,
                   ),
                   child: Padding(
-                    padding:
-                        const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 50.0),
+                    padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 50.0),
                     child: Column(
                       mainAxisSize: MainAxisSize.max,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -198,61 +177,44 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
                               child: Align(
                                 alignment: const AlignmentDirectional(0.0, 1.0),
                                 child: Padding(
-                                  padding: const EdgeInsetsDirectional.fromSTEB(
-                                      0.0, 0.0, 0.0, 13.0),
+                                  padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 13.0),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.max,
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsetsDirectional.fromSTEB(
-                                            15.0, 0.0, 0.0, 0.0),
+                                    children: [  
+                                      Padding( // Display edit project
+                                        padding: const EdgeInsetsDirectional.fromSTEB(15.0, 0.0, 0.0, 0.0),
                                         child: Text(
-                                          FFLocalizations.of(context).getText(
-                                            'lvji7nfx' /* Edit Project */,
-                                          ),
-                                          style: FlutterFlowTheme.of(context)
-                                              .displayMedium
+                                          FFLocalizations.of(context).getText('lvji7nfx' /* Edit Project */,),
+                                          style: FlutterFlowTheme.of(context).displayMedium
                                               .override(
-                                                fontFamily:
-                                                    FlutterFlowTheme.of(context)
-                                                        .displayMediumFamily,
+                                                fontFamily: FlutterFlowTheme.of(context).displayMediumFamily,
                                                 fontSize: 40.0,
                                                 useGoogleFonts: GoogleFonts
-                                                        .asMap()
-                                                    .containsKey(FlutterFlowTheme
-                                                            .of(context)
-                                                        .displayMediumFamily),
+                                                        .asMap().containsKey(FlutterFlowTheme.of(context).displayMediumFamily),
                                               ),
                                         ),
                                       ),
-                                      Padding(
-                                        padding: const EdgeInsetsDirectional.fromSTEB(
-                                            0.0, 0.0, 15.0, 0.0),
+                                      Padding(  // Exit icon
+                                        padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 15.0, 0.0),
                                         child: Row(
                                           mainAxisSize: MainAxisSize.max,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.end,
+                                          mainAxisAlignment: MainAxisAlignment.end,
                                           children: [
                                             Padding(
-                                              padding: const EdgeInsetsDirectional
-                                                  .fromSTEB(0.0, 0.0, 0.0, 5.0),
+                                              padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 5.0),
                                               child: InkWell(
                                                 splashColor: Colors.transparent,
                                                 focusColor: Colors.transparent,
                                                 hoverColor: Colors.transparent,
-                                                highlightColor:
-                                                    Colors.transparent,
-                                                onTap: () async {
+                                                highlightColor:Colors.transparent,
+                                                onTap: () async { // Go back to home page when pressed
                                                   context.pushNamed('HomePage');
                                                 },
                                                 child: Icon(
                                                   Icons.close_rounded,
-                                                  color: FlutterFlowTheme.of(
-                                                          context)
-                                                      .primaryText,
+                                                  color: FlutterFlowTheme.of(context).primaryText,
                                                   size: 35.0,
                                                 ),
                                               ),
@@ -268,35 +230,30 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
                             Align(
                               alignment: const AlignmentDirectional(-1.0, 0.0),
                               child: Padding(
-                                padding: const EdgeInsetsDirectional.fromSTEB(
-                                    25.0, 0.0, 0.0, 3.0),
-                                child: Text(
-                                  FFLocalizations.of(context).getText(
+                                padding: const EdgeInsetsDirectional.fromSTEB(25.0, 0.0, 0.0, 3.0),
+                                child: Text( // Title of fist text field
+                                  FFLocalizations.of(context).getText( 
                                     'bkz5cnkc' /* Project Description */,
                                   ),
-                                  style:
-                                      FlutterFlowTheme.of(context).bodyMedium,
+                                  style: FlutterFlowTheme.of(context).bodyMedium,
                                 ),
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsetsDirectional.fromSTEB(
-                                  24.0, 0.0, 24.0, 20.0),
+                              padding: const EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 20.0),
                               child: TextFormField(
-                                controller: _model.projectDescriptionController,
+                                controller: _model.projectDescriptionController, // Use projDescController to get input
                                 focusNode: _model.projectDescriptionFocusNode,
                                 obscureText: false,
                                 onChanged: (value){
-                                  newDescription = value;
+                                  newDescription = value; // Assign to newDescription variable made at the start
                                 },
                                 decoration: InputDecoration(
-                                  labelStyle:
-                                      FlutterFlowTheme.of(context).bodyMedium,
-                                  hintText: FFLocalizations.of(context).getText(
+                                  labelStyle: FlutterFlowTheme.of(context).bodyMedium,
+                                  hintText: FFLocalizations.of(context).getText( // Show text if there is nothing in textfield
                                     'hpxgbpn2' /* Enter project description... */,
                                   ),
-                                  hintStyle:
-                                      FlutterFlowTheme.of(context).bodySmall,
+                                  hintStyle: FlutterFlowTheme.of(context).bodySmall,
                                   enabledBorder: OutlineInputBorder(
                                     borderSide: const BorderSide(
                                       color: Color(0x00E0E3E7),
@@ -313,58 +270,48 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
                                   ),
                                   errorBorder: OutlineInputBorder(
                                     borderSide: BorderSide(
-                                      color: FlutterFlowTheme.of(context)
-                                          .secondary,
+                                      color: FlutterFlowTheme.of(context).secondary,
                                       width: 1.0,
                                     ),
                                     borderRadius: BorderRadius.circular(8.0),
                                   ),
                                   focusedErrorBorder: OutlineInputBorder(
                                     borderSide: BorderSide(
-                                      color: FlutterFlowTheme.of(context)
-                                          .secondary,
+                                      color: FlutterFlowTheme.of(context).secondary,
                                       width: 1.0,
                                     ),
                                     borderRadius: BorderRadius.circular(8.0),
                                   ),
                                   filled: true,
-                                  fillColor:
-                                      FlutterFlowTheme.of(context).overlay,
-                                  contentPadding:
-                                      const EdgeInsetsDirectional.fromSTEB(
-                                          20.0, 24.0, 20.0, 24.0),
+                                  fillColor: FlutterFlowTheme.of(context).overlay,
+                                  contentPadding: const EdgeInsetsDirectional.fromSTEB(20.0, 24.0, 20.0, 24.0),
                                 ),
                                 style: FlutterFlowTheme.of(context).bodyMedium,
                                 maxLines: 10,
-                                validator: _model
-                                    .projectDescriptionControllerValidator
-                                    .asValidator(context),
+                                validator: _model.projectDescriptionControllerValidator.asValidator(context),
                               ),
                             ),
                             Align(
                               alignment: const AlignmentDirectional(-1.0, 0.0),
                               child: Padding(
-                                padding: const EdgeInsetsDirectional.fromSTEB(
-                                    25.0, 0.0, 0.0, 3.0),
-                                child: Text(
+                                padding: const EdgeInsetsDirectional.fromSTEB(25.0, 0.0, 0.0, 3.0),
+                                child: Text( // Title for duedate textfield
                                   FFLocalizations.of(context).getText(
                                     'ntwq82l4' /* Due Date */,
                                   ),
-                                  style:
-                                      FlutterFlowTheme.of(context).bodyMedium,
+                                  style: FlutterFlowTheme.of(context).bodyMedium,
                                 ),
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsetsDirectional.fromSTEB(
-                                  24.0, 0.0, 24.0, 0.0),
+                              padding: const EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 0.0),
                               child: InkWell(
                                 splashColor: Colors.transparent,
                                 focusColor: Colors.transparent,
                                 hoverColor: Colors.transparent,
                                 highlightColor: Colors.transparent,
                                 onTap: () async {
-                                  final datePickedDate = await showDatePicker(
+                                  final datePickedDate = await showDatePicker( // Show date picker when textfield is pressed
                                     context: context,
                                     initialDate: getCurrentTimestamp,
                                     firstDate: getCurrentTimestamp,
@@ -373,35 +320,25 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
                                       return wrapInMaterialDatePickerTheme(
                                         context,
                                         child!,
-                                        headerBackgroundColor:
-                                            const Color(0xFF6F61EF),
+                                        headerBackgroundColor:const Color(0xFF6F61EF),
                                         headerForegroundColor: Colors.white,
-                                        headerTextStyle: FlutterFlowTheme.of(
-                                                context)
-                                            .headlineLarge
+                                        headerTextStyle: FlutterFlowTheme.of(context).headlineLarge
                                             .override(
                                               fontFamily: 'Outfit',
                                               color: const Color(0xFF15161E),
                                               fontSize: 32.0,
                                               fontWeight: FontWeight.w600,
-                                              useGoogleFonts:
-                                                  GoogleFonts.asMap()
-                                                      .containsKey('Outfit'),
+                                              useGoogleFonts: GoogleFonts.asMap().containsKey('Outfit'),
                                             ),
-                                        pickerBackgroundColor: Colors.white,
-                                        pickerForegroundColor:
-                                            const Color(0xFF15161E),
-                                        selectedDateTimeBackgroundColor:
-                                            const Color(0xFF6F61EF),
-                                        selectedDateTimeForegroundColor:
-                                            Colors.white,
-                                        actionButtonForegroundColor:
-                                            const Color(0xFF15161E),
+                                        pickerBackgroundColor:Colors.white,
+                                        pickerForegroundColor:const Color(0xFF15161E),
+                                        selectedDateTimeBackgroundColor:const Color(0xFF6F61EF),
+                                        selectedDateTimeForegroundColor:Colors.white,
+                                        actionButtonForegroundColor:const Color(0xFF15161E),
                                         iconSize: 24.0,
                                       );
                                     },
                                   );
-
                                   if (datePickedDate != null) {
                                     safeSetState(() {
                                       _model.datePicked = DateTime(
@@ -409,8 +346,8 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
                                         datePickedDate.month,
                                         datePickedDate.day,
                                       );
-                                      final temp = DateFormat('MM/d/yyyy').format(datePickedDate);
-                                      newDue = temp.toString();
+                                      final temp = DateFormat('MM/d/yyyy').format(datePickedDate); // Reformat the date
+                                      newDue = temp.toString(); // Format to a string 
                                     });
                                   }
                                 },
@@ -424,30 +361,23 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
                                   child: Align(
                                     alignment: const AlignmentDirectional(-1.0, 0.0),
                                     child: Padding(
-                                      padding: const EdgeInsetsDirectional.fromSTEB(
-                                          12.0, 0.0, 0.0, 0.0),
-                                      child: Text(
+                                      padding: const EdgeInsetsDirectional.fromSTEB(12.0, 0.0, 0.0, 0.0),
+                                      child: Text( 
                                         valueOrDefault<String>(
                                           dateTimeFormat(
                                             'MMMEd',
                                             _model.datePicked,
-                                            locale: FFLocalizations.of(context)
-                                                .languageCode,
-                                          ),
-                                          (widget.pDue == null)  ? 'Select a date' : widget.pDue.toString(),
+                                            locale: FFLocalizations.of(context).languageCode,
+                                          ), // If pDue is null show 'select a date' in text field. Else show the date picked
+                                          (widget.pDue == null)  ? 'Select a date' : widget.pDue.toString(), 
                                         ),
-                                        style: FlutterFlowTheme.of(context)
-                                            .bodyMedium
+                                        style: FlutterFlowTheme.of(context).bodyMedium
                                             .override(
                                               fontFamily: 'Urbanist',
-                                              color:
-                                                  FlutterFlowTheme.of(context)
-                                                      .primaryText,
+                                              color: FlutterFlowTheme.of(context).primaryText,
                                               fontSize: 14.0,
                                               fontWeight: FontWeight.w500,
-                                              useGoogleFonts:
-                                                  GoogleFonts.asMap()
-                                                      .containsKey('Urbanist'),
+                                              useGoogleFonts: GoogleFonts.asMap().containsKey('Urbanist'),
                                             ),
                                       ),
                                     ),
@@ -457,12 +387,12 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
                             ),
                           ],
                         ),
-                        Align(
+                        Align( // Button to submit changes
                           alignment: const AlignmentDirectional(0.0, 0.0),
                           child: FFButtonWidget(
-                            onPressed: () async {
-                              _updateProject(widget.pName, newDescription, newDue);
-                              context.pushNamed('HomePage');
+                            onPressed: () async { 
+                              _projectsBO.editProject(widget.pName, newDescription, newDue); // Update the database with new info
+                              context.pushNamed('HomePage'); // Go back to the home page
                             },
                             text: FFLocalizations.of(context).getText(
                               'sd8hwamc' /* Edit Project */,
@@ -470,22 +400,15 @@ class _EdtiProjectPageWidgetState extends State<EdtiProjectPageWidget> {
                             options: FFButtonOptions(
                               width: 130.0,
                               height: 50.0,
-                              padding: const EdgeInsetsDirectional.fromSTEB(
-                                  0.0, 0.0, 0.0, 0.0),
-                              iconPadding: const EdgeInsetsDirectional.fromSTEB(
-                                  0.0, 0.0, 0.0, 0.0),
+                              padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
+                              iconPadding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
                               color: FlutterFlowTheme.of(context).primary,
-                              textStyle: FlutterFlowTheme.of(context)
-                                  .titleSmall
+                              textStyle: FlutterFlowTheme.of(context).titleSmall
                                   .override(
-                                    fontFamily: FlutterFlowTheme.of(context)
-                                        .titleSmallFamily,
-                                    color: FlutterFlowTheme.of(context)
-                                        .primaryText,
+                                    fontFamily: FlutterFlowTheme.of(context).titleSmallFamily,
+                                    color: FlutterFlowTheme.of(context).primaryText,
                                     useGoogleFonts: GoogleFonts.asMap()
-                                        .containsKey(
-                                            FlutterFlowTheme.of(context)
-                                                .titleSmallFamily),
+                                        .containsKey(FlutterFlowTheme.of(context).titleSmallFamily),
                                   ),
                               elevation: 3.0,
                               borderSide: const BorderSide(

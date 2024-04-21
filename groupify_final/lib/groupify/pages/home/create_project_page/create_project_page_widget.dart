@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'create_project_page_model.dart';
 export 'create_project_page_model.dart';
-import 'package:groupify_final/sql_database_connection.dart';
-import '/auth/firebase_auth/auth_util.dart';
+import 'package:groupify_final/sql_files/projects_DAO_BO/projects_BO.dart';
+import 'package:groupify_final/sql_files/members_DAO_BO/members_BO.dart';
 
-class CreateProjectPageWidget extends StatefulWidget {
+class CreateProjectPageWidget extends StatefulWidget { // Class to represent the widget and calls its widgetState
   const CreateProjectPageWidget({super.key});
 
   @override
@@ -17,75 +17,46 @@ class CreateProjectPageWidget extends StatefulWidget {
       _CreateProjectPageWidgetState();
 }
 
-class _CreateProjectPageWidgetState extends State<CreateProjectPageWidget> {
-  late CreateProjectPageModel _model;
-  late SQLDatabaseHelper _sqldatabaseHelper;
+class _CreateProjectPageWidgetState extends State<CreateProjectPageWidget> { // Class to manage the state of the widget
+  late CreateProjectPageModel _model; // Build instance of its model
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // BO instances to access database for project and member informatoin
+  final Projects_BO _projectsBO = Projects_BO();
+  final Members_BO _membersBO = Members_BO();
+  String? pDue = ''; // variable to hold due date
+
   @override
-  void initState() {
+  void initState() { // Build the widget, model, and controllers when initialized
     super.initState();
     _model = createModel(context, () => CreateProjectPageModel());
 
+    // Intialize textControllers from model page in order to get values inside textfields
     _model.projectNameController ??= TextEditingController();
     _model.projectNameFocusNode ??= FocusNode();
-
     _model.projectDescriptionController ??= TextEditingController();
     _model.projectDescriptionFocusNode ??= FocusNode();
-
-    _sqldatabaseHelper = SQLDatabaseHelper();
-    _connectToDatabase();
-
     WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
 
-  // Connect to DB
-  Future<void> _connectToDatabase() async {
-    await _sqldatabaseHelper.connectToDatabase();
-  }
-
-  // Make project and insert into projects table
-  Future<void> _insertProject(String? projectDueDate) async {
-    final String projectName = _model.projectNameController.text;
-    final String? projectDescription = _model.projectDescriptionController.text;
-    final String userName = currentUserDisplayName;
-
-    final results = await _sqldatabaseHelper.connection.query(
-        'INSERT INTO Projects (projectName, ownerID, projectDescription, projectProgress, projectDueDate) VALUES (?, ?, ?, 0, ?)',
-        [projectName, userName, projectDescription, projectDueDate]);
-    print('Inserted project with ID ${results.insertId}');
-  }
-
-  // Make project and insert current user into projectMembers table
-  Future<void> _insertProjectMember() async {
-    final String projectName = _model.projectNameController.text;
-    final String userName = currentUserDisplayName;
-
-    final results = await _sqldatabaseHelper.connection.query(
-        'INSERT INTO ProjectMembers (userID, projectName, ownerID) VALUES (?, ?, ?)',
-        [userName, projectName, userName]);
-    print('Inserted member into project with ID ${results.insertId}');
-  }
-
   @override
-  void dispose() {
+  void dispose() { // Cleans up widget when not being used
     _model.dispose();
     super.dispose();
   }
 
-  String? pDue = '';
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) { // Main widget that displays the page
     return GestureDetector(
       onTap: () => _model.unfocusNode.canRequestFocus
           ? FocusScope.of(context).requestFocus(_model.unfocusNode)
           : FocusScope.of(context).unfocus(),
-      child: Scaffold(
+      child: Scaffold( 
         key: scaffoldKey,
         backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
         body: Stack(
           alignment: const AlignmentDirectional(1.0, 1.0),
-          children: [
+          children: [ // Building and aligning of background
             Align(
               alignment: const AlignmentDirectional(1.0, -1.4),
               child: Container(
@@ -172,22 +143,21 @@ class _CreateProjectPageWidgetState extends State<CreateProjectPageWidget> {
                   ),
                 ),
               ),
-            ClipRRect(
+            ClipRRect( 
               borderRadius: BorderRadius.circular(0.0),
               child: BackdropFilter(
                 filter: ImageFilter.blur(
                   sigmaX: 40.0,
                   sigmaY: 40.0,
                 ),
-                child: Container(
+                child: Container( // Buidling of app bar
                   width: 558.0,
                   height: 1037.0,
                   decoration: BoxDecoration(
                     color: FlutterFlowTheme.of(context).overlay,
                   ),
                   child: Padding(
-                    padding:
-                        const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 50.0),
+                    padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 50.0),
                     child: Column(
                       mainAxisSize: MainAxisSize.max,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -206,61 +176,45 @@ class _CreateProjectPageWidgetState extends State<CreateProjectPageWidget> {
                               child: Align(
                                 alignment: const AlignmentDirectional(0.0, 1.0),
                                 child: Padding(
-                                  padding: const EdgeInsetsDirectional.fromSTEB(
-                                      0.0, 0.0, 0.0, 13.0),
+                                  padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 13.0),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.max,
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
-                                      Padding(
-                                        padding: const EdgeInsetsDirectional.fromSTEB(
-                                            15.0, 0.0, 0.0, 0.0),
-                                        child: Text(
+                                      Padding( 
+                                        padding: const EdgeInsetsDirectional.fromSTEB(15.0, 0.0, 0.0, 0.0),
+                                        child: Text( // Display create project
                                           FFLocalizations.of(context).getText(
                                             'mj6ztqcc' /* Create Project */,
                                           ),
-                                          style: FlutterFlowTheme.of(context)
-                                              .displayMedium
-                                              .override(
-                                                fontFamily:
-                                                    FlutterFlowTheme.of(context)
-                                                        .displayMediumFamily,
+                                          style: FlutterFlowTheme.of(context).displayMedium.override(
+                                                fontFamily: FlutterFlowTheme.of(context).displayMediumFamily,
                                                 fontSize: 40.0,
-                                                useGoogleFonts: GoogleFonts
-                                                        .asMap()
-                                                    .containsKey(FlutterFlowTheme
-                                                            .of(context)
-                                                        .displayMediumFamily),
+                                                useGoogleFonts: GoogleFonts.asMap().containsKey(
+                                                  FlutterFlowTheme.of(context).displayMediumFamily),
                                               ),
                                         ),
                                       ),
-                                      Padding(
-                                        padding: const EdgeInsetsDirectional.fromSTEB(
-                                            0.0, 0.0, 15.0, 0.0),
+                                      Padding( // Exit icon 
+                                        padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 15.0, 0.0),
                                         child: Row(
                                           mainAxisSize: MainAxisSize.max,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.end,
+                                          mainAxisAlignment: MainAxisAlignment.end,
                                           children: [
                                             Padding(
-                                              padding: const EdgeInsetsDirectional
-                                                  .fromSTEB(0.0, 0.0, 0.0, 5.0),
+                                              padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 5.0),
                                               child: InkWell(
                                                 splashColor: Colors.transparent,
                                                 focusColor: Colors.transparent,
                                                 hoverColor: Colors.transparent,
-                                                highlightColor:
-                                                    Colors.transparent,
-                                                onTap: () async {
+                                                highlightColor:Colors.transparent,
+                                                onTap: () async { // Go back to homepage when pressed
                                                   context.pushNamed('HomePage');
                                                 },
                                                 child: Icon(
                                                   Icons.close_rounded,
-                                                  color: FlutterFlowTheme.of(
-                                                          context)
-                                                      .primaryText,
+                                                  color: FlutterFlowTheme.of(context).primaryText,
                                                   size: 35.0,
                                                 ),
                                               ),
@@ -273,35 +227,30 @@ class _CreateProjectPageWidgetState extends State<CreateProjectPageWidget> {
                                 ),
                               ),
                             ),
-                            Align(
+                            Align( // Title for project name textfield
                               alignment: const AlignmentDirectional(-1.0, 0.0),
                               child: Padding(
-                                padding: const EdgeInsetsDirectional.fromSTEB(
-                                    25.0, 0.0, 0.0, 3.0),
+                                padding: const EdgeInsetsDirectional.fromSTEB(25.0, 0.0, 0.0, 3.0),
                                 child: Text(
                                   FFLocalizations.of(context).getText(
                                     'q5re9w8p' /* Project Name */,
                                   ),
-                                  style:
-                                      FlutterFlowTheme.of(context).bodyMedium,
+                                  style: FlutterFlowTheme.of(context).bodyMedium,
                                 ),
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsetsDirectional.fromSTEB(
-                                  24.0, 0.0, 24.0, 20.0),
+                              padding: const EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 20.0),
                               child: TextFormField(
-                                controller: _model.projectNameController,
+                                controller: _model.projectNameController, //ProjName controller to hold input
                                 focusNode: _model.projectNameFocusNode,
                                 obscureText: false,
                                 decoration: InputDecoration(
-                                  labelStyle:
-                                      FlutterFlowTheme.of(context).bodySmall,
-                                  hintText: FFLocalizations.of(context).getText(
+                                  labelStyle: FlutterFlowTheme.of(context).bodySmall,
+                                  hintText: FFLocalizations.of(context).getText( // Show text when nothing in textfield
                                     'v0qyv2ak' /* Enter project name... */,
                                   ),
-                                  hintStyle:
-                                      FlutterFlowTheme.of(context).bodySmall,
+                                  hintStyle: FlutterFlowTheme.of(context).bodySmall,
                                   enabledBorder: OutlineInputBorder(
                                     borderSide: const BorderSide(
                                       color: Color(0x00E0E3E7),
@@ -318,63 +267,49 @@ class _CreateProjectPageWidgetState extends State<CreateProjectPageWidget> {
                                   ),
                                   errorBorder: OutlineInputBorder(
                                     borderSide: BorderSide(
-                                      color:
-                                          FlutterFlowTheme.of(context).primary,
+                                      color: FlutterFlowTheme.of(context).primary,
                                       width: 1.0,
                                     ),
                                     borderRadius: BorderRadius.circular(8.0),
                                   ),
                                   focusedErrorBorder: OutlineInputBorder(
                                     borderSide: BorderSide(
-                                      color:
-                                          FlutterFlowTheme.of(context).primary,
+                                      color: FlutterFlowTheme.of(context).primary,
                                       width: 1.0,
                                     ),
                                     borderRadius: BorderRadius.circular(8.0),
                                   ),
                                   filled: true,
-                                  fillColor:
-                                      FlutterFlowTheme.of(context).overlay,
-                                  contentPadding:
-                                      const EdgeInsetsDirectional.fromSTEB(
-                                          20.0, 24.0, 20.0, 24.0),
+                                  fillColor: FlutterFlowTheme.of(context).overlay,
+                                  contentPadding: const EdgeInsetsDirectional.fromSTEB(20.0, 24.0, 20.0, 24.0),
                                 ),
                                 style: FlutterFlowTheme.of(context).bodyMedium,
                                 maxLines: null,
-                                validator: _model
-                                    .projectNameControllerValidator
-                                    .asValidator(context),
+                                validator: _model.projectNameControllerValidator.asValidator(context),
                               ),
                             ),
-                            Align(
+                            Align( // Show title of project desscription textfield
                               alignment: const AlignmentDirectional(-1.0, 0.0),
                               child: Padding(
-                                padding: const EdgeInsetsDirectional.fromSTEB(
-                                    25.0, 0.0, 0.0, 3.0),
+                                padding: const EdgeInsetsDirectional.fromSTEB(25.0, 0.0, 0.0, 3.0),
                                 child: Text(
-                                  FFLocalizations.of(context).getText(
-                                    'jvn4olit' /* Project Description */,
-                                  ),
-                                  style:
-                                      FlutterFlowTheme.of(context).bodyMedium,
+                                  FFLocalizations.of(context).getText('jvn4olit' /* Project Description */,),
+                                  style: FlutterFlowTheme.of(context).bodyMedium,
                                 ),
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsetsDirectional.fromSTEB(
-                                  24.0, 0.0, 24.0, 20.0),
+                              padding: const EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 20.0),
                               child: TextFormField(
-                                controller: _model.projectDescriptionController,
+                                controller: _model.projectDescriptionController, // ProjectDescriptionCOntroller to hold input
                                 focusNode: _model.projectDescriptionFocusNode,
                                 obscureText: false,
                                 decoration: InputDecoration(
-                                  labelStyle:
-                                      FlutterFlowTheme.of(context).bodyMedium,
-                                  hintText: FFLocalizations.of(context).getText(
+                                  labelStyle: FlutterFlowTheme.of(context).bodyMedium,
+                                  hintText: FFLocalizations.of(context).getText( // If nothing in textfield show text
                                     'k7o9qywf' /* Enter project description... */,
                                   ),
-                                  hintStyle:
-                                      FlutterFlowTheme.of(context).bodySmall,
+                                  hintStyle: FlutterFlowTheme.of(context).bodySmall,
                                   enabledBorder: OutlineInputBorder(
                                     borderSide: const BorderSide(
                                       color: Color(0x00E0E3E7),
@@ -391,58 +326,46 @@ class _CreateProjectPageWidgetState extends State<CreateProjectPageWidget> {
                                   ),
                                   errorBorder: OutlineInputBorder(
                                     borderSide: BorderSide(
-                                      color: FlutterFlowTheme.of(context)
-                                          .secondary,
+                                      color: FlutterFlowTheme.of(context).secondary,
                                       width: 1.0,
                                     ),
                                     borderRadius: BorderRadius.circular(8.0),
                                   ),
                                   focusedErrorBorder: OutlineInputBorder(
                                     borderSide: BorderSide(
-                                      color: FlutterFlowTheme.of(context)
-                                          .secondary,
+                                      color: FlutterFlowTheme.of(context).secondary,
                                       width: 1.0,
                                     ),
                                     borderRadius: BorderRadius.circular(8.0),
                                   ),
                                   filled: true,
-                                  fillColor:
-                                      FlutterFlowTheme.of(context).overlay,
-                                  contentPadding:
-                                      const EdgeInsetsDirectional.fromSTEB(
-                                          20.0, 24.0, 20.0, 24.0),
+                                  fillColor: FlutterFlowTheme.of(context).overlay,
+                                  contentPadding: const EdgeInsetsDirectional.fromSTEB(20.0, 24.0, 20.0, 24.0),
                                 ),
                                 style: FlutterFlowTheme.of(context).bodyMedium,
                                 maxLines: 10,
-                                validator: _model
-                                    .projectDescriptionControllerValidator
-                                    .asValidator(context),
+                                validator: _model.projectDescriptionControllerValidator.asValidator(context),
                               ),
                             ),
-                            Align(
+                            Align( // Show title for duedate textfield
                               alignment: const AlignmentDirectional(-1.0, 0.0),
                               child: Padding(
-                                padding: const EdgeInsetsDirectional.fromSTEB(
-                                    25.0, 0.0, 0.0, 3.0),
+                                padding: const EdgeInsetsDirectional.fromSTEB(25.0, 0.0, 0.0, 3.0),
                                 child: Text(
-                                  FFLocalizations.of(context).getText(
-                                    'd102u3jx' /* Due Date */,
-                                  ),
-                                  style:
-                                      FlutterFlowTheme.of(context).bodyMedium,
+                                  FFLocalizations.of(context).getText('d102u3jx' /* Due Date */,),
+                                  style: FlutterFlowTheme.of(context).bodyMedium,
                                 ),
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsetsDirectional.fromSTEB(
-                                  24.0, 0.0, 24.0, 0.0),
+                              padding: const EdgeInsetsDirectional.fromSTEB(24.0, 0.0, 24.0, 0.0),
                               child: InkWell(
                                 splashColor: Colors.transparent,
                                 focusColor: Colors.transparent,
                                 hoverColor: Colors.transparent,
                                 highlightColor: Colors.transparent,
                                 onTap: () async {
-                                  final datePickedDate = await showDatePicker(
+                                  final datePickedDate = await showDatePicker( // Show date picker when pressed
                                     context: context,
                                     initialDate: getCurrentTimestamp,
                                     firstDate: getCurrentTimestamp,
@@ -451,44 +374,33 @@ class _CreateProjectPageWidgetState extends State<CreateProjectPageWidget> {
                                       return wrapInMaterialDatePickerTheme(
                                         context,
                                         child!,
-                                        headerBackgroundColor:
-                                            const Color(0xFF6F61EF),
+                                        headerBackgroundColor:const Color(0xFF6F61EF),
                                         headerForegroundColor: Colors.white,
-                                        headerTextStyle: FlutterFlowTheme.of(
-                                                context)
-                                            .headlineLarge
-                                            .override(
+                                        headerTextStyle: FlutterFlowTheme.of(context).headlineLarge.override(
                                               fontFamily: 'Outfit',
                                               color: const Color(0xFF15161E),
                                               fontSize: 32.0,
                                               fontWeight: FontWeight.w600,
-                                              useGoogleFonts:
-                                                  GoogleFonts.asMap()
-                                                      .containsKey('Outfit'),
+                                              useGoogleFonts: GoogleFonts.asMap().containsKey('Outfit'),
                                             ),
                                         pickerBackgroundColor: Colors.white,
-                                        pickerForegroundColor:
-                                            const Color(0xFF15161E),
-                                        selectedDateTimeBackgroundColor:
-                                            const Color(0xFF6F61EF),
-                                        selectedDateTimeForegroundColor:
-                                            Colors.white,
-                                        actionButtonForegroundColor:
-                                            const Color(0xFF15161E),
+                                        pickerForegroundColor:const Color(0xFF15161E),
+                                        selectedDateTimeBackgroundColor:const Color(0xFF6F61EF),
+                                        selectedDateTimeForegroundColor:Colors.white,
+                                        actionButtonForegroundColor:const Color(0xFF15161E),
                                         iconSize: 24.0,
                                       );
                                     },
                                   );
-
-                                  if (datePickedDate != null) {
+                                  if (datePickedDate != null) { // If date is chosen , reformat
                                     safeSetState(() {
                                       _model.datePicked = DateTime(
                                         datePickedDate.year,
                                         datePickedDate.month,
                                         datePickedDate.day,
                                       );
-                                      final temp = DateFormat('MM/d/yyyy').format(datePickedDate);
-                                      pDue = temp.toString();
+                                      final temp = DateFormat('MM/d/yyyy').format(datePickedDate); //Reformat date
+                                      pDue = temp.toString(); // Convert to string
                                     });
                                   }
                                 },
@@ -502,30 +414,22 @@ class _CreateProjectPageWidgetState extends State<CreateProjectPageWidget> {
                                   child: Align(
                                     alignment: const AlignmentDirectional(-1.0, 0.0),
                                     child: Padding(
-                                      padding: const EdgeInsetsDirectional.fromSTEB(
-                                          12.0, 0.0, 0.0, 0.0),
-                                      child: Text(
+                                      padding: const EdgeInsetsDirectional.fromSTEB(12.0, 0.0, 0.0, 0.0),
+                                      child: Text(  // If no date is chosen yet, display 'Select a Date'
                                         valueOrDefault<String>(
                                           dateTimeFormat(
                                             'MMMEd',
                                             _model.datePicked,
-                                            locale: FFLocalizations.of(context)
-                                                .languageCode,
+                                            locale: FFLocalizations.of(context).languageCode,
                                           ),
                                           'Select a date',
                                         ),
-                                        style: FlutterFlowTheme.of(context)
-                                            .bodyMedium
-                                            .override(
+                                        style: FlutterFlowTheme.of(context).bodyMedium.override(
                                               fontFamily: 'Urbanist',
-                                              color:
-                                                  FlutterFlowTheme.of(context)
-                                                      .primaryText,
+                                              color: FlutterFlowTheme.of(context).primaryText,
                                               fontSize: 14.0,
                                               fontWeight: FontWeight.w500,
-                                              useGoogleFonts:
-                                                  GoogleFonts.asMap()
-                                                      .containsKey('Urbanist'),
+                                              useGoogleFonts: GoogleFonts.asMap().containsKey('Urbanist'),
                                             ),
                                       ),
                                     ),
@@ -535,36 +439,26 @@ class _CreateProjectPageWidgetState extends State<CreateProjectPageWidget> {
                             ),
                           ],
                         ),
-                        Align(
+                        Align( // Create project button
                           alignment: const AlignmentDirectional(0.0, 0.0),
                           child: FFButtonWidget(
-                            onPressed: () async {
-                              await _insertProject(pDue);
-                              await _insertProjectMember();
+                            onPressed: () async { // Create project in db and add user as member when pressed
+                              await _projectsBO.createProject(pDue, _model.projectNameController, _model.projectDescriptionController);
+                              await _membersBO.addOwnerAsMember(_model.projectNameController);
                               context.pushNamed('HomePage');
                             },
-                            text: FFLocalizations.of(context).getText(
-                              'rtrwsvel' /* Create Project */,
-                            ),
+                            text: FFLocalizations.of(context).getText('rtrwsvel' /* Create Project */,),
                             options: FFButtonOptions(
                               width: 130.0,
                               height: 50.0,
-                              padding: const EdgeInsetsDirectional.fromSTEB(
-                                  0.0, 0.0, 0.0, 0.0),
-                              iconPadding: const EdgeInsetsDirectional.fromSTEB(
-                                  0.0, 0.0, 0.0, 0.0),
+                              padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
+                              iconPadding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
                               color: FlutterFlowTheme.of(context).primary,
-                              textStyle: FlutterFlowTheme.of(context)
-                                  .titleSmall
-                                  .override(
-                                    fontFamily: FlutterFlowTheme.of(context)
-                                        .titleSmallFamily,
-                                    color: FlutterFlowTheme.of(context)
-                                        .primaryText,
-                                    useGoogleFonts: GoogleFonts.asMap()
-                                        .containsKey(
-                                            FlutterFlowTheme.of(context)
-                                                .titleSmallFamily),
+                              textStyle: FlutterFlowTheme.of(context).titleSmall.override(
+                                    fontFamily: FlutterFlowTheme.of(context).titleSmallFamily,
+                                    color: FlutterFlowTheme.of(context).primaryText,
+                                    useGoogleFonts: GoogleFonts.asMap().containsKey(
+                                            FlutterFlowTheme.of(context).titleSmallFamily),
                                   ),
                               elevation: 3.0,
                               borderSide: const BorderSide(
