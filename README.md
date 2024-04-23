@@ -1,1 +1,1 @@
-# Groupify-Application
+# Groupify-App
