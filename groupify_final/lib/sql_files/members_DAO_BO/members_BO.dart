@@ -47,4 +47,9 @@ class Members_BO{
     double rating = await _projectsDAO.getRating(username);
     return rating;
   }
+
+    Future<List<Member>> getMembersProjectPage(String? pName, String? pOwnerID) async {
+    List<Member> members = await _projectsDAO.getMembers(pName, pOwnerID);
+    return members;
+  }
 }
