@@ -28,16 +28,20 @@ class _BrowsePageWidgetState extends State<BrowsePageWidget> {
   late BrowsePageModel _model;
   final scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _classSearchController = TextEditingController();
   late SQLDatabaseHelper _sqldatabaseHelper;
   List<User> _users = [];
   Timer? _debounce;
 
-  void _debounceSearch(String query) {
-    if (_debounce?.isActive ?? false) _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () {
-      _searchUsers(query);
-    });
-  }
+ void _debounceSearch() {
+  if (_debounce?.isActive ?? false) _debounce?.cancel();
+  _debounce = Timer(const Duration(milliseconds: 300), () {
+    final String nameQuery = _searchController.text;
+    final String classQuery = _classSearchController.text;
+    _searchUsers(nameQuery, classQuery);
+  });
+}
+
 
   void _inviteUser(String userID) async {
     try {
@@ -125,37 +129,63 @@ class _BrowsePageWidgetState extends State<BrowsePageWidget> {
     await _sqldatabaseHelper.connectToDatabase();
   }
 
-  Future<void> _searchUsers(String query) async {
-    if (query.isEmpty) {
-      setState(() {
-        _users = [];
-      });
-      return;
-    }
-
-    final results = await _sqldatabaseHelper.connection.query(
-      '''
-      SELECT UserClasses.UserID, GROUP_CONCAT(DISTINCT Courses.CourseTitle ORDER BY Courses.CourseTitle ASC SEPARATOR ', ') AS CourseTitles, COALESCE(AVG(UserRating.Rating), 0) AS AvgRating
-      FROM UserClasses
-      JOIN Courses ON UserClasses.CourseNumber = Courses.CourseNumber
-      LEFT JOIN UserRating ON UserClasses.UserID = UserRating.UserID
-      WHERE UserClasses.UserID LIKE ?
-      GROUP BY UserClasses.UserID;
-      ''',
-      ['%$query%'],
-    );
-
-    final List<User> users = results.map((map) {
-      final String userID = map['UserID'] as String;
-      final String courseTitles = map['CourseTitles'] as String;
-      final double rating = map['AvgRating'] as double;
-      return User(userID, courseTitles, rating);
-    }).toList();
-
-    setState(() {
-      _users = users;
-    });
+Future<void> _searchUsers(String nameQuery, [String? classQuery]) async {
+  if (nameQuery.isEmpty && (classQuery == null || classQuery.isEmpty)) {
+    _fetchAllUsers(); // Fetches all users if both fields are empty
+    return;
   }
+
+  // Build the base of the SQL query
+  String sql = '''
+    SELECT uc.UserID,
+      GROUP_CONCAT(DISTINCT c.CourseTitle ORDER BY c.CourseTitle ASC SEPARATOR ', ') AS CourseTitles,
+      COALESCE(AVG(r.Rating), 0) AS AvgRating
+    FROM UserClasses uc
+    JOIN Courses c ON uc.CourseNumber = c.CourseNumber
+    LEFT JOIN UserRating r ON uc.UserID = r.UserID
+  ''';
+
+  // Initialize a list to hold WHERE conditions and parameters
+  List<String> whereConditions = [];
+  List<dynamic> parameters = [];
+
+  // Conditionally add search criteria based on user input
+  if (nameQuery.isNotEmpty) {
+    whereConditions.add("uc.UserID LIKE ?");
+    parameters.add('%$nameQuery%');
+  }
+
+  if (classQuery != null && classQuery.isNotEmpty) {
+    whereConditions.add("EXISTS (SELECT 1 FROM UserClasses uc2 JOIN Courses c2 ON uc2.CourseNumber = c2.CourseNumber WHERE uc2.UserID = uc.UserID AND c2.CourseTitle LIKE ?)");
+    parameters.add('%$classQuery%');
+  }
+
+  // Combine the WHERE conditions with AND operator if both fields are filled
+  if (whereConditions.isNotEmpty) {
+    sql += ' WHERE ' + whereConditions.join(' AND ');
+  }
+
+  sql += ' GROUP BY uc.UserID;';
+
+  // Execute the query
+  final results = await _sqldatabaseHelper.connection.query(sql, parameters);
+
+  // Map the results to the User model and update the state
+  final List<User> users = results.map((map) {
+    final String userID = map['UserID'] as String;
+    final String courseTitles = map['CourseTitles'] as String;
+    final double rating = (map['AvgRating'] ?? 0).toDouble();
+    return User(userID, courseTitles, rating);
+  }).toList();
+
+  setState(() {
+    _users = users;
+  });
+}
+
+
+
+
 
   @override
   void dispose() {
@@ -164,190 +194,178 @@ class _BrowsePageWidgetState extends State<BrowsePageWidget> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _model.unfocusNode.canRequestFocus ? FocusScope.of(context).requestFocus(_model.unfocusNode) : FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-        body: Stack(
-          alignment: const AlignmentDirectional(1.0, 1.0),
-          children: [
-            Align(
-              alignment: const AlignmentDirectional(1.0, -1.4),
-              child: Container(
-                width: 500.0,
-                height: 500.0,
-                decoration: BoxDecoration(
-                  color: FlutterFlowTheme.of(context).tertiary,
-                  shape: BoxShape.circle,
-                ),
+@override
+Widget build(BuildContext context) {
+  return GestureDetector(
+    onTap: () => _model.unfocusNode.canRequestFocus ? FocusScope.of(context).requestFocus(_model.unfocusNode) : FocusScope.of(context).unfocus(),
+    child: Scaffold(
+      key: scaffoldKey,
+      backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+      body: Stack(
+        alignment: const AlignmentDirectional(1.0, 1.0),
+        children: [
+          // Reintroducing all original background circle elements
+          Align(
+            alignment: const AlignmentDirectional(1.0, -1.4),
+            child: Container(
+              width: 500.0,
+              height: 500.0,
+              decoration: BoxDecoration(
+                color: FlutterFlowTheme.of(context).tertiary,
+                shape: BoxShape.circle,
               ),
             ),
-            if (responsiveVisibility(
-              context: context,
-              tabletLandscape: false,
-              desktop: false,
-            ))
-              Align(
-                alignment: const AlignmentDirectional(-2.0, -1.5),
-                child: Container(
-                  width: 350.0,
-                  height: 350.0,
-                  decoration: BoxDecoration(
-                    color: FlutterFlowTheme.of(context).primary,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            if (responsiveVisibility(
-              context: context,
-              tabletLandscape: false,
-              desktop: false,
-            ))
-              Align(
-                alignment: const AlignmentDirectional(3.49, -1.05),
-                child: Container(
-                  width: 300.0,
-                  height: 300.0,
-                  decoration: BoxDecoration(
-                    color: FlutterFlowTheme.of(context).secondary,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            Align(
-              alignment: const AlignmentDirectional(0.0, 1.4),
-              child: Container(
-                width: 500.0,
-                height: 500.0,
-                decoration: BoxDecoration(
-                  color: FlutterFlowTheme.of(context).tertiary,
-                  shape: BoxShape.circle,
-                ),
+          ),
+          Align(
+            alignment: const AlignmentDirectional(-2.0, -1.5),
+            child: Container(
+              width: 350.0,
+              height: 350.0,
+              decoration: BoxDecoration(
+                color: FlutterFlowTheme.of(context).primary,
+                shape: BoxShape.circle,
               ),
             ),
-            if (responsiveVisibility(
-              context: context,
-              tabletLandscape: false,
-              desktop: false,
-            ))
-              Align(
-                alignment: const AlignmentDirectional(7.98, 0.81),
-                child: Container(
-                  width: 350.0,
-                  height: 350.0,
-                  decoration: BoxDecoration(
-                    color: FlutterFlowTheme.of(context).primary,
-                    shape: BoxShape.circle,
-                  ),
-                ),
+          ),
+          Align(
+            alignment: const AlignmentDirectional(3.49, -1.05),
+            child: Container(
+              width: 300.0,
+              height: 300.0,
+              decoration: BoxDecoration(
+                color: FlutterFlowTheme.of(context).secondary,
+                shape: BoxShape.circle,
               ),
-            if (responsiveVisibility(
-              context: context,
-              tabletLandscape: false,
-              desktop: false,
-            ))
-              Align(
-                alignment: const AlignmentDirectional(-3.41, 0.58),
-                child: Container(
-                  width: 300.0,
-                  height: 300.0,
-                  decoration: BoxDecoration(
-                    color: FlutterFlowTheme.of(context).secondary,
-                    shape: BoxShape.circle,
-                  ),
-                ),
+            ),
+          ),
+          Align(
+            alignment: const AlignmentDirectional(0.0, 1.4),
+            child: Container(
+              width: 500.0,
+              height: 500.0,
+              decoration: BoxDecoration(
+                color: FlutterFlowTheme.of(context).tertiary,
+                shape: BoxShape.circle,
               ),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(0.0),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(
-                  sigmaX: 40.0,
-                  sigmaY: 40.0,
+            ),
+          ),
+          Align(
+            alignment: const AlignmentDirectional(7.98, 0.81),
+            child: Container(
+              width: 350.0,
+              height: 350.0,
+              decoration: BoxDecoration(
+                color: FlutterFlowTheme.of(context).primary,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Align(
+            alignment: const AlignmentDirectional(-3.41, 0.58),
+            child: Container(
+              width: 300.0,
+              height: 300.0,
+              decoration: BoxDecoration(
+                color: FlutterFlowTheme.of(context).secondary,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          // Main UI content with search functionality
+          ClipRRect(
+            borderRadius: BorderRadius.circular(0.0),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 40.0, sigmaY: 40.0),
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  color: FlutterFlowTheme.of(context).overlay,
                 ),
-                child: Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  decoration: BoxDecoration(
-                    color: FlutterFlowTheme.of(context).overlay,
-                  ),
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsetsDirectional.fromSTEB(15.0, 30.0, 15.0, 0.0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Browse Members',
-                              style: FlutterFlowTheme.of(context).displayMedium.override(
-                                    fontFamily: FlutterFlowTheme.of(context).displayMediumFamily,
-                                    fontSize: 40.0,
-                                    useGoogleFonts: GoogleFonts.asMap().containsKey(FlutterFlowTheme.of(context).displayMediumFamily),
-                                  ),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsetsDirectional.fromSTEB(15.0, 30.0, 15.0, 0.0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.max,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Browse Members',
+                            style: FlutterFlowTheme.of(context).displayMedium.override(
+                              fontFamily: FlutterFlowTheme.of(context).displayMediumFamily,
+                              fontSize: 40.0,
+                              useGoogleFonts: GoogleFonts.asMap().containsKey(FlutterFlowTheme.of(context).displayMediumFamily),
                             ),
-                            InkWell(
-                              onTap: () => Navigator.pop(context),
-                              child: Icon(
-                                Icons.close_rounded,
-                                color: FlutterFlowTheme.of(context).primaryText,
-                                size: 35.0,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 15.0),
-                        child: TextFormField(
-                          controller: _searchController,
-                          autofocus: true,
-                          decoration: const InputDecoration(),
-                          onChanged: (text) => _debounceSearch(text),
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          final String query = _searchController.text;
-                          if (query.isEmpty) {
-                            _fetchAllUsers();
-                          } else {
-                            _searchUsers(query);
-                          }
-                        },
-                        style: ButtonStyle(
-                          backgroundColor: MaterialStateProperty.all<Color>(FlutterFlowTheme.of(context).primary),
-                        ),
-                        child: Text('Search'),
-                      ),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: ListView.builder(
-                            itemCount: _users.length,
-                            itemBuilder: (context, index) {
-                              final user = _users[index];
-                              return buildUserWidget(context, user.userID, user.courseTitles, user.rating);
-                            },
                           ),
+                          InkWell(
+                            onTap: () => Navigator.pop(context),
+                            child: Icon(
+                              Icons.close_rounded,
+                              color: FlutterFlowTheme.of(context).primaryText,
+                              size: 35.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                      child: Column(
+                        children: [
+                          TextFormField(
+                            controller: _searchController,
+                            autofocus: true,
+                            decoration: InputDecoration(labelText: 'Search by name'),
+                            onChanged: (text) => _debounceSearch(),
+                          ),
+                          SizedBox(height: 10), // Space between the search fields
+                          TextFormField(
+                            controller: _classSearchController,
+                            decoration: InputDecoration(labelText: 'Search by class'),
+                            onChanged: (text) => _debounceSearch(),
+                          ),
+                          SizedBox(height: 20), // Additional space before the button
+                          ElevatedButton(
+                            onPressed: () {
+                              final String nameQuery = _searchController.text;
+                              final String classQuery = _classSearchController.text;
+                              _searchUsers(nameQuery, classQuery);
+                            },
+                            style: ButtonStyle(
+                              backgroundColor: MaterialStateProperty.all<Color>(FlutterFlowTheme.of(context).primary),
+                            ),
+                            child: Text('Search'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: ListView.builder(
+                          itemCount: _users.length,
+                          itemBuilder: (context, index) {
+                            final user = _users[index];
+                            return buildUserWidget(context, user.userID, user.courseTitles, user.rating);
+                          },
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Widget buildUserWidget(BuildContext context, String userID, String courseTitles, double rating) {
+ Widget buildUserWidget(BuildContext context, String userID, String courseTitles, double rating) {
   List<String> courses = courseTitles.split(', ');
+
   return Container(
     margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
     decoration: BoxDecoration(

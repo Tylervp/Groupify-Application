@@ -65,17 +65,17 @@ class LoginPageModel extends FlutterFlowModel<LoginPageWidget> {
 
     if (val.length < 8) {
       return FFLocalizations.of(context).getText(
-        'ho6xibl3' /* Error: Password must be at lea... */,
+        'ho6xibl3' /* Error: Password must be at least 8 characters */,
       );
     }
 
-    if (!RegExp('^(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d]{8,}\$').hasMatch(val)) {
-      return FFLocalizations.of(context).getText(
-        'inxh8oxc' /* Password needs at least 1 numb... */,
-      );
-    }
-    return null;
-  }
+    if (!RegExp('^(?=.*[A-Z])(?=.*\\d).{8,}\$').hasMatch(val)) {
+  return FFLocalizations.of(context).getText(
+    'inxh8oxc' /* Password needs at least 1 number and uppercase letter*/,
+  );
+}
+return null;
+}
 
   // State field(s) for password-confirm widget.
   FocusNode? passwordConfirmFocusNode;
