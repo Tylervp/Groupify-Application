@@ -1,4 +1,3 @@
-import 'dart:ffi';
 import '/flutter_flow/flutter_flow_drop_down.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -11,8 +10,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'task_creation_page_model.dart';
 export 'task_creation_page_model.dart';
 import 'package:groupify_final/sql_database_connection.dart';
-import '/auth/firebase_auth/auth_util.dart';
-import '/groupify/pages/home/inside_project/project_page/project_page_widget.dart';
 
 class TaskCreationPageWidget extends StatefulWidget {
   final String? projectOwnerID;
@@ -618,43 +615,42 @@ String? tDue = '';
                                     ),
                                   ),
                                 ),
-FutureBuilder<List<String>>(
-  future: _getMembers(),
-  builder: (context, snapshot) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      return Center(child: CircularProgressIndicator());
-    } else if (snapshot.hasError) {
-      return Center(child: Text('Error: ${snapshot.error}'));
-    } else {
-      final List<String> options = snapshot.data ?? []; // Provide a default empty list if data is null
-      return FlutterFlowDropDown<String>(
-  multiSelectController: _model.dropDownValueController ??= FormFieldController<List<String>>(null),
-  options: members,  // Use the local state list here
-  width: 300.0,
-  height: 50.0,
-  textStyle: FlutterFlowTheme.of(context).bodyMedium,
-  hintText: FFLocalizations.of(context).getText('gyvywh4h' /* Please select... */),
-  icon: Icon(
-    Icons.keyboard_arrow_down_rounded,
-    color: FlutterFlowTheme.of(context).secondaryText,
-    size: 24.0,
-  ),
-  fillColor: FlutterFlowTheme.of(context).overlay,
-  elevation: 2.0,
-  borderColor: Colors.transparent,
-  borderWidth: 2.0,
-  borderRadius: 8.0,
-  margin: const EdgeInsetsDirectional.fromSTEB(16.0, 4.0, 16.0, 4.0),
-  hidesUnderline: true,
-  isOverButton: true,
-  isSearchable: false,
-  isMultiSelect: true,
-  onMultiSelectChanged: (val) => setState(() => _model.dropDownValue = val),
-);
-    }
-  },
-)
-
+                                FutureBuilder<List<String>>(
+                                  future: _getMembers(),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState == ConnectionState.waiting) {
+                                      return Center(child: CircularProgressIndicator());
+                                    } else if (snapshot.hasError) {
+                                      return Center(child: Text('Error: ${snapshot.error}'));
+                                    } else {
+                                      final List<String> options = snapshot.data ?? []; // Provide a default empty list if data is null
+                                      return FlutterFlowDropDown<String>(
+                                  multiSelectController: _model.dropDownValueController ??= FormFieldController<List<String>>(null),
+                                  options: members,  // Use the local state list here
+                                  width: 300.0,
+                                  height: 50.0,
+                                  textStyle: FlutterFlowTheme.of(context).bodyMedium,
+                                  hintText: FFLocalizations.of(context).getText('gyvywh4h' /* Please select... */),
+                                  icon: Icon(
+                                    Icons.keyboard_arrow_down_rounded,
+                                    color: FlutterFlowTheme.of(context).secondaryText,
+                                    size: 24.0,
+                                  ),
+                                  fillColor: FlutterFlowTheme.of(context).overlay,
+                                  elevation: 2.0,
+                                  borderColor: Colors.transparent,
+                                  borderWidth: 2.0,
+                                  borderRadius: 8.0,
+                                  margin: const EdgeInsetsDirectional.fromSTEB(16.0, 4.0, 16.0, 4.0),
+                                  hidesUnderline: true,
+                                  isOverButton: true,
+                                  isSearchable: false,
+                                  isMultiSelect: true,
+                                  onMultiSelectChanged: (val) => setState(() => _model.dropDownValue = val),
+                                );
+                                    }
+                                  },
+                                )
                               ],
                             ),
                           ],

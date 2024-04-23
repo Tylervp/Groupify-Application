@@ -6,72 +6,16 @@ import '/groupify/pages/home/inside_project/options_task/options_task_widget.dar
 import '/groupify/pages/home/inside_project/project_description/project_description_widget.dart';
 import '/groupify/pages/home/inside_project/showcase_profile/showcase_profile_widget.dart';
 import '/groupify/pages/home/inside_project/task_subtask_description/task_subtask_description_widget.dart';
-import '/groupify/pages/home/home_page/home_page_widget.dart';
 import 'dart:ui';
-import 'package:badges/badges.dart' as badges;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'project_page_model.dart';
 export 'project_page_model.dart';
 import 'package:groupify_final/sql_database_connection.dart';
-
-class Task {
-  String taskName = '';
-  String taskDescription = '';
-  double taskProgress = 0.0;
-  double taskDifficulty = 0.0;
-  String taskAssigned = '';
-  String taskDueDate = '';
-  bool subtaskflag = false;
-  List<Member> tAssign = [];
-  
-
-  Task(String taskName, String taskDescription, double taskProgress, double taskDifficulty, String taskAssigned, String taskDueDate, bool subtaskflag,  List<Member> tAssign){
-    this.taskName = taskName;
-    this.taskDescription = taskDescription;
-    this.taskProgress = taskProgress;
-    this.taskDifficulty = taskDifficulty;
-    this.taskAssigned = taskAssigned;
-    this.taskDueDate = taskDueDate;
-    this.subtaskflag = subtaskflag;
-     this.tAssign = tAssign;
-  }
-}
-
-class SubTask {
-  String taskName = '';
-  String subTaskName = '';
-  String subTaskDescription = '';
-  double subTaskProgress = 0.0;
-  double subTaskDifficulty = 0.0;
-  String subTaskAssigned = '';
-  String subTaskDueDate = '';
-  List<Member> subtAssign = [];
-
-  SubTask(String taskName, String subTaskName, String subTaskDescription, double subTaskProgress, double subTaskDifficulty, String subTaskAssigned, String subTaskDueDate, List<Member> subtAssign){
-    this.taskName = taskName;
-    this.subTaskName = subTaskName;
-    this.subTaskDescription = subTaskDescription;
-    this.subTaskProgress = subTaskProgress;
-    this.subTaskDifficulty = subTaskDifficulty;
-    this.subTaskAssigned = subTaskAssigned;
-    this.subTaskDueDate = subTaskDueDate;
-    this.subtAssign = subtAssign;
-  }
-}
-
-class Member {
-  String username = '';
-  String profilePicture = '';
-  double rating = 0.0;
-
-  Member(String username, String profilePicture, double rating){
-    this.username = username;
-    this.profilePicture = profilePicture;
-    this.rating = rating;
-  }
-}
+import 'package:groupify_final/sql_files/tasks_DAO_BO/tasks_BO.dart';
+import 'package:groupify_final/sql_files/members_DAO_BO/members_BO.dart';
+import 'package:groupify_final/sql_files/subtasks_DAO_BO/subtasks_BO.dart';
 
 class ProjectPageWidget extends StatefulWidget {
   final String projectOwnerID;
@@ -88,6 +32,11 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();  // Define the scaffoldKey
   late ProjectPageModel _model;
   late SQLDatabaseHelper _sqldatabaseHelper;
+
+  final Tasks_BO _tasksBO = Tasks_BO();
+  final Subtasks_BO _subtasksBO = Subtasks_BO();
+  final Members_BO _membersBO = Members_BO();
+
   Future<List<Member>>? membersFuture;
   Future<List<Task>>? tasksFuture;
 
@@ -101,8 +50,8 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
 
   void _initializeData() async {
     await _sqldatabaseHelper.connectToDatabase();
-    membersFuture = _getMembers(); // Fetch members
-    tasksFuture = _getTasks(); // Fetch tasks
+    membersFuture = _membersBO.getMembersProjectPage(widget.projectName, widget.projectOwnerID); // Fetch members
+    tasksFuture = _tasksBO.getTasks(widget.projectName, widget.projectOwnerID); // Fetch tasks
     setState(() {}); // Trigger rebuild once data is being fetched
   }
 
@@ -112,168 +61,17 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
     super.dispose();
   }
 
-  // Method to get members of the project
-  Future<List<Member>> _getMembers() async {
-    List<Member> members = [];
-    double rating;
-    double sum;
-    double temp;
-
-    final results = await _sqldatabaseHelper.connection.query('SELECT userID FROM projectMembers WHERE projectName = ? and ownerID = ?;',
-                                                          [widget.projectName, widget.projectOwnerID]); 
-    print('GOT PROJECT MEMBERS');
-    for(final row in results){
-      String tempUserName = row['userID'] as String;
-      rating = 0;
-      sum = 0;
-      temp = 0;
-      final results2 = await _sqldatabaseHelper.connection.query('SELECT rating FROM userRating WHERE userID = ?;',
-                                                          [tempUserName]); 
-      for(final row in results2){
-        temp = row['rating'] as double;
-        sum += temp;
-      }
-      rating = sum/results2.length;
-      members.add(Member(tempUserName, '', rating));
-    }
-    return members;
-  }
-
-  // Method to query projects a user is involved in and populate project list
-  Future<List<Task>> _getTasks() async {
-    List<Task> tasks = [];
-    final results = await _sqldatabaseHelper.connection.query('select taskName, taskDescription, taskProgress, taskDifficulty, taskAssigned, taskDueDate from Tasks where projectName = ? and ownerId = ?',
-                                                            [widget.projectName, widget.projectOwnerID]);
-    print('GOT THE TASKS');
-    for(final row in results){
-      String temptaskName = row['taskName'] as String;
-      String temptaskDescription = row['taskDescription'] as String;
-      double temptaskProgress = row['taskProgress'] as double;
-      double temptaskDifficulty = row['taskDifficulty'] as double;
-      String temptaskAssigned = row['taskAssigned'] as String;
-      String temptaskDueDate = row['taskDueDate'] as String;
-
-      // Get rating for each member that is assigned to the task
-      List<Member> tempAssign = [];
-      double rating;
-      double addition;
-      double temp = 0;
-      var splitted = temptaskAssigned.split(',');
-      for(var split in splitted){
-        rating = 0;
-        addition = 0;
-        split = split.trim();
-        final assigned = await _sqldatabaseHelper.connection.query('SELECT rating FROM userRating WHERE userID = ?;',
-                                                            [split.toString()]); 
-        for(final row in assigned){
-          temp = row['rating'] as double;
-          addition += temp;
-        }
-        rating = addition/assigned.length;
-        tempAssign.add(Member(split.toString(), '', rating));
-      }
-
-      final results2 = await _sqldatabaseHelper.connection.query('select subTaskName from Subtasks where projectName = ? and ownerId = ? and taskName =?',
-                                                            [widget.projectName, widget.projectOwnerID, temptaskName]);
-      List<String> subtasksfortask = [];
-      for (final row in results2){
-        String tempsubtaskintask = row['subTaskName'] as String;
-        subtasksfortask.insert(0, tempsubtaskintask);
-      }
-      if(subtasksfortask.isEmpty){
-        bool tempsubtaskflag = false;
-        double finalProgress = temptaskProgress;
-        tasks.insert(0, Task(temptaskName, temptaskDescription, finalProgress, temptaskDifficulty, temptaskAssigned, temptaskDueDate, tempsubtaskflag, tempAssign));
-      }
-      else {
-        double sum = 0;
-        bool tempsubtaskflag = true;
-        List<double> subtaskprogressfortask = [];
-        double averagedtaskProgress;
-        final results3 = await _sqldatabaseHelper.connection.query('select subTaskProgress from Subtasks where projectName = ? and ownerId = ? and taskName =?',
-                                                            [widget.projectName, widget.projectOwnerID, temptaskName]);
-        for (final row in results3){
-        double tempsubtaskprogressintask = row['subTaskProgress'] as double;
-        sum += tempsubtaskprogressintask;
-        subtaskprogressfortask.add(tempsubtaskprogressintask);
-        }
-        averagedtaskProgress = sum/subtaskprogressfortask.length;
-        await _sqldatabaseHelper.connection.query( 
-          'UPDATE Tasks SET taskProgress = ? WHERE projectName = ? and ownerID = ? and taskName = ?;',
-              [averagedtaskProgress, widget.projectName, widget.projectOwnerID, temptaskName]);
-        tasks.insert(0, Task(temptaskName, temptaskDescription, averagedtaskProgress, temptaskDifficulty, temptaskAssigned, temptaskDueDate, tempsubtaskflag, tempAssign));
-      }
-    }
-    //_sqldatabaseHelper.closeConnection();
-    return tasks;
-  }
-
-  Future<List<SubTask>> _getSubTasks(taskName) async {
-    List<SubTask> subtasks = [];
-    try{
-    final results = await _sqldatabaseHelper.connection.query('select taskName, subTaskName, subTaskDescription, subTaskProgress, subTaskDifficulty, subTaskAssigned, subTaskDueDate from Subtasks where projectName = ? and ownerID = ? and taskName = ?;',
-                                                            [widget.projectName, widget.projectOwnerID, taskName]);
-    print('GOT THE SUBTASKS');
-    for(final row in results){
-      String temptaskName = row['taskName'] as String;
-      String tempsubTaskName = row['subTaskName'] as String;
-      String tempsubTaskDescription = row['subTaskDescription'] as String;
-      double tempsubTaskProgress = row['subTaskProgress'] as double;
-      double tempsubTaskDifficulty = row['subTaskDifficulty'] as double;
-      String tempsubTaskAssigned = row['subTaskAssigned'] as String;
-      String tempsubTaskDueDate = row['subTaskDueDate'] as String;
-
-      // Get rating for each member that is assigned to a subtask
-      List<Member> tempAssign = [];
-      double rating;
-      double sum;
-      double temp;
-      var splitted = tempsubTaskAssigned.split(',');
-      for(var split in splitted){
-        rating = 0;
-        sum = 0;
-        split = split.trim();
-        final results2 = await _sqldatabaseHelper.connection.query('SELECT rating FROM userRating WHERE userID = ?;',
-                                                            [split.toString()]); 
-        for(final row in results2){
-          temp = row['rating'] as double;
-          sum += temp;
-        }
-        rating = sum/results2.length;
-        tempAssign.add(Member(split.toString(), '', rating));
-      }
-      subtasks.insert(0, SubTask(temptaskName, tempsubTaskName, tempsubTaskDescription, tempsubTaskProgress, tempsubTaskDifficulty, tempsubTaskAssigned, tempsubTaskDueDate, tempAssign));
-    }} catch (e)
-    { print('Error fetching subtasks: $e');};
-    //_sqldatabaseHelper.closeConnection();
-    return subtasks;
-  }
-
   // Widget to create project container
-  Widget taskContainer(BuildContext context, String tName, String tDescription, double tProgress, double tDifficulty, String tAssigned, String tDue, bool subtaskflag, List<Member> tAssign){ 
+Widget taskContainer(BuildContext context, String tName, String tDescription, double tProgress, double tDifficulty, String tAssigned, String tDue, bool subtaskflag, List<Member> tAssign){ 
     print('this is the tAssigned ' + tAssigned);
-    return Padding(
-  padding: EdgeInsetsDirectional.fromSTEB(15, 0, 15, 0),
-  child: InkWell(
-    splashColor: Colors.transparent,
-    focusColor: Colors.transparent,
-    hoverColor: Colors.transparent,
-    highlightColor: Colors.transparent,
-    onTap: () async {
-      await showModalBottomSheet(
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        enableDrag: false,
-        context: context,
-        builder: (context) {
-          return GestureDetector(
-            onTap: () => _model.unfocusNode.canRequestFocus
+    return Padding( padding: EdgeInsetsDirectional.fromSTEB(15, 0, 15, 0),
+  child: InkWell(splashColor: Colors.transparent, focusColor: Colors.transparent, hoverColor: Colors.transparent, highlightColor: Colors.transparent,
+    onTap: () async {await showModalBottomSheet(isScrollControlled: true,backgroundColor: Colors.transparent,enableDrag: false,context: context,builder: (context) {
+          return GestureDetector(onTap: () => _model.unfocusNode.canRequestFocus
                 ? FocusScope.of(context).requestFocus(_model.unfocusNode)
                 : FocusScope.of(context).unfocus(),
-            child: Padding(
-              padding: MediaQuery.viewInsetsOf(context),
-              child: Container(
-                height: 350,
+            child: Padding(padding: MediaQuery.viewInsetsOf(context),
+              child: Container(height: 350,
                 child: TaskSubtaskDescriptionWidget(tDescription: tDescription),
               ),
             ),
@@ -281,88 +79,33 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
         },
       ).then((value) => safeSetState(() {}));
     },
-    child: Container(
-      height: 75,
-      decoration: BoxDecoration(
-        color: FlutterFlowTheme.of(context).overlay,
-        borderRadius: BorderRadius.circular(20),
-        shape: BoxShape.rectangle,
-        border: Border.all(
-          color: Colors.transparent,
-          width: 0,
-        ),
-      ),
-      child: Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(0, 0, 0, 5),
-        child: Column(
-          mainAxisSize: MainAxisSize.max,
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.center,
+    child: Container(height: 75,
+      decoration: BoxDecoration(color: FlutterFlowTheme.of(context).overlay,borderRadius: BorderRadius.circular(20),shape: BoxShape.rectangle,border: Border.all(color: Colors.transparent,width: 0,),),
+      child: Padding(padding: EdgeInsetsDirectional.fromSTEB(0, 0, 0, 5),
+        child: Column(mainAxisSize: MainAxisSize.max,mainAxisAlignment: MainAxisAlignment.start,crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Padding(
-              padding: EdgeInsetsDirectional.fromSTEB(15, 5, 10, 0),
-              child: Row(
-                mainAxisSize: MainAxisSize.max,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Padding(padding: EdgeInsetsDirectional.fromSTEB(15, 5, 10, 0),
+              child: Row(mainAxisSize: MainAxisSize.max,mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    width: 145,
-                    decoration: BoxDecoration(),
-                    child: Padding(
-                      padding: EdgeInsetsDirectional.fromSTEB(0, 3, 0, 0),
-                      child: Text(
-                        tName,
-                        overflow:TextOverflow.ellipsis,
-                        style: FlutterFlowTheme.of(context)
-                            .bodyMedium
-                            .override(
-                              fontFamily: 'Urbanist',
-                              fontSize: 23,
-                              letterSpacing: 0,
-                              fontWeight: FontWeight.w600,
-                              useGoogleFonts:
-                                  GoogleFonts.asMap().containsKey('Urbanist'),
+                  Container(width: 145,decoration: BoxDecoration(),
+                    child: Padding(padding: EdgeInsetsDirectional.fromSTEB(0, 3, 0, 0),
+                      child: Text(tName,overflow:TextOverflow.ellipsis,
+                        style: FlutterFlowTheme.of(context).bodyMedium.override(fontFamily: 'Urbanist',fontSize: 23,letterSpacing: 0,fontWeight: FontWeight.w600,useGoogleFonts:GoogleFonts.asMap().containsKey('Urbanist'),
                             ),
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: EdgeInsetsDirectional.fromSTEB(5, 3, 10, 0),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.max,
+                  Padding(padding: EdgeInsetsDirectional.fromSTEB(5, 3, 10, 0),
+                    child: Row(mainAxisSize: MainAxisSize.max,
                       children: [
-                        Padding(
-                          padding: EdgeInsetsDirectional.fromSTEB(0, 3, 0, 3),
-                          child: Text(
-                            FFLocalizations.of(context).getText(
-                              'y58t59f4' /* Due: */,
-                            ),
-                            style: FlutterFlowTheme.of(context)
-                                .bodyMedium
-                                .override(
-                                  fontFamily: 'Urbanist',
-                                  fontSize: 17,
-                                  letterSpacing: 0,
-                                  fontWeight: FontWeight.normal,
-                                  useGoogleFonts: GoogleFonts.asMap()
-                                      .containsKey('Urbanist'),
-                                ),
+                        Padding(padding: EdgeInsetsDirectional.fromSTEB(0, 3, 0, 3),
+                          child: Text(FFLocalizations.of(context).getText('y58t59f4' /* Due: */,),
+                            style: FlutterFlowTheme.of(context).bodyMedium.override(fontFamily: 'Urbanist',fontSize: 17,letterSpacing: 0,fontWeight: FontWeight.normal,useGoogleFonts: GoogleFonts.asMap().containsKey('Urbanist'),),
                           ),
                         ),
-                        Container(
-                          width: 92, 
-                          decoration: BoxDecoration(),
-                          child: Padding(
-                            padding:
-                                EdgeInsetsDirectional.fromSTEB(0, 3, 0, 0),
-                            child: Text(
-                              tDue,
-                              style: FlutterFlowTheme.of(context)
-                                  .bodyMedium
-                                  .override(
-                                    fontFamily: 'Urbanist',
-                                    fontSize: 17,
-                                    letterSpacing: 0,
+                        Container(width: 92, decoration: BoxDecoration(),
+                          child: Padding(padding:EdgeInsetsDirectional.fromSTEB(0, 3, 0, 0),
+                            child: Text(tDue,style: FlutterFlowTheme.of(context).bodyMedium.override(fontFamily: 'Urbanist',fontSize: 17,letterSpacing: 0,
                                     fontWeight: FontWeight.normal,
                                     useGoogleFonts: GoogleFonts.asMap()
                                         .containsKey('Urbanist'),
@@ -376,18 +119,10 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                   Row(
                     mainAxisSize: MainAxisSize.max,
                     children: [
-                      Padding(
-                        padding: EdgeInsetsDirectional.fromSTEB(0, 0, 4, 0),
-                        child: InkWell(
-                          splashColor: Colors.transparent,
-                          focusColor: Colors.transparent,
-                          hoverColor: Colors.transparent,
-                          highlightColor: Colors.transparent,
+                      Padding(padding: EdgeInsetsDirectional.fromSTEB(0, 0, 4, 0),
+                        child: InkWell(splashColor: Colors.transparent,focusColor: Colors.transparent,hoverColor: Colors.transparent,highlightColor: Colors.transparent,
                           onTap: () async {
-                            await showModalBottomSheet(
-                              isScrollControlled: true,
-                              backgroundColor: Colors.transparent,
-                              enableDrag: false,
+                            await showModalBottomSheet(isScrollControlled: true,backgroundColor: Colors.transparent,enableDrag: false,
                               context: context,
                               builder: (context) {
                                 return GestureDetector(
@@ -396,10 +131,8 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                       ? FocusScope.of(context)
                                           .requestFocus(_model.unfocusNode)
                                       : FocusScope.of(context).unfocus(),
-                                  child: Padding(
-                                    padding: MediaQuery.viewInsetsOf(context),
-                                    child: Container(
-                                      height: 200,
+                                  child: Padding(padding: MediaQuery.viewInsetsOf(context),
+                                    child: Container(height: 200,
                                       child: OptionsTaskWidget(
                                           projectName: widget.projectName,
                                           pOwnerId: widget.projectOwnerID,
@@ -417,34 +150,21 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                               },
                             ).then((value) => safeSetState(() {}));
                           },
-                          child: Icon(
-                            Icons.more_vert,
-                            color: FlutterFlowTheme.of(context).primaryText,
-                            size: 24,
+                          child: Icon(Icons.more_vert,color: FlutterFlowTheme.of(context).primaryText,size: 24,
                           ),
                         ),
                       ),
-                      Padding(
-                        padding: EdgeInsetsDirectional.fromSTEB(0, 5, 0, 2),
-                        child: FlutterFlowIconButton(
-                          borderColor: Colors.transparent,
-                          borderRadius: 30,
-                          borderWidth: 1,
-                          buttonSize: 25,
-                          fillColor:
-                              FlutterFlowTheme.of(context).primaryBackground,
-                          icon: Icon(
-                            Icons.add,
-                            color: FlutterFlowTheme.of(context).primaryText,
-                            size: 10,
-                          ),
+                      Padding(padding: EdgeInsetsDirectional.fromSTEB(0, 5, 0, 2),
+                        child: FlutterFlowIconButton(borderColor: Colors.transparent,borderRadius: 30,borderWidth: 1,buttonSize: 25,
+                          fillColor:FlutterFlowTheme.of(context).primaryBackground,
+                          icon: Icon(Icons.add,color: FlutterFlowTheme.of(context).primaryText,size: 10,),
                           onPressed: () async {
                             context.pushNamed('SubtaskCreationPage', queryParameters: {
                                   'taskName': tName,
                                   'projectOwnerID': widget.projectOwnerID,
                                   'projectName': widget.projectName,
                                   'projectDescription': widget.projectDescription,
-            });
+                            });
                           },
                         ),
                       ),
@@ -453,36 +173,15 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                 ],
               ),
             ),
-            Align(
-              alignment: AlignmentDirectional(0, 0),
-              child: Padding(
-                padding: EdgeInsetsDirectional.fromSTEB(20, 0, 10, 0),
-                child: Row(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Align(alignment: AlignmentDirectional(0, 0),
+              child: Padding(padding: EdgeInsetsDirectional.fromSTEB(20, 0, 10, 0),
+                child: Row(mainAxisSize: MainAxisSize.max,mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.max,
+                    Row(mainAxisSize: MainAxisSize.max,
                       children: [
-                        Text(
-                          FFLocalizations.of(context).getText(
-                            'xlgpir3u' /* Assigned:  */,
-                          ),
-                          style: FlutterFlowTheme.of(context)
-                              .bodyMedium
-                              .override(
-                                fontFamily: 'Urbanist',
-                                fontSize: 17,
-                                letterSpacing: 0,
-                                fontWeight: FontWeight.normal,
-                                useGoogleFonts: GoogleFonts.asMap()
-                                    .containsKey('Urbanist'),
-                              ),
-                        ),
-                        Container(
-                          width: 60,
-                          height: 25,
-                          decoration: BoxDecoration(),
+                        Text(FFLocalizations.of(context).getText('xlgpir3u' /* Assigned:  */,),
+                          style: FlutterFlowTheme.of(context).bodyMedium.override(fontFamily: 'Urbanist',fontSize: 17,letterSpacing: 0,fontWeight: FontWeight.normal,useGoogleFonts: GoogleFonts.asMap().containsKey('Urbanist'),),),
+                        Container(width: 60,height: 25,decoration: BoxDecoration(),
                           child : ListView.separated( 
                             padding: EdgeInsets.zero,
                             primary: false,
@@ -490,11 +189,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                             itemCount: tAssign.length,
                             separatorBuilder: (BuildContext context, int index) => SizedBox(width: 2.0),
                             itemBuilder: (BuildContext context, int index){
-                              return InkWell(
-                                splashColor: Colors.transparent,
-                                focusColor: Colors.transparent,
-                                hoverColor: Colors.transparent,
-                                highlightColor: Colors.transparent,
+                              return InkWell(splashColor: Colors.transparent,focusColor: Colors.transparent,hoverColor: Colors.transparent,highlightColor: Colors.transparent,
                                 onTap: () async {
                                   await showModalBottomSheet(    
                                     isScrollControlled: true,
@@ -513,8 +208,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                                 .unfocus(),
                                         child: Padding(
                                           padding: MediaQuery.viewInsetsOf(context),
-                                          child: SizedBox(
-                                            height: 150.0,
+                                          child: SizedBox(height: 150.0,
                                             child:
                                                 ShowcaseProfileWidget(
                                                   username: tAssign[index].username,
@@ -528,16 +222,10 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                   ).then((value) =>
                                       safeSetState(() {}));
                                 },
-                                child: Container(
-                                  width: 25.0,
-                                  height: 25.0,
+                                child: Container(width: 25.0,height: 25.0,
                                   clipBehavior: Clip.antiAlias,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Image.network(
-                                    valueOrDefault(
-                                    tAssign[index].profilePicture,
+                                  decoration: const BoxDecoration(shape: BoxShape.circle,),
+                                  child: Image.network(valueOrDefault(tAssign[index].profilePicture,
                                     'https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg',
                                     ),
                                   ),
@@ -548,74 +236,29 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                         ),
                       ],
                     ),
-                    Container(
-                      width: 60,
-                      decoration: BoxDecoration(),
-                      child: Padding(
-                        padding: EdgeInsetsDirectional.fromSTEB(5, 0, 0, 0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.max,
+                    Container(width: 60,decoration: BoxDecoration(),
+                      child: Padding(padding: EdgeInsetsDirectional.fromSTEB(5, 0, 0, 0),
+                        child: Row(mainAxisSize: MainAxisSize.max,
                           children: [
-                            Container(
-                              width: 28,
-                              decoration: BoxDecoration(),
-                              child: Text(
-                                '${tDifficulty.toString()[0]}/5',
-                                style: FlutterFlowTheme.of(context)
-                                    .bodyMedium
-                                    .override(
-                                      fontFamily: FlutterFlowTheme.of(context)
-                                          .bodyMediumFamily,
-                                      fontSize: 18,
-                                      letterSpacing: 0,
-                                      useGoogleFonts: GoogleFonts.asMap()
-                                          .containsKey(
-                                              FlutterFlowTheme.of(context)
-                                                  .bodyMediumFamily),
+                            Container(width: 28,decoration: BoxDecoration(),
+                              child: Text('${tDifficulty.toString()[0]}/5',
+                                style: FlutterFlowTheme.of(context).bodyMedium.override(fontFamily: FlutterFlowTheme.of(context).bodyMediumFamily,fontSize: 18,letterSpacing: 0,useGoogleFonts: GoogleFonts.asMap().containsKey(FlutterFlowTheme.of(context).bodyMediumFamily),
                                     ),
                               ),
                             ),
-                            Icon(
-                              Icons.star_rounded,
-                              color: FlutterFlowTheme.of(context).tertiary,
-                              size: 24,
+                            Icon(Icons.star_rounded,color: FlutterFlowTheme.of(context).tertiary,size: 24,
                             ),
                           ],
                         ),
                       ),
                     ),
-                    Align(
-                      alignment: AlignmentDirectional(0, 0),
-                      child: Padding(
-                        padding: EdgeInsetsDirectional.fromSTEB(2, 0, 2, 0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.center,
+                    Align(alignment: AlignmentDirectional(0, 0),
+                      child: Padding(padding: EdgeInsetsDirectional.fromSTEB(2, 0, 2, 0),
+                        child: Row(mainAxisSize: MainAxisSize.max,mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            LinearPercentIndicator(
-                              percent: tProgress,
-                              width: 120,
-                              lineHeight: 18,
-                              animation: true,
-                              animateFromLastPercent: true,
-                              progressColor:
-                                  FlutterFlowTheme.of(context).tertiary,
-                              backgroundColor:
-                                  FlutterFlowTheme.of(context).accent3,
-                              center: Text(
-                                '${tProgress * 100 % 1 == 0 ? (tProgress * 100).toInt() : (tProgress * 100).toStringAsFixed(2)}%',
-                                style: FlutterFlowTheme.of(context)
-                                    .headlineSmall
-                                    .override(
-                                      fontFamily: 'Oswald',
-                                      color: Colors.black,
-                                      fontSize: 13,
-                                      letterSpacing: 0,
-                                      fontWeight: FontWeight.w600,
-                                      useGoogleFonts: GoogleFonts.asMap()
-                                          .containsKey('Oswald'),
-                                    ),
-                              ),
+                            LinearPercentIndicator(percent: tProgress,width: 120,lineHeight: 18,animation: true,animateFromLastPercent: true,progressColor:FlutterFlowTheme.of(context).tertiary,backgroundColor:FlutterFlowTheme.of(context).accent3,
+                              center: Text('${tProgress * 100 % 1 == 0 ? (tProgress * 100).toInt() : (tProgress * 100).toStringAsFixed(2)}%',
+                                style: FlutterFlowTheme.of(context).headlineSmall.override(fontFamily: 'Oswald',color: Colors.black,fontSize: 13,letterSpacing: 0,fontWeight: FontWeight.w600,useGoogleFonts: GoogleFonts.asMap().containsKey('Oswald'),),),
                               barRadius: Radius.circular(20),
                               padding: EdgeInsets.zero,
                             ),
@@ -633,31 +276,17 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
     ),
   ),
 );
+}
 
-  }
-
-  Widget subTaskContainer(BuildContext context, String tName, String stName, String stDescription, double stProgress, double stDifficulty, String stAssigned, String stDue, List<Member> stAssign){ 
-    return Padding(
-  padding: EdgeInsetsDirectional.fromSTEB(15, 5, 0, 0),
-  child: Row(
-    mainAxisSize: MainAxisSize.max,
+Widget subTaskContainer(BuildContext context, String tName, String stName, String stDescription, double stProgress, double stDifficulty, String stAssigned, String stDue, List<Member> stAssign){ 
+  return Padding(padding: EdgeInsetsDirectional.fromSTEB(15, 5, 0, 0),
+  child: Row(mainAxisSize: MainAxisSize.max,
     children: [
-      Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(4, 0, 0, 0),
-        child: Icon(
-          Icons.subdirectory_arrow_right,
-          color: FlutterFlowTheme.of(context).secondaryText,
-          size: 25,
-        ),
-      ),
+      Padding(padding: EdgeInsetsDirectional.fromSTEB(4, 0, 0, 0),
+        child: Icon(Icons.subdirectory_arrow_right,color: FlutterFlowTheme.of(context).secondaryText,size: 25,),),
       Expanded(
-        child: Padding(
-          padding: EdgeInsetsDirectional.fromSTEB(0, 0, 15, 0),
-          child: InkWell(
-            splashColor: Colors.transparent,
-            focusColor: Colors.transparent,
-            hoverColor: Colors.transparent,
-            highlightColor: Colors.transparent,
+        child: Padding(padding: EdgeInsetsDirectional.fromSTEB(0, 0, 15, 0),
+          child: InkWell(splashColor: Colors.transparent,focusColor: Colors.transparent,hoverColor: Colors.transparent,highlightColor: Colors.transparent,
             onTap: () async {
               await showModalBottomSheet(
                 isScrollControlled: true,
@@ -667,13 +296,11 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                 builder: (context) {
                   return GestureDetector(
                     onTap: () => _model.unfocusNode.canRequestFocus
-                        ? FocusScope.of(context)
-                            .requestFocus(_model.unfocusNode)
+                        ? FocusScope.of(context).requestFocus(_model.unfocusNode)
                         : FocusScope.of(context).unfocus(),
                     child: Padding(
                       padding: MediaQuery.viewInsetsOf(context),
-                      child: Container(
-                        height: 350,
+                      child: Container(height: 350,
                         child: TaskSubtaskDescriptionWidget(tDescription: stDescription),
                       ),
                     ),
@@ -681,102 +308,39 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                 },
               ).then((value) => safeSetState(() {}));
             },
-            child: Container(
-              height: 75,
-              decoration: BoxDecoration(
-                color: FlutterFlowTheme.of(context).overlay,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Padding(
-                padding: EdgeInsetsDirectional.fromSTEB(0, 0, 0, 5),
-                child: Column(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+            child: Container(height: 75,decoration: BoxDecoration(color: FlutterFlowTheme.of(context).overlay,borderRadius: BorderRadius.circular(20),),
+              child: Padding(padding: EdgeInsetsDirectional.fromSTEB(0, 0, 0, 5),
+                child: Column(mainAxisSize: MainAxisSize.max,mainAxisAlignment: MainAxisAlignment.start,crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Padding(
-                      padding: EdgeInsetsDirectional.fromSTEB(15, 5, 4, 0),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.max,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Padding(padding: EdgeInsetsDirectional.fromSTEB(15, 5, 4, 0),
+                      child: Row(mainAxisSize: MainAxisSize.max,mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Container(
-                            width: 155,
-                            decoration: BoxDecoration(),
-                            child: Padding(
-                              padding:
-                                  EdgeInsetsDirectional.fromSTEB(0, 3, 0, 0),
-                              child: Text(
-                                stName,
-                                overflow: TextOverflow.ellipsis,
-                                style: FlutterFlowTheme.of(context)
-                                    .bodyMedium
-                                    .override(
-                                      fontFamily: 'Urbanist',
-                                      fontSize: 23,
-                                      letterSpacing: 0,
-                                      fontWeight: FontWeight.w600,
-                                      useGoogleFonts: GoogleFonts.asMap()
-                                          .containsKey('Urbanist'),
-                                    ),
+                          Container(width: 155,decoration: BoxDecoration(),
+                            child: Padding(padding:EdgeInsetsDirectional.fromSTEB(0, 3, 0, 0),
+                              child: Text(stName,
+                                overflow: TextOverflow.ellipsis,style: FlutterFlowTheme.of(context).bodyMedium.override(fontFamily: 'Urbanist',fontSize: 23,letterSpacing: 0,fontWeight: FontWeight.w600,useGoogleFonts: GoogleFonts.asMap().containsKey('Urbanist'),),
                               ),
                             ),
                           ),
-                          Padding(
-                            padding:
-                                EdgeInsetsDirectional.fromSTEB(4, 3, 3, 0),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.max,
+                          Padding(padding:EdgeInsetsDirectional.fromSTEB(4, 3, 3, 0),
+                            child: Row(mainAxisSize: MainAxisSize.max,
                               children: [
-                                Padding(
-                                  padding: EdgeInsetsDirectional.fromSTEB(
-                                      0, 3, 3, 0),
-                                  child: Text(
-                                    FFLocalizations.of(context).getText(
-                                      '611wb6zh' /* Due: */,
-                                    ),
-                                    style: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .override(
-                                          fontFamily: 'Urbanist',
-                                          fontSize: 17,
-                                          letterSpacing: 0,
-                                          fontWeight: FontWeight.normal,
-                                          useGoogleFonts: GoogleFonts.asMap()
-                                              .containsKey('Urbanist'),
-                                        ),
+                                Padding(padding: EdgeInsetsDirectional.fromSTEB(0, 3, 3, 0),
+                                  child: Text(FFLocalizations.of(context).getText('611wb6zh' /* Due: */,),
+                                    style: FlutterFlowTheme.of(context).bodyMedium.override(fontFamily: 'Urbanist',fontSize: 17,letterSpacing: 0,fontWeight: FontWeight.normal,useGoogleFonts: GoogleFonts.asMap().containsKey('Urbanist'),),
                                   ),
                                 ),
-                                Container(
-                                  width: 92,
-                                  decoration: BoxDecoration(),
-                                  child: Padding(
-                                    padding: EdgeInsetsDirectional.fromSTEB(
-                                        0, 3, 0, 0),
-                                    child: Text(
-                                      stDue,
-                                      style: FlutterFlowTheme.of(context)
-                                          .bodyMedium
-                                          .override(
-                                            fontFamily: 'Urbanist',
-                                            fontSize: 17,
-                                            letterSpacing: 0,
-                                            fontWeight: FontWeight.normal,
-                                            useGoogleFonts:
-                                                GoogleFonts.asMap()
-                                                    .containsKey('Urbanist'),
-                                          ),
+                                Container(width: 92,decoration: BoxDecoration(),
+                                  child: Padding(padding: EdgeInsetsDirectional.fromSTEB(0, 3, 0, 0),
+                                    child: Text(stDue,
+                                      style: FlutterFlowTheme.of(context).bodyMedium.override(fontFamily: 'Urbanist',fontSize: 17,letterSpacing: 0,fontWeight: FontWeight.normal,useGoogleFonts:GoogleFonts.asMap().containsKey('Urbanist'),),
                                     ),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          InkWell(
-                            splashColor: Colors.transparent,
-                            focusColor: Colors.transparent,
-                            hoverColor: Colors.transparent,
-                            highlightColor: Colors.transparent,
+                          InkWell(splashColor: Colors.transparent,focusColor: Colors.transparent,hoverColor: Colors.transparent,highlightColor: Colors.transparent,
                             onTap: () async {
                               await showModalBottomSheet(
                                 isScrollControlled: true,
@@ -785,16 +349,11 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                 context: context,
                                 builder: (context) {
                                   return GestureDetector(
-                                    onTap: () => _model
-                                            .unfocusNode.canRequestFocus
-                                        ? FocusScope.of(context)
-                                            .requestFocus(_model.unfocusNode)
+                                    onTap: () => _model.unfocusNode.canRequestFocus
+                                        ? FocusScope.of(context).requestFocus(_model.unfocusNode)
                                         : FocusScope.of(context).unfocus(),
-                                    child: Padding(
-                                      padding:
-                                          MediaQuery.viewInsetsOf(context),
-                                      child: Container(
-                                        height: 200,
+                                    child: Padding(padding:MediaQuery.viewInsetsOf(context),
+                                      child: Container(height: 200,
                                         child: OptionsSubtaskWidget(
                                           projectName: widget.projectName,
                                           pOwnerId: widget.projectOwnerID,
@@ -812,43 +371,21 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                 },
                               ).then((value) => safeSetState(() {}));
                             },
-                            child: Icon(
-                              Icons.more_vert,
-                              color: FlutterFlowTheme.of(context).primaryText,
-                              size: 24,
+                            child: Icon(Icons.more_vert,color: FlutterFlowTheme.of(context).primaryText,size: 24,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Padding(
-                      padding: EdgeInsetsDirectional.fromSTEB(15, 0, 7, 0),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.max,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Padding(padding: EdgeInsetsDirectional.fromSTEB(15, 0, 7, 0),
+                      child: Row(mainAxisSize: MainAxisSize.max,mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.max,
+                          Row(mainAxisSize: MainAxisSize.max,
                             children: [
-                              Text(
-                                FFLocalizations.of(context).getText(
-                                  'zemnchb3' /* Assigned:  */,
-                                ),
-                                style: FlutterFlowTheme.of(context)
-                                    .bodyMedium
-                                    .override(
-                                      fontFamily: 'Urbanist',
-                                      fontSize: 17,
-                                      letterSpacing: 0,
-                                      fontWeight: FontWeight.normal,
-                                      useGoogleFonts: GoogleFonts.asMap()
-                                          .containsKey('Urbanist'),
-                                    ),
+                              Text(FFLocalizations.of(context).getText('zemnchb3' /* Assigned:  */,),
+                                style: FlutterFlowTheme.of(context).bodyMedium.override(fontFamily: 'Urbanist',fontSize: 17,letterSpacing: 0,fontWeight: FontWeight.normal,useGoogleFonts: GoogleFonts.asMap().containsKey('Urbanist'),),
                               ),
-                              Container(
-                                width: 45,
-                                height: 25,
-                                decoration: BoxDecoration(),
+                              Container(width: 45,height: 25,decoration: BoxDecoration(),
                                 child : ListView.separated(
                                   padding: EdgeInsets.zero,
                                   primary: false,
@@ -856,11 +393,7 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                   itemCount: stAssign.length,
                                   separatorBuilder: (BuildContext context, int index) => SizedBox(width: 2.0),
                                   itemBuilder: (BuildContext context, int index){
-                                    return InkWell(
-                                      splashColor: Colors.transparent,
-                                      focusColor: Colors.transparent,
-                                      hoverColor: Colors.transparent,
-                                      highlightColor: Colors.transparent,
+                                    return InkWell(splashColor: Colors.transparent,focusColor: Colors.transparent,hoverColor: Colors.transparent,highlightColor: Colors.transparent,
                                       onTap: () async {
                                         await showModalBottomSheet(    
                                           isScrollControlled: true,
@@ -869,18 +402,11 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                           context: context,
                                           builder: (context) {
                                             return GestureDetector(
-                                              onTap: () => _model
-                                                      .unfocusNode
-                                                      .canRequestFocus
-                                                  ? FocusScope.of(context)
-                                                      .requestFocus(_model
-                                                          .unfocusNode)
-                                                  : FocusScope.of(context)
-                                                      .unfocus(),
-                                              child: Padding(
-                                                padding: MediaQuery.viewInsetsOf(context),
-                                                child: SizedBox(
-                                                  height: 150.0,
+                                              onTap: () => _model.unfocusNode.canRequestFocus
+                                                  ? FocusScope.of(context).requestFocus(_model.unfocusNode)
+                                                  : FocusScope.of(context).unfocus(),
+                                              child: Padding(padding: MediaQuery.viewInsetsOf(context),
+                                                child: SizedBox(height: 150.0,
                                                   child:
                                                       ShowcaseProfileWidget(
                                                         username: stAssign[index].username,
@@ -891,19 +417,10 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                               ),
                                             );
                                           },
-                                        ).then((value) =>
-                                            safeSetState(() {}));
+                                        ).then((value) =>safeSetState(() {}));
                                       },
-                                      child: Container(
-                                        width: 25.0,
-                                        height: 25.0,
-                                        clipBehavior: Clip.antiAlias,
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Image.network(
-                                          valueOrDefault(
-                                          stAssign[index].profilePicture,
+                                      child: Container(width: 25.0,height: 25.0,clipBehavior: Clip.antiAlias,decoration: const BoxDecoration(shape: BoxShape.circle,),
+                                        child: Image.network(valueOrDefault(stAssign[index].profilePicture,
                                           'https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg',
                                           ),
                                         ),
@@ -914,52 +431,22 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                               ),
                             ],
                           ),
-                          Container(
-                            width: 60,
-                            decoration: BoxDecoration(),
-                            child: Padding(
-                              padding:
-                                  EdgeInsetsDirectional.fromSTEB(3, 0, 0, 0),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.max,
+                          Container(width: 60,decoration: BoxDecoration(),
+                            child: Padding(padding:EdgeInsetsDirectional.fromSTEB(3, 0, 0, 0),
+                              child: Row(mainAxisSize: MainAxisSize.max,
                                 children: [
-                                  Container(
-                                    width: 28,
-                                    decoration: BoxDecoration(),
-                                    child: Text(
-                                      '${stDifficulty.toString()[0]}/5',
-                                      style: FlutterFlowTheme.of(context)
-                                          .bodyMedium
-                                          .override(
-                                            fontFamily:
-                                                FlutterFlowTheme.of(context)
-                                                    .bodyMediumFamily,
-                                            fontSize: 18,
-                                            letterSpacing: 0,
-                                            useGoogleFonts: GoogleFonts
-                                                    .asMap()
-                                                .containsKey(
-                                                    FlutterFlowTheme.of(
-                                                            context)
-                                                        .bodyMediumFamily),
-                                          ),
+                                  Container(width: 28,decoration: BoxDecoration(),
+                                    child: Text('${stDifficulty.toString()[0]}/5',
+                                      style: FlutterFlowTheme.of(context).bodyMedium.override(fontFamily:FlutterFlowTheme.of(context).bodyMediumFamily,fontSize: 18,letterSpacing: 0,useGoogleFonts: GoogleFonts.asMap().containsKey(FlutterFlowTheme.of(context).bodyMediumFamily),),
                                     ),
                                   ),
-                                  Icon(
-                                    Icons.star_rounded,
-                                    color:
-                                        FlutterFlowTheme.of(context).tertiary,
-                                    size: 24,
-                                  ),
+                                  Icon(Icons.star_rounded,color:FlutterFlowTheme.of(context).tertiary,size: 24,),
                                 ],
                               ),
                             ),
                           ),
-                          Padding(
-                            padding:
-                                EdgeInsetsDirectional.fromSTEB(0, 0, 2, 0),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.max,
+                          Padding(padding:EdgeInsetsDirectional.fromSTEB(0, 0, 2, 0),
+                            child: Row(mainAxisSize: MainAxisSize.max,
                               children: [
                                 LinearPercentIndicator(
                                   percent: stProgress,
@@ -967,216 +454,106 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                   lineHeight: 18,
                                   animation: true,
                                   animateFromLastPercent: true,
-                                  progressColor:
-                                      FlutterFlowTheme.of(context).tertiary,
-                                  backgroundColor:
-                                      FlutterFlowTheme.of(context).accent3,
-                                  center: Text(
-                                    '${stProgress * 100 % 1 == 0 ? (stProgress * 100).toInt() : (stProgress * 100).toStringAsFixed(2)}%',
-                                    style: FlutterFlowTheme.of(context)
-                                        .headlineSmall
-                                        .override(
-                                          fontFamily: 'Oswald',
-                                          color: Colors.black,
-                                          fontSize: 13,
-                                          letterSpacing: 0,
-                                          fontWeight: FontWeight.w600,
-                                          useGoogleFonts: GoogleFonts.asMap()
-                                              .containsKey('Oswald'),
-                                        ),
+                                  progressColor:FlutterFlowTheme.of(context).tertiary,
+                                  backgroundColor:FlutterFlowTheme.of(context).accent3,
+                                  center: Text('${stProgress * 100 % 1 == 0 ? (stProgress * 100).toInt() : (stProgress * 100).toStringAsFixed(2)}%',
+                                    style: FlutterFlowTheme.of(context).headlineSmall.override(fontFamily: 'Oswald',color: Colors.black,fontSize: 13,letterSpacing: 0,fontWeight: FontWeight.w600,useGoogleFonts: GoogleFonts.asMap().containsKey('Oswald'),),
                                   ),
                                   barRadius: Radius.circular(20),
                                   padding: EdgeInsets.zero,
-                                ),
-                              ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ),
-      ),
-    ],
-  ),
-);
-
-
+      ],
+    ),
+  );
 }
 
-  String? taskName2 = 'issueissue';
   @override
-  Widget build(BuildContext context) {
-    final projectName = widget.projectName;
-    final projectOwnerID = widget.projectOwnerID;
-    final projectDescription = widget.projectDescription;
-    return GestureDetector(
-      onTap: () => _model.unfocusNode.canRequestFocus
+Widget build(BuildContext context) {
+    return GestureDetector(onTap: () => _model.unfocusNode.canRequestFocus
           ? FocusScope.of(context).requestFocus(_model.unfocusNode)
           : FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+      child: Scaffold(key: scaffoldKey,backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
         body: Stack(
           alignment: const AlignmentDirectional(1.0, 1.0),
           children: [
-            Align(
-              alignment: const AlignmentDirectional(1.0, -1.4),
-              child: Container(
-                width: 500.0,
-                height: 500.0,
-                decoration: BoxDecoration(
-                  color: FlutterFlowTheme.of(context).tertiary,
-                  shape: BoxShape.circle,
-                ),
+            Align(alignment: const AlignmentDirectional(1.0, -1.4),
+              child: Container(width: 500.0,height: 500.0,
+              decoration: BoxDecoration(color: FlutterFlowTheme.of(context).tertiary,shape: BoxShape.circle,),
               ),
             ),
-            if (responsiveVisibility(
-              context: context,
-              tabletLandscape: false,
-              desktop: false,
-            ))
-              Align(
-                alignment: const AlignmentDirectional(-2.0, -1.5),
-                child: Container(
-                  width: 350.0,
-                  height: 350.0,
-                  decoration: BoxDecoration(
-                    color: FlutterFlowTheme.of(context).primary,
-                    shape: BoxShape.circle,
-                  ),
+            if (responsiveVisibility(context: context,tabletLandscape: false,desktop: false,))
+              Align(alignment: const AlignmentDirectional(-2.0, -1.5),
+                child: Container(width: 350.0,height: 350.0,
+                  decoration: BoxDecoration(color: FlutterFlowTheme.of(context).primary,shape: BoxShape.circle,),
                 ),
               ),
-            if (responsiveVisibility(
-              context: context,
-              tabletLandscape: false,
-              desktop: false,
+            if (responsiveVisibility(context: context,tabletLandscape: false,desktop: false,
             ))
-              Align(
-                alignment: const AlignmentDirectional(3.49, -1.05),
-                child: Container(
-                  width: 300.0,
-                  height: 300.0,
-                  decoration: BoxDecoration(
-                    color: FlutterFlowTheme.of(context).secondary,
-                    shape: BoxShape.circle,
-                  ),
+              Align(alignment: const AlignmentDirectional(3.49, -1.05),
+                child: Container(width: 300.0,height: 300.0,
+                  decoration: BoxDecoration(color: FlutterFlowTheme.of(context).secondary,shape: BoxShape.circle,),
                 ),
               ),
-            Align(
-              alignment: const AlignmentDirectional(0.0, 1.4),
-              child: Container(
-                width: 500.0,
-                height: 500.0,
-                decoration: BoxDecoration(
-                  color: FlutterFlowTheme.of(context).tertiary,
-                  shape: BoxShape.circle,
-                ),
+            Align(alignment: const AlignmentDirectional(0.0, 1.4),
+              child: Container(width: 500.0,height: 500.0,
+                decoration: BoxDecoration(color: FlutterFlowTheme.of(context).tertiary,shape: BoxShape.circle,),
               ),
             ),
-            if (responsiveVisibility(
-              context: context,
-              tabletLandscape: false,
-              desktop: false,
+            if (responsiveVisibility(context: context,tabletLandscape: false,desktop: false,
             ))
-              Align(
-                alignment: const AlignmentDirectional(7.98, 0.81),
-                child: Container(
-                  width: 350.0,
-                  height: 350.0,
-                  decoration: BoxDecoration(
-                    color: FlutterFlowTheme.of(context).primary,
-                    shape: BoxShape.circle,
+              Align(alignment: const AlignmentDirectional(7.98, 0.81),
+                child: Container(width: 350.0,height: 350.0,
+                  decoration: BoxDecoration(color: FlutterFlowTheme.of(context).primary,shape: BoxShape.circle,
                   ),
                 ),
               ),
-            if (responsiveVisibility(
-              context: context,
-              tabletLandscape: false,
-              desktop: false,
+            if (responsiveVisibility(context: context,tabletLandscape: false,desktop: false,
             ))
-              Align(
-                alignment: const AlignmentDirectional(-3.41, 0.58),
-                child: Container(
-                  width: 300.0,
-                  height: 300.0,
-                  decoration: BoxDecoration(
-                    color: FlutterFlowTheme.of(context).secondary,
-                    shape: BoxShape.circle,
-                  ),
+              Align(alignment: const AlignmentDirectional(-3.41, 0.58),
+                child: Container(width: 300.0,height: 300.0,
+                  decoration: BoxDecoration(color: FlutterFlowTheme.of(context).secondary,shape: BoxShape.circle,),
                 ),
               ),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(0.0),
+            ClipRRect(borderRadius: BorderRadius.circular(0.0),
               child: BackdropFilter(
-                filter: ImageFilter.blur(
-                  sigmaX: 40.0,
-                  sigmaY: 40.0,
-                ),
-                child: Container(
-                  width: 558.0,
-                  height: 1037.0,
-                  decoration: BoxDecoration(
-                    color: FlutterFlowTheme.of(context).overlay,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.max,
+                filter: ImageFilter.blur(sigmaX: 40.0,sigmaY: 40.0,),
+                child: Container(width: 558.0,height: 1037.0,
+                  decoration: BoxDecoration(color: FlutterFlowTheme.of(context).overlay,),
+                  child: Column(mainAxisSize: MainAxisSize.max,
                     children: [
-                      Container(
-                        width: 399.0,
-                        height: 129.0,
-                        decoration: const BoxDecoration(
-                          color: Colors.transparent,
-                        ),
+                      Container(width: 399.0,height: 129.0,
+                        decoration: const BoxDecoration(color: Colors.transparent,),
                         alignment: const AlignmentDirectional(0.0, 1.0),
-                        child: Align(
-                          alignment: const AlignmentDirectional(0.0, 1.0),
-                          child: Padding(
-                            padding: const EdgeInsetsDirectional.fromSTEB(
-                                0.0, 0.0, 0.0, 13.0),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.max,
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.end,
+                        child: Align(alignment: const AlignmentDirectional(0.0, 1.0),
+                          child: Padding(padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 13.0),
+                            child: Row(mainAxisSize: MainAxisSize.max,mainAxisAlignment: MainAxisAlignment.spaceBetween,crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsetsDirectional.fromSTEB(
-                                        15.0, 0.0, 0.0, 0.0),
+                                  child: Padding(padding: const EdgeInsetsDirectional.fromSTEB(15.0, 0.0, 0.0, 0.0),
                                     child: Text(
                                       widget.projectName,
                                       overflow: TextOverflow.ellipsis, 
-                                      style: FlutterFlowTheme.of(context)
-                                          .displayMedium
-                                          .override(
-                                            fontFamily:
-                                                FlutterFlowTheme.of(context)
-                                                    .displayMediumFamily,
-                                            fontSize: 40.0,
-                                            useGoogleFonts: GoogleFonts.asMap()
-                                                .containsKey(
-                                                    FlutterFlowTheme.of(context)
-                                                        .displayMediumFamily),
-                                          ),
+                                      style: FlutterFlowTheme.of(context).displayMedium.override(fontFamily:FlutterFlowTheme.of(context).displayMediumFamily,fontSize: 40.0,useGoogleFonts: GoogleFonts.asMap().containsKey(FlutterFlowTheme.of(context).displayMediumFamily),),
                                     ),
                                   ),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsetsDirectional.fromSTEB(
-                                      0.0, 0.0, 11.0, 0.0),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.max,
-                                    mainAxisAlignment: MainAxisAlignment.end,
+                                Padding(padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 11.0, 0.0),
+                                  child: Row(mainAxisSize: MainAxisSize.max,mainAxisAlignment: MainAxisAlignment.end,
                                     children: [
-                                      InkWell(
-                                        splashColor: Colors.transparent,
-                                        focusColor: Colors.transparent,
-                                        hoverColor: Colors.transparent,
-                                        highlightColor: Colors.transparent,
+                                      InkWell(splashColor: Colors.transparent,focusColor: Colors.transparent,hoverColor: Colors.transparent,highlightColor: Colors.transparent,
                                         onTap: () async {
                                           await showModalBottomSheet(
                                             isScrollControlled: true,
@@ -1185,33 +562,20 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                             context: context,
                                             builder: (context) {
                                               return GestureDetector(
-                                                onTap: () => _model.unfocusNode
-                                                        .canRequestFocus
-                                                    ? FocusScope.of(context)
-                                                        .requestFocus(
-                                                            _model.unfocusNode)
-                                                    : FocusScope.of(context)
-                                                        .unfocus(),
-                                                child: Padding(
-                                                  padding:
-                                                      MediaQuery.viewInsetsOf(
-                                                          context),
-                                                  child: SizedBox(
-                                                    height: 350.0,
-                                                    child:
-                                                        ProjectDescriptionWidget(pDescription: widget.projectDescription),
+                                                onTap: () => _model.unfocusNode.canRequestFocus
+                                                    ? FocusScope.of(context).requestFocus(_model.unfocusNode)
+                                                    : FocusScope.of(context).unfocus(),
+                                                child: Padding(padding:MediaQuery.viewInsetsOf(context),
+                                                  child: SizedBox(height: 350.0,
+                                                    child:ProjectDescriptionWidget(pDescription: widget.projectDescription),
                                                   ),
                                                 ),
                                               );
                                             },
-                                          ).then(
-                                              (value) => safeSetState(() {}));
+                                          ).then((value) => safeSetState(() {}));
                                         },
                                         child: Icon(
-                                          Icons.info,
-                                          color: FlutterFlowTheme.of(context)
-                                              .primaryText,
-                                          size: 35.0,
+                                          Icons.info,color: FlutterFlowTheme.of(context).primaryText,size: 35.0,
                                         ),
                                       ),
                                     ].divide(const SizedBox(width: 10.0)),
@@ -1222,49 +586,21 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                           ),
                         ),
                       ),
-                      Align(
-                        alignment: const AlignmentDirectional(0.0, 0.0),
-                        child: Padding(
-                          padding: const EdgeInsetsDirectional.fromSTEB(
-                              0.0, 0.0, 0.0, 5.0),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.max,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      Align(alignment: const AlignmentDirectional(0.0, 0.0),
+                        child: Padding(padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 5.0),
+                          child: Row(mainAxisSize: MainAxisSize.max,mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Padding(
-                                padding: const EdgeInsetsDirectional.fromSTEB(
-                                    15.0, 0.0, 0.0, 0.0),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.max,
+                              Padding(padding: const EdgeInsetsDirectional.fromSTEB(15.0, 0.0, 0.0, 0.0),
+                                child: Row(mainAxisSize: MainAxisSize.max,
                                   children: [
-                                    Padding(
-                                      padding: const EdgeInsetsDirectional.fromSTEB(
-                                          0.0, 0.0, 2.0, 0.0),
-                                      child: Text(
-                                        FFLocalizations.of(context).getText(
-                                          'r0y5lwb6' /* Members:  */,
-                                        ),
-                                        style: FlutterFlowTheme.of(context)
-                                            .bodyMedium
-                                            .override(
-                                              fontFamily:
-                                                  FlutterFlowTheme.of(context)
-                                                      .bodyMediumFamily,
-                                              fontSize: 17.0,
-                                              useGoogleFonts: GoogleFonts
-                                                      .asMap()
-                                                  .containsKey(
-                                                      FlutterFlowTheme.of(
-                                                              context)
-                                                          .bodyMediumFamily),
-                                            ),
+                                    Padding(padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 2.0, 0.0),
+                                      child: Text(FFLocalizations.of(context).getText('r0y5lwb6' /* Members:  */,),
+                                        style: FlutterFlowTheme.of(context).bodyMedium.override(fontFamily:FlutterFlowTheme.of(context).bodyMediumFamily,fontSize: 17.0,useGoogleFonts: GoogleFonts.asMap().containsKey(FlutterFlowTheme.of(context).bodyMediumFamily),),
                                       ),
                                     ),
-                                    Container(
-                                      width: 180.0,
-                                      height: 40.0,
+                                    Container(width: 180.0,height: 40.0,
                                       child : FutureBuilder(
-                                          future: _getMembers(), 
+                                          future: _membersBO.getMembersProjectPage(widget.projectName, widget.projectOwnerID), 
                                           builder: (BuildContext context, AsyncSnapshot snapshot){
                                             if(snapshot.data == null){
                                               return SizedBox();
@@ -1277,34 +613,20 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                                 itemCount: snapshot.data.length,
                                                 separatorBuilder: (BuildContext context, int index) => SizedBox(width: 9.0),
                                                 itemBuilder: (BuildContext context, int index){
-                                                  return InkWell(
-                                                    splashColor: Colors.transparent,
-                                                    focusColor: Colors.transparent,
-                                                    hoverColor: Colors.transparent,
-                                                    highlightColor: Colors.transparent,
+                                                  return InkWell(splashColor: Colors.transparent,focusColor: Colors.transparent,hoverColor: Colors.transparent,highlightColor: Colors.transparent,
                                                     onTap: () async {
                                                       await showModalBottomSheet(    
                                                         isScrollControlled: true,
-                                                        backgroundColor:
-                                                            Colors.transparent,
+                                                        backgroundColor:Colors.transparent,
                                                         enableDrag: false,
                                                         context: context,
                                                         builder: (context) {
                                                           return GestureDetector(
-                                                            onTap: () => _model
-                                                                    .unfocusNode
-                                                                    .canRequestFocus
-                                                                ? FocusScope.of(context)
-                                                                    .requestFocus(_model
-                                                                        .unfocusNode)
-                                                                : FocusScope.of(context)
-                                                                    .unfocus(),
-                                                            child: Padding(
-                                                              padding: MediaQuery
-                                                                  .viewInsetsOf(
-                                                                      context),
-                                                              child: SizedBox(
-                                                                height: 150.0,
+                                                            onTap: () => _model.unfocusNode.canRequestFocus
+                                                                ? FocusScope.of(context).requestFocus(_model.unfocusNode)
+                                                                : FocusScope.of(context).unfocus(),
+                                                            child: Padding(padding: MediaQuery.viewInsetsOf(context),
+                                                              child: SizedBox(height: 150.0,
                                                                 child:
                                                                     ShowcaseProfileWidget(
                                                                       username: snapshot.data[index].username,
@@ -1315,19 +637,12 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                                             ),
                                                           );
                                                         },
-                                                      ).then((value) =>
-                                                          safeSetState(() {}));
+                                                      ).then((value) =>safeSetState(() {}));
                                                     },
-                                                    child: Container(
-                                                      width: 30.0,
-                                                      height: 30.0,
+                                                    child: Container(width: 30.0,height: 30.0,
                                                       clipBehavior: Clip.antiAlias,
-                                                      decoration: const BoxDecoration(
-                                                        shape: BoxShape.circle,
-                                                      ),
-                                                      child: Image.network(
-                                                        valueOrDefault(
-                                                        snapshot.data[index].profilePicture,
+                                                      decoration: const BoxDecoration(shape: BoxShape.circle,),
+                                                      child: Image.network(valueOrDefault(snapshot.data[index].profilePicture,
                                                         'https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg',
                                                         ),
                                                       ),
@@ -1342,28 +657,17 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                   ],
                                 ),
                               ),
-                              Padding(
-                                padding: const EdgeInsetsDirectional.fromSTEB(
-                                    0.0, 0.0, 15.0, 0.0),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.max,
+                              Padding(padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 15.0, 0.0),
+                                child: Row(mainAxisSize: MainAxisSize.max,
                                   children: [
-                                    InkWell(
-                                      splashColor: Colors.transparent,
-                                      focusColor: Colors.transparent,
-                                      hoverColor: Colors.transparent,
-                                      highlightColor: Colors.transparent,
+                                    InkWell(splashColor: Colors.transparent,focusColor: Colors.transparent,hoverColor: Colors.transparent,highlightColor: Colors.transparent,
                                       onTap: () async {
                                       context.pushNamed('BrowsePage', queryParameters: {
                                         'projectOwnerID': widget.projectOwnerID,
                                         'projectName': widget.projectName
                                       });
                                       },
-                                      child: Icon(
-                                        Icons.person_add_alt_1,
-                                        color: FlutterFlowTheme.of(context)
-                                            .primaryText,
-                                        size: 35.0,
+                                      child: Icon(Icons.person_add_alt_1,color: FlutterFlowTheme.of(context).primaryText,size: 35.0,
                                       ),
                                     ),
                                   ].divide(const SizedBox(width: 10.0)),
@@ -1373,24 +677,17 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                           ),
                         ),
                       ),
-
-
-
                       Stack(
                         children: [
                           Container(
                             height: 565.0,
                             decoration: const BoxDecoration(),
                             child: FutureBuilder<List<Task>>(
-                              future: _getTasks(),
+                              future: _tasksBO.getTasks(widget.projectName, widget.projectOwnerID),
                               builder: (context, snapshot) {
                                 if (snapshot.connectionState == ConnectionState.waiting) {
                                   return Center(
-                                    child: CircularProgressIndicator(
-                                      color: Color.fromARGB(99, 120, 227, 215),
-                                      backgroundColor: Color.fromARGB(30, 57, 210, 192),
-                                      strokeWidth: 4,
-                                    ),
+                                    child: CircularProgressIndicator(color: Color.fromARGB(99, 120, 227, 215),backgroundColor: Color.fromARGB(30, 57, 210, 192),strokeWidth: 4,),
                                   );
                                 }
                                 else if (snapshot.hasError) {
@@ -1421,8 +718,8 @@ class _ProjectPageWidgetState extends State<ProjectPageWidget> {
                                               task.subtaskflag,
                                               task.tAssign,
                                             ),
-FutureBuilder<List<SubTask>>(
-                                            future: _getSubTasks(task.taskName),
+                                            FutureBuilder<List<SubTask>>(
+                                            future: _subtasksBO.getSubTasks(widget.projectName, widget.projectOwnerID ,task.taskName),
                                             builder: (context, subTaskSnapshot) {
                                               if (subTaskSnapshot.connectionState == ConnectionState.waiting) {
                                                 return Center(child: CircularProgressIndicator());
@@ -1430,6 +727,7 @@ FutureBuilder<List<SubTask>>(
                                                 return Text('Error: ${subTaskSnapshot.error}');
                                               } else if (subTaskSnapshot.hasData && subTaskSnapshot.data!.isNotEmpty) {
                                                 return ListView.builder(
+                                                  padding: const EdgeInsets.fromLTRB(0, 5.0, 0, 0),
                                                   shrinkWrap: true,
                                                   physics: NeverScrollableScrollPhysics(), // To avoid nested scrolling issues
                                                   itemCount: subTaskSnapshot.data!.length,
@@ -1463,19 +761,9 @@ FutureBuilder<List<SubTask>>(
                               },
                             ),
                           ),
-                          Padding(
-                            padding: const EdgeInsetsDirectional.fromSTEB(312.0, 435.0, 0.0, 0.0),
-                            child: FlutterFlowIconButton(
-                              borderColor: Colors.transparent,
-                              borderRadius: 30.0,
-                              borderWidth: 1.0,
-                              buttonSize: 50.0,
-                              fillColor: FlutterFlowTheme.of(context).primaryBackground,
-                              icon: Icon(
-                                Icons.add,
-                                color: FlutterFlowTheme.of(context).primaryText,
-                                size: 24.0,
-                              ),
+                          Padding(padding: const EdgeInsetsDirectional.fromSTEB(312.0, 435.0, 0.0, 0.0),
+                            child: FlutterFlowIconButton(borderColor: Colors.transparent,borderRadius: 30.0,borderWidth: 1.0,buttonSize: 50.0,fillColor: FlutterFlowTheme.of(context).primaryBackground,
+                              icon: Icon(Icons.add,color: FlutterFlowTheme.of(context).primaryText,size: 24.0,),
                               onPressed: () async {
                                 context.pushNamed('TaskCreationPage', queryParameters: {
                                   'projectOwnerID': widget.projectOwnerID,

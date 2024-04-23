@@ -89,4 +89,32 @@ class Members_DAO{
     await _sqldatabaseHelper.closeConnection();                                                 
     return rating;
   }
+
+    Future<List<Member>> getMembers(projectName, projectOwnerID) async {
+    await _sqldatabaseHelper.connectToDatabase();
+    List<Member> members = [];
+    double rating;
+    double sum;
+    double temp;
+
+    final results = await _sqldatabaseHelper.connection.query('SELECT userID FROM projectMembers WHERE projectName = ? and ownerID = ?;',
+                                                          [projectName, projectOwnerID]); 
+    print('GOT PROJECT MEMBERS');
+    for(final row in results){
+      String tempUserName = row['userID'] as String;
+      rating = 0;
+      sum = 0;
+      temp = 0;
+      final results2 = await _sqldatabaseHelper.connection.query('SELECT rating FROM userRating WHERE userID = ?;',
+                                                          [tempUserName]); 
+      for(final row in results2){
+        temp = row['rating'] as double;
+        sum += temp;
+      }
+      rating = sum/results2.length;
+      members.add(Member(tempUserName, '', rating));
+    }
+    await _sqldatabaseHelper.closeConnection(); 
+    return members;
+  }
 }
